@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>게시판 · 예측 포털</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, cfg, requireUser, renderHeader, esc, ago, errText, ICONS } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  renderHeader(me);
+
+  const PAGE = 20;
+  const key = cfg.BOARDS[new URLSearchParams(location.search).get("b")] ? new URLSearchParams(location.search).get("b") : "coin";
+  const board = cfg.BOARDS[key];
+  document.title = board.name + " 게시판 · 예측 포털";
+
+  const tabs = Object.entries(cfg.BOARDS).map(([k, b]) =>
+    `<a href="board.html?b=${k}" ${k === key ? 'aria-current="page"' : ""}>${b.secret ? ICONS.lock : ""}${esc(b.name)}</a>`).join("");
+
+  document.body.insertAdjacentHTML("beforeend", `
+    <main class="page" style="gap:24px">
+      <nav class="board-tabs" aria-label="게시판">${tabs}</nav>
+      <div class="board-head">
+        <div><h1>${esc(board.name)}</h1><p class="hint">${esc(board.desc)}</p></div>
+        <a class="btn" href="write.html?b=${key}">글쓰기</a>
+      </div>
+      <div class="msg" id="msg" hidden></div>
+      <div class="card post-list" id="list"><div class="empty">불러오는 중…</div></div>
+      <button class="btn ghost" id="more" type="button" hidden>더 보기</button>
+    </main>`);
+
+  const list = document.getElementById("list");
+  let page = 0;
+
+  function row(p) {
+    const tags = [
+      p.pinned ? `<span class="tag notice">공지</span>` : "",
+      p.is_secret ? `<span class="tag secret">비밀글</span>` : "",
+      me.acc.isAdmin && p.report_count ? `<span class="tag report">신고 ${p.report_count}</span>` : "",
+    ].join("");
+    const mine = p.user_id === me.user.id ? ` <span class="mine">내 글</span>` : "";
+    return `
+      <a class="post-row ${p.pinned ? "pinned" : ""}" href="post.html?id=${p.id}">
+        <span class="t"><b>${tags}${esc(p.title)}</b><span>${esc(p.author)}${mine} · ${ago(p.created_at)}</span></span>
+        <span class="c">댓글 ${p.comment_count}</span>
+      </a>`;
+  }
+
+  async function load() {
+    const { data, error } = await sb.from("posts")
+      .select("id, user_id, author, title, is_secret, pinned, comment_count, report_count, created_at")
+      .eq("board", key)
+      .order("pinned", { ascending: false })
+      .order("created_at", { ascending: false })
+      .range(page * PAGE, page * PAGE + PAGE);   // 하나 더 받아서 다음 페이지 유무 판단
+    if (error) {
+      list.hidden = true;
+      const m = document.getElementById("msg");
+      m.className = "msg error"; m.textContent = errText(error); m.hidden = false;
+      return;
+    }
+    const rows = data.slice(0, PAGE);
+    if (page === 0) list.innerHTML = rows.length ? "" : `<div class="empty">${board.secret ? "아직 남긴 문의가 없어요" : "아직 글이 없어요. 첫 글을 남겨보세요!"}</div>`;
+    list.insertAdjacentHTML("beforeend", rows.map(row).join(""));
+    document.getElementById("more").hidden = data.length <= PAGE;
+  }
+
+  document.getElementById("more").onclick = () => { page++; load(); };
+  load();
+})();
+</script>
+</body>
+</html>

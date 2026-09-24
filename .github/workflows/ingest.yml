@@ -1,0 +1,45 @@
+name: 예측 데이터 수집
+
+# R 업로드 시간대(KST)에 10분마다 확인. GitHub 예약 실행은 몇 분씩 늦어질 수 있음
+on:
+  schedule:
+    - cron: "5-55/10 23 * * *"   # 나스닥  KST 08:05 ~ 08:55
+    - cron: "5-55/10 0 * * *"    # 코인    KST 09:05 ~ 09:55
+    - cron: "5-55/10 14 * * *"   # 코스피  KST 23:05 ~ 23:55
+    - cron: "20 1,15 * * *"      # 늦은 업로드 한 번 더 (KST 10:20, 00:20)
+  workflow_dispatch:             # Actions 탭에서 수동 실행
+
+permissions:
+  contents: read
+  actions: write                 # 아래 '예약 실행 유지' 단계용
+
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: CSV 수집 · 백업 · 판정 · 채점
+        run: python ingest/ingest.py
+        env:
+          SUPABASE_URL: https://qtzmfuaqzutzvnulfdel.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SOURCE_TOKEN: ${{ secrets.SOURCE_TOKEN }}   # 4-2 에서 CSV 저장소를 비공개로 바꿀 때 추가
+          GITHUB_TOKEN: ${{ github.token }}
+          PYTHONIOENCODING: utf-8
+
+      # 저장소에 60일간 커밋이 없으면 GitHub 이 예약 실행을 끄기 때문에, 매번 다시 켜둠
+      - name: 예약 실행 유지
+        if: always() && github.event_name == 'schedule'
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/ingest.yml/enable" || true
+        env:
+          GH_TOKEN: ${{ github.token }}

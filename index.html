@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>예측 포털</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, cfg, requireUser, renderHeader, esc, ymd, ago, daysLeft, ICONS, DAY } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  renderHeader(me);
+
+  // 시장별 게시판 최신 글 2개씩
+  const latest = {};
+  await Promise.all(Object.keys(cfg.MARKETS).map(async (k) => {
+    const { data } = await sb.from("posts").select("id, title, author, created_at")
+      .eq("board", k).order("created_at", { ascending: false }).limit(2);
+    latest[k] = data || [];
+  }));
+
+  const { acc } = me;
+  const day = Math.floor((Date.now() - acc.joined.getTime()) / DAY) + 1;
+
+  // 인사말 아래 상태 안내
+  let status;
+  if (acc.isAdmin) {
+    status = `<p class="lead">운영자 계정이라 모든 탭이 열려 있어요.</p>`;
+  } else if (acc.inTrial) {
+    const left = daysLeft(acc.trialEnd);
+    const used = Math.min(cfg.TRIAL_DAYS, cfg.TRIAL_DAYS - left + 1);
+    status = `
+      <p class="lead">가입하신 지 ${day}일째예요. 무료체험이 <b style="color:var(--accent)">${left}일</b> 남았어요.</p>
+      <div class="progress"><div class="bar"><i style="width:${Math.round((used / cfg.TRIAL_DAYS) * 100)}%"></i></div>
+      <span>${used} / ${cfg.TRIAL_DAYS}일 사용</span></div>`;
+  } else if (acc.anyOpen) {
+    status = `<p class="lead">이용 중인 탭의 오늘 예측을 확인해 보세요. 기간은 <a href="mypage.html" style="font-weight:600">마이페이지</a>에서 연장할 수 있어요.</p>`;
+  } else {
+    status = `<p class="lead">무료체험 기간이 끝나서 대시보드의 자세한 내용이 잠겼어요. 마이페이지에서 결제하시면 다시 열어드려요.</p>`;
+  }
+  const expiredBadge = !acc.isAdmin && !acc.inTrial && !acc.anyOpen ? `<span class="badge warn">무료체험 종료</span>` : "";
+
+  const cards = Object.entries(cfg.MARKETS).map(([key, m]) => {
+    const t = acc.tabs[key];
+    const note = acc.isAdmin ? "" : acc.inTrial && !t.paid ? "무료체험 중"
+      : t.paid ? `${ymd(t.until)}까지 · D-${daysLeft(t.until)}` : "";
+    const head = `<span class="market-head">${ICONS[key] || ""}${esc(m.name)}</span>`;
+    const top = t.open
+      ? `<a class="market-card" href="dashboard.html?m=${key}">
+          ${head}
+          <p>${esc(m.desc)}</p>
+          <span class="views">${m.views.map((v) => `<span class="pill">${esc(v.label)}</span>`).join("")}</span>
+          ${note ? `<span class="status">${note}</span>` : ""}
+          <span class="open">탭 열기 →</span>
+        </a>`
+      : `<a class="market-card" href="mypage.html">
+          ${head}
+          <div class="lockbox"><div class="ghost"><i style="width:70%"></i><i style="width:45%"></i><i style="width:85%"></i></div>
+            <div class="over"><span class="dot">${ICONS.lock}</span>결제 후 열람 가능</div></div>
+          <span class="open" style="color:var(--sub)">마이페이지에서 열기 →</span>
+        </a>`;
+    // 게시판은 잠금과 상관없이 항상 보임
+    const posts = latest[key] || [];
+    return `
+      <div class="card market-card static">
+        ${top}
+        <div class="divider"></div>
+        <div class="mini-posts">
+          <a class="label" href="board.html?b=${key}">${esc(cfg.BOARDS[key].name)} 게시판 →</a>
+          ${posts.length ? posts.map((p) => `<a href="post.html?id=${p.id}"><b>${esc(p.title)}</b><span>${esc(p.author)} · ${ago(p.created_at)}</span></a>`).join("")
+            : `<span class="none">아직 글이 없어요</span>`}
+        </div>
+      </div>`;
+  }).join("");
+
+  const inquiry = ["request", "payment"].map((k) => `
+    <a class="card market-card" href="board.html?b=${k}">
+      <span class="market-head">${k === "payment"
+        ? `<span class="icon-box" style="background:var(--warn-soft);color:var(--warn)">${ICONS.lock}</span>`
+        : `<span class="icon-box blue"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563D9" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>`}
+        ${esc(cfg.BOARDS[k].name)}</span>
+      <p>${esc(cfg.BOARDS[k].desc)}</p>
+      <span class="status" style="font-weight:600;color:${k === "payment" ? "var(--warn)" : "var(--sub)"}">${k === "payment" ? "나와 운영자만 볼 수 있는 비밀글이에요" : "누구나 볼 수 있는 공개 게시판"}</span>
+    </a>`).join("");
+
+  document.body.insertAdjacentHTML("beforeend", `
+    <main class="page">
+      <section>
+        <div class="title-row" style="margin-bottom:6px"><h1>안녕하세요, ${esc(me.profile.nickname)}님</h1>${expiredBadge}</div>
+        ${status}
+      </section>
+      <section class="section">
+        <div>
+          <h2>대시보드</h2>
+          <p class="hint">${acc.anyOpen ? "탭을 눌러 오늘의 예측을 확인하세요" : "결제가 확인되면 아래 탭이 바로 다시 열려요"}</p>
+        </div>
+        <div class="grid3">${cards}</div>
+      </section>
+      <section class="section">
+        <div>
+          <h2>문의</h2>
+          <p class="hint">종목 요청과 입금 문의는 여기서 남겨주세요</p>
+        </div>
+        <div class="grid2">${inquiry}</div>
+      </section>
+      <p class="hint" style="font-size:12px;color:var(--faint);line-height:1.6">
+        이 화면의 정보는 예측 모델의 출력을 정리해 보여주는 참고 자료이며, 투자 권유나 종목 추천이 아닙니다.
+        투자 판단과 그 결과에 대한 책임은 이용자 본인에게 있습니다.
+      </p>
+    </main>`);
+})();
+</script>
+</body>
+</html>

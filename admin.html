@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>운영자 · 예측 포털</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, cfg, requireUser, renderHeader, esc, won, ymd, errText, access, confirmClick } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  if (!me.acc.isAdmin) { location.replace("index.html"); return; }
+  renderHeader(me);
+
+  const main = document.createElement("main");
+  main.className = "page";
+  document.body.appendChild(main);
+
+  const TABS = Object.keys(cfg.MARKETS);
+  const tabNames = (tabs) => tabs.map((t) => cfg.MARKETS[t]?.name || t).join(" · ");
+  const planLabel = (m) => cfg.PLANS.find((p) => p.months === m)?.label || m + "달";
+  const STATUS = { approved: ["승인", "teal"], rejected: ["거절", "red"], cancelled: ["회원 취소", "gray"] };
+
+  async function load() {
+    const [{ data: reqs, error: e1 }, { data: members, error: e2 }] = await Promise.all([
+      sb.from("payment_requests").select("*, profiles(nickname, email)").order("created_at", { ascending: false }).limit(200),
+      sb.from("profiles").select("*").order("joined_at", { ascending: false }),
+    ]);
+    if (e1 || e2) { main.innerHTML = `<div class="msg error">${esc(errText(e1 || e2))}</div>`; return; }
+
+    const pending = reqs.filter((r) => r.status === "pending");
+    const done = reqs.filter((r) => r.status !== "pending").slice(0, 30);
+
+    const pendingRows = pending.map((r) => `
+      <tr>
+        <td class="muted">${ymd(r.created_at)}<br>${new Date(r.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</td>
+        <td><b>${esc(r.profiles?.nickname)}</b><br><span class="muted">${esc(r.profiles?.email)}</span></td>
+        <td>${esc(tabNames(r.tabs))}</td>
+        <td>${planLabel(r.months)}</td>
+        <td class="num"><b>${won(r.amount)}</b></td>
+        <td class="muted">${esc(r.phone || "-")}</td>
+        <td><input class="memo" data-memo="${r.id}" placeholder="메모 (선택)" aria-label="처리 메모"
+              style="height:34px;width:130px;border:1px solid var(--line);border-radius:8px;padding:0 8px;font:inherit;font-size:13px"></td>
+        <td><div class="row-actions">
+          <button class="btn sm" data-approve="${r.id}">입금 확인</button>
+          <button class="btn sm ghost" data-reject="${r.id}">거절</button>
+        </div></td>
+      </tr>`).join("");
+
+    const doneRows = done.map((r) => `
+      <tr>
+        <td class="muted">${ymd(r.created_at)}</td>
+        <td>${esc(r.profiles?.nickname)}</td>
+        <td>${esc(tabNames(r.tabs))} · ${planLabel(r.months)}</td>
+        <td class="num">${won(r.amount)}</td>
+        <td><span class="badge ${STATUS[r.status][1]}">${STATUS[r.status][0]}</span></td>
+        <td class="muted">${ymd(r.processed_at)}${r.admin_memo ? " · " + esc(r.admin_memo) : ""}</td>
+      </tr>`).join("");
+
+    const memberRows = members.map((p) => {
+      const a = access(p);
+      const cells = TABS.map((t) => `<td><input type="date" data-user="${p.id}" data-tab="${t}" value="${ymd(p[t + "_until"])}" data-orig="${ymd(p[t + "_until"])}" aria-label="${esc(p.nickname)} ${cfg.MARKETS[t].name} 만료일"></td>`).join("");
+      const state = p.role === "admin" ? `<span class="badge teal">운영자</span>`
+        : a.inTrial ? `<span class="badge red">체험 ~${ymd(a.trialEnd)}</span>`
+        : a.anyOpen ? `<span class="badge teal">이용 중</span>` : `<span class="badge warn">잠김</span>`;
+      return `
+        <tr>
+          <td><b>${esc(p.nickname)}</b><br><span class="muted">${esc(p.email)}</span></td>
+          <td class="muted">${ymd(p.joined_at)}</td>
+          <td>${state}</td>
+          ${cells}
+          <td><button class="btn sm ghost" data-save="${p.id}">저장</button></td>
+        </tr>`;
+    }).join("");
+
+    main.innerHTML = `
+      <section>
+        <h1>운영자</h1>
+        <nav class="board-tabs" style="margin:14px 0"><a href="admin.html" aria-current="page">입금 · 회원</a><a href="accuracy.html">수집 · 적중률</a></nav>
+        <p class="lead">통장에서 입금을 확인한 뒤 <b>입금 확인</b>을 누르면 회원의 탭이 바로 열려요</p>
+      </section>
+      <div class="msg" id="msg" hidden></div>
+
+      <section class="section">
+        <div class="title-row"><h2 style="margin:0">입금 확인 대기</h2><span class="badge ${pending.length ? "warn" : "gray"}">${pending.length}건</span></div>
+        <div class="card table-wrap" style="padding:8px 12px">
+          ${pending.length ? `<table class="list"><thead><tr><th>신청</th><th>닉네임 (입금자명)</th><th>탭</th><th>기간</th><th class="num">금액</th><th>휴대폰</th><th>메모</th><th></th></tr></thead><tbody>${pendingRows}</tbody></table>`
+            : `<div class="empty">대기 중인 입금 신청이 없어요</div>`}
+        </div>
+      </section>
+
+      <section class="section">
+        <div>
+          <h2>회원 목록</h2>
+          <p class="hint">탭별 만료일을 직접 고칠 수 있어요(환불·보상 등). 날짜를 지우고 저장하면 그 탭 이용권이 없어져요</p>
+        </div>
+        <div class="card table-wrap" style="padding:8px 12px">
+          <table class="list"><thead><tr><th>회원</th><th>가입일</th><th>상태</th>${TABS.map((t) => `<th>${cfg.MARKETS[t].name} 만료</th>`).join("")}<th></th></tr></thead>
+          <tbody>${memberRows}</tbody></table>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>처리 내역</h2>
+        <div class="card table-wrap" style="padding:8px 12px">
+          ${done.length ? `<table class="list"><thead><tr><th>신청일</th><th>닉네임</th><th>내용</th><th class="num">금액</th><th>결과</th><th>처리</th></tr></thead><tbody>${doneRows}</tbody></table>`
+            : `<div class="empty">아직 처리한 신청이 없어요</div>`}
+        </div>
+      </section>`;
+  }
+
+  function show(kind, text) { const m = document.getElementById("msg"); m.className = "msg " + kind; m.textContent = text; m.hidden = false; window.scrollTo({ top: 0, behavior: "smooth" }); }
+
+  main.addEventListener("click", async (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+
+    const memoOf = (id) => main.querySelector(`[data-memo="${id}"]`)?.value.trim() || null;
+
+    if (b.dataset.approve) {
+      if (!confirmClick(b, "한 번 더 누르면 승인")) return;
+      b.disabled = true;
+      const { error } = await sb.rpc("approve_payment", { p_id: Number(b.dataset.approve), p_memo: memoOf(b.dataset.approve) });
+      if (error) { b.disabled = false; return show("error", errText(error)); }
+      await load(); show("ok", "승인했어요. 회원의 탭이 열렸어요.");
+    }
+
+    if (b.dataset.reject) {
+      if (!confirmClick(b, "한 번 더 누르면 거절")) return;
+      const memo = memoOf(b.dataset.reject) || "입금 확인 안 됨";
+      b.disabled = true;
+      const { error } = await sb.rpc("reject_payment", { p_id: Number(b.dataset.reject), p_memo: memo });
+      if (error) { b.disabled = false; return show("error", errText(error)); }
+      await load(); show("ok", "거절 처리했어요.");
+    }
+
+    if (b.dataset.save) {
+      const inputs = [...main.querySelectorAll(`input[data-user="${b.dataset.save}"]`)].filter((i) => i.value !== i.dataset.orig);
+      if (!inputs.length) return show("warn", "바뀐 날짜가 없어요.");
+      b.disabled = true;
+      for (const i of inputs) {
+        const until = i.value ? new Date(i.value + "T23:59:59").toISOString() : null;
+        const { error } = await sb.rpc("admin_set_until", { p_user: i.dataset.user, p_tab: i.dataset.tab, p_until: until });
+        if (error) { b.disabled = false; return show("error", errText(error)); }
+      }
+      await load(); show("ok", "만료일을 저장했어요.");
+    }
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>글쓰기 · 예측 포털</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, cfg, requireUser, renderHeader, esc, errText } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  renderHeader(me);
+
+  // ?b=coin → 새 글, ?id=12 → 수정
+  const params = new URLSearchParams(location.search);
+  const editId = params.get("id");
+  let post = null;
+  if (editId) {
+    const { data } = await sb.from("posts").select("*").eq("id", editId).maybeSingle();
+    if (!data || (data.user_id !== me.user.id && !me.acc.isAdmin)) { location.replace("board.html"); return; }
+    post = data;
+  }
+  const key = post ? post.board : cfg.BOARDS[params.get("b")] ? params.get("b") : "coin";
+  const board = cfg.BOARDS[key];
+
+  document.body.insertAdjacentHTML("beforeend", `
+    <main class="page" style="max-width:860px;gap:24px">
+      <div>
+        <a class="hint" href="board.html?b=${key}">← ${esc(board.name)} 게시판</a>
+        <h1 style="margin-top:10px">${post ? "글 수정" : "글쓰기"}</h1>
+        ${board.secret ? `<p class="hint">이 게시판의 글은 비밀글이라 <b>나와 운영자만</b> 볼 수 있어요</p>` : ""}
+      </div>
+      <form class="card form-stack" id="form" novalidate>
+        <div class="field">
+          <label for="title">제목</label>
+          <input id="title" maxlength="100" value="${esc(post?.title)}" required>
+        </div>
+        <div class="field">
+          <label for="body">내용</label>
+          <textarea class="input tall" id="body" maxlength="5000" required>${esc(post?.body)}</textarea>
+          <small><span id="count">0</span> / 5,000자</small>
+        </div>
+        ${me.acc.isAdmin ? `<label class="check"><input type="checkbox" id="pinned" ${post?.pinned ? "checked" : ""}>공지로 고정 (목록 맨 위에 표시)</label>` : ""}
+        <div class="msg" id="msg" hidden></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <a class="btn ghost" href="${post ? "post.html?id=" + post.id : "board.html?b=" + key}">취소</a>
+          <button class="btn" id="submit" type="submit">${post ? "수정하기" : "등록하기"}</button>
+        </div>
+      </form>
+    </main>`);
+
+  const $ = (id) => document.getElementById(id);
+  const show = (text) => { const m = $("msg"); m.className = "msg error"; m.textContent = text; m.hidden = false; };
+  const count = () => ($("count").textContent = $("body").value.length.toLocaleString("ko-KR"));
+  $("body").addEventListener("input", count);
+  count();
+
+  $("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const title = $("title").value.trim();
+    const body = $("body").value.trim();
+    if (!title) return show("제목을 입력해 주세요.");
+    if (!body) return show("내용을 입력해 주세요.");
+
+    const row = { title, body };
+    if (me.acc.isAdmin) row.pinned = $("pinned").checked;
+
+    $("submit").disabled = true;
+    const q = post
+      ? sb.from("posts").update(row).eq("id", post.id).select("id").single()
+      : sb.from("posts").insert({ ...row, board: key, is_secret: Boolean(board.secret) }).select("id").single();
+    const { data, error } = await q;
+    if (error) { $("submit").disabled = false; return show(errText(error)); }
+    location.replace("post.html?id=" + data.id);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>마이페이지 · 예측 포털</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, cfg, requireUser, renderHeader, esc, won, ymd, daysLeft, price, errText, confirmClick, ICONS } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  renderHeader(me);
+
+  const { profile, acc } = me;
+  const main = document.createElement("main");
+  main.className = "page";
+  document.body.appendChild(main);
+
+  const STATUS = {
+    pending: ["입금 확인 대기", "warn"],
+    approved: ["승인 완료", "teal"],
+    rejected: ["확인 불가", "red"],
+    cancelled: ["신청 취소", "gray"],
+  };
+  const tabNames = (tabs) => tabs.map((t) => cfg.MARKETS[t]?.name || t).join(" · ");
+  const planLabel = (m) => cfg.PLANS.find((p) => p.months === m)?.label || m + "달";
+
+  const { data: requests } = await sb.from("payment_requests").select("*").order("created_at", { ascending: false });
+  const pending = (requests || []).find((r) => r.status === "pending");
+
+  // ---------- 왼쪽: 내 정보 · 탭별 이용 현황 ----------
+  let overall;
+  if (acc.isAdmin) overall = `<span class="badge teal">운영자</span>`;
+  else if (acc.inTrial) overall = `<span class="badge red">무료체험 중 · D-${daysLeft(acc.trialEnd)}</span>`;
+  else if (acc.anyOpen) overall = `<span class="badge teal">이용 중</span>`;
+  else overall = `<span class="badge warn">무료체험 종료</span>`;
+
+  const tabRows = Object.entries(cfg.MARKETS).map(([key, m]) => {
+    const t = acc.tabs[key];
+    let v;
+    if (t.paid) v = `<b style="color:var(--ink)">${ymd(t.until)}</b>까지 · D-${daysLeft(t.until)}`;
+    else if (acc.isAdmin) v = "운영자 열람";
+    else if (acc.inTrial) v = `무료체험 · ${ymd(acc.trialEnd)}까지`;
+    else v = `<span style="color:var(--warn);font-weight:600">잠김</span>`;
+    return `<div class="kv"><span class="k">${ICONS[key]}${esc(m.name)}</span><span class="v">${v}</span></div>`;
+  }).join("");
+
+  const historyRows = (requests || []).map((r) => `
+    <div class="kv">
+      <span class="k" style="flex-direction:column;align-items:flex-start;gap:2px">
+        <span>${esc(tabNames(r.tabs))} · ${planLabel(r.months)}</span>
+        <span style="font-size:12px;color:var(--muted);font-weight:400">${ymd(r.created_at)} 신청 · ${won(r.amount)}</span>
+      </span>
+      <span class="badge ${STATUS[r.status][1]}">${STATUS[r.status][0]}</span>
+    </div>`).join("");
+
+  const left = `
+    <div class="stack">
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+          <span class="avatar" style="width:48px;height:48px;font-size:18px">${esc(profile.nickname.slice(0, 1))}</span>
+          <div style="flex:1">
+            <div style="font-size:17px;font-weight:700">${esc(profile.nickname)}</div>
+            <div class="hint" style="font-size:12.5px">가입일 ${ymd(acc.joined)}</div>
+          </div>
+          ${overall}
+        </div>
+        ${tabRows}
+      </div>
+      <div class="card">
+        <h3>이용 이력</h3>
+        <div class="kv"><span class="k">가입 · 무료체험 시작</span><span class="v">${ymd(acc.joined)}</span></div>
+        ${historyRows || ""}
+        ${requests && requests.length ? "" : `<p class="hint" style="font-size:12.5px;margin-top:6px">아직 연장 내역이 없어요</p>`}
+      </div>
+    </div>`;
+
+  // ---------- 오른쪽: 이용 연장하기 ----------
+  const bank = `
+    <div class="bank">
+      <b>${esc(cfg.BANK.name)} ${esc(cfg.BANK.account)}</b> (예금주 ${esc(cfg.BANK.holder)})<br>
+      입금자명은 <b>가입 닉네임(${esc(profile.nickname)})</b>과 똑같이 적어주세요
+    </div>`;
+
+  let right;
+  if (pending) {
+    right = `
+      <div class="card form-stack">
+        <div class="title-row"><h3 style="margin:0">입금 확인을 기다리고 있어요</h3><span class="badge warn">대기 중</span></div>
+        <div class="total"><span>${esc(tabNames(pending.tabs))} · ${planLabel(pending.months)}</span><b>${won(pending.amount)}</b></div>
+        ${bank}
+        <p class="hint">운영자가 입금을 확인하면 선택한 탭이 자동으로 열려요. 이 페이지에서 날짜가 바뀐 걸 확인할 수 있어요.</p>
+        <div class="msg" id="msg" hidden></div>
+        <button class="btn ghost" id="cancelBtn" type="button">신청 취소</button>
+      </div>`;
+  } else {
+    const tabChoices = Object.entries(cfg.MARKETS).map(([key, m]) => `
+      <label class="choice"><input type="checkbox" name="tab" value="${key}">
+        <b>${esc(m.name)}</b><small>${won(cfg.PRICE_1M[0])} / 1달</small></label>`).join("");
+    const planChoices = cfg.PLANS.map((p, i) => `
+      <label class="choice"><input type="radio" name="plan" value="${p.months}" ${i === 0 ? "checked" : ""}>
+        <b>${p.label}</b><small>${p.discount ? `<span class="off">${Math.round(p.discount * 100)}% 할인</span>` : `${p.days}일`}</small></label>`).join("");
+
+    right = `
+      <form class="card form-stack" id="buyForm" novalidate>
+        <div>
+          <h3 style="margin-bottom:4px">이용 연장하기</h3>
+          <p class="hint">${acc.inTrial ? "무료체험 중에 신청하면 체험이 끝난 다음 날부터 이어서 적용돼요" : "남은 기간이 있으면 그 뒤에 이어서 붙어요"}</p>
+        </div>
+        <div><div class="label">볼 탭을 골라주세요</div><div class="choice-grid">${tabChoices}</div></div>
+        <div><div class="label">이용 기간</div><div class="choice-grid four">${planChoices}</div></div>
+        <div class="total"><span id="sumLabel">탭을 골라주세요</span><b><s id="sumOrig"></s><span id="sum">0원</span></b></div>
+        ${bank}
+        <div class="field">
+          <label for="phone">휴대폰 번호 (선택)</label>
+          <input id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="010-0000-0000">
+          <small>문제가 생겼을 때 연락드리는 용도로만 쓰고, 다른 회원에게 공개되지 않아요</small>
+        </div>
+        <label class="check"><input type="checkbox" id="agree"><span id="refundText"></span></label>
+        <div class="msg" id="msg" hidden></div>
+        <button class="btn block" id="submit" type="submit">입금했어요 · 입금 신청</button>
+      </form>`;
+  }
+
+  main.innerHTML = `
+    <section>
+      <h1>마이페이지</h1>
+      <p class="lead">이용 상태와 결제 안내를 확인해요</p>
+    </section>
+    <div class="two-col">${left}${right}</div>`;
+
+  const $ = (id) => document.getElementById(id);
+  const show = (kind, text) => { const m = $("msg"); m.className = "msg " + kind; m.textContent = text; m.hidden = false; };
+
+  if (pending) {
+    $("cancelBtn").onclick = async () => {
+      if (!confirmClick($("cancelBtn"), "이미 입금했다면 취소하지 마세요 · 한 번 더 누르면 취소")) return;
+      const { error } = await sb.rpc("cancel_payment", { p_id: pending.id });
+      if (error) return show("error", errText(error));
+      location.reload();
+    };
+    return;
+  }
+
+  // 금액 · 환불 문구 자동 계산
+  function update() {
+    const tabs = [...document.querySelectorAll('input[name="tab"]:checked')].map((i) => i.value);
+    const months = Number(document.querySelector('input[name="plan"]:checked').value);
+    const total = price(tabs.length, months);
+    const full = tabs.length ? cfg.PRICE_1M[tabs.length - 1] * months : 0;
+    $("sum").textContent = won(total);
+    $("sumOrig").textContent = total && full > total ? won(full) : "";
+    $("sumLabel").textContent = tabs.length
+      ? `${tabs.length}개 선택 · ${planLabel(months)}${tabs.length > 1 ? " · 묶음 할인 적용" : ""}`
+      : "탭을 골라주세요";
+    $("refundText").textContent = months === 1
+      ? "이용 시작 후 7일 이내는 100% 환불되고, 7일이 지나면 환불이 어려워요. 이 내용에 동의해요."
+      : "이용 시작 후 7일 이내는 100% 환불되고, 그 이후에는 남은 기간 비율만큼 환불돼요. 이 내용에 동의해요.";
+    return { tabs, months, total };
+  }
+  $("buyForm").addEventListener("change", update);
+  update();
+
+  $("buyForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const { tabs, months, total } = update();
+    if (!tabs.length) return show("error", "볼 탭을 하나 이상 골라주세요.");
+    if (!$("agree").checked) return show("error", "환불 정책에 동의해 주세요.");
+    $("submit").disabled = true;
+    const { error } = await sb.rpc("request_payment", {
+      p_tabs: tabs, p_months: months, p_phone: $("phone").value, p_agree: true,
+    });
+    if (error) { $("submit").disabled = false; return show("error", errText(error)); }
+    location.reload();
+  });
+})();
+</script>
+</body>
+</html>

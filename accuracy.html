@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>수집 · 적중률 · 예측 포털</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, cfg, requireUser, renderHeader, esc, ymd, ago, errText, ICONS } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  if (!me.acc.isAdmin) { location.replace("index.html"); return; }
+  renderHeader(me);
+
+  const main = document.createElement("main");
+  main.className = "page";
+  document.body.appendChild(main);
+
+  const MK = Object.keys(cfg.MARKETS);
+  const pct = (hit, n) => (n ? Math.round((hit / n) * 100) + "%" : "—");
+  const frac = (hit, n) => (n ? `${hit}/${n}` : "0");
+  let days = 30;
+
+  // ---------- 수집 상태 ----------
+  const { data: logs, error: logErr } = await sb.from("ingest_log").select("*").order("created_at", { ascending: false }).limit(200);
+
+  function statusCard(m) {
+    const mine = (logs || []).filter((l) => l.market === m);
+    const ok = mine.find((l) => l.status === "ok" && l.kind === "chart");
+    const bad = mine.find((l) => l.status !== "ok");
+    const badNewer = bad && (!ok || new Date(bad.created_at) > new Date(ok.created_at));
+    const badge = !ok && !bad ? `<span class="badge gray">기록 없음</span>`
+      : badNewer ? `<span class="badge ${bad.status === "missing" ? "warn" : "red"}">${bad.status === "missing" ? "미수신" : "오류"}</span>`
+      : `<span class="badge teal">정상</span>`;
+    return `
+      <div class="card" style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="market-head">${ICONS[m]}${esc(cfg.MARKETS[m].name)}</span>${badge}
+        </div>
+        <div class="kv"><span class="k" style="font-weight:500">마지막 수신</span>
+          <span class="v">${ok ? `${ymd(ok.created_at)} ${new Date(ok.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} · ${ago(ok.created_at)}` : "-"}</span></div>
+        <div class="kv"><span class="k" style="font-weight:500">예측 수행일</span><span class="v">${ok ? ok.pred_date : "-"}</span></div>
+        ${badNewer ? `<div class="msg ${bad.status === "missing" ? "warn" : "error"}" style="font-size:12.5px">${esc(bad.message || "")}</div>` : ""}
+      </div>`;
+  }
+
+  // ---------- 적중률 ----------
+  async function renderAccuracy() {
+    const box = document.getElementById("acc");
+    box.innerHTML = `<div class="empty">불러오는 중…</div>`;
+    const { data, error } = await sb.rpc("accuracy_stats", { p_days: days });
+    if (error) { box.innerHTML = `<div class="msg error">${esc(errText(error))}</div>`; return; }
+
+    const sum = {};
+    for (const m of MK) sum[m] = { up_n: 0, up_hit: 0, dn_n: 0, dn_hit: 0, mx_n: 0, pending: 0, hc_n: 0, hc_hit: 0, days: 0 };
+    for (const r of data) {
+      const s = sum[r.market]; if (!s) continue;
+      for (const k of ["up_n", "up_hit", "dn_n", "dn_hit", "mx_n", "pending", "hc_n", "hc_hit"]) s[k] += r[k];
+      if (r.up_n + r.dn_n) s.days++;
+    }
+
+    const rows = MK.map((m) => {
+      const s = sum[m];
+      return `<tr>
+        <td><b>${esc(cfg.MARKETS[m].name)}</b><br><span class="muted">채점된 날 ${s.days}일</span></td>
+        <td class="num"><b>${pct(s.up_hit, s.up_n)}</b><br><span class="muted">${frac(s.up_hit, s.up_n)}</span></td>
+        <td class="num"><b>${pct(s.dn_hit, s.dn_n)}</b><br><span class="muted">${frac(s.dn_hit, s.dn_n)}</span></td>
+        <td class="num"><b>${pct(s.up_hit + s.dn_hit, s.up_n + s.dn_n)}</b><br><span class="muted">${frac(s.up_hit + s.dn_hit, s.up_n + s.dn_n)}</span></td>
+        <td class="num"><b>${pct(s.hc_hit, s.hc_n)}</b><br><span class="muted">${frac(s.hc_hit, s.hc_n)}</span></td>
+        <td class="num muted">${s.mx_n}</td>
+        <td class="num muted">${s.pending}</td>
+      </tr>`;
+    }).join("");
+
+    const daily = data.map((r) => `<tr>
+        <td class="muted">${r.pred_date}</td><td>${esc(cfg.MARKETS[r.market]?.name || r.market)}</td>
+        <td class="num">${frac(r.up_hit, r.up_n)} <span class="muted">(${pct(r.up_hit, r.up_n)})</span></td>
+        <td class="num">${frac(r.dn_hit, r.dn_n)} <span class="muted">(${pct(r.dn_hit, r.dn_n)})</span></td>
+        <td class="num">${frac(r.hc_hit, r.hc_n)}</td>
+        <td class="num muted">${r.mx_n}</td><td class="num muted">${r.pending}</td>
+      </tr>`).join("");
+
+    box.innerHTML = `
+      <div class="card table-wrap" style="padding:8px 12px">
+        <table class="list">
+          <thead><tr><th>시장</th><th class="num">상승 적중률</th><th class="num">하락 적중률</th><th class="num">전체 적중률</th>
+            <th class="num">확신 높음 적중률</th><th class="num">혼돈·보류·지연</th><th class="num">채점 대기</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p class="hint" style="font-size:12.5px;line-height:1.7">
+        상승 판정은 D+1 실제 종가가 기준 종가보다 오르면, 하락 판정은 내리면 적중이에요. 혼돈은 방향을 정하지 않은 판정이라 적중률에서 빼요.<br>
+        <b>확신 높음</b>은 D+1 판정과 같은 방향으로 6일 합의도가 80% 이상인 경우예요. 전체 적중률보다 뚜렷하게 높으면 화면에 확신도 배지를 붙일 근거가 돼요.<br>
+        채점은 다음 날 CSV의 실제 종가로 해요. 그래서 오늘 예측은 내일 수집 뒤에 채점돼요.
+      </p>
+      <h3 style="margin:8px 0 0">일별</h3>
+      <div class="card table-wrap" style="padding:8px 12px">
+        ${data.length ? `<table class="list"><thead><tr><th>예측일</th><th>시장</th><th class="num">상승</th><th class="num">하락</th><th class="num">확신 높음</th><th class="num">혼돈 등</th><th class="num">채점 대기</th></tr></thead><tbody>${daily}</tbody></table>`
+          : `<div class="empty">아직 기록이 없어요. 수집이 시작되면 여기에 쌓여요</div>`}
+      </div>`;
+  }
+
+  main.innerHTML = `
+    <section>
+      <h1>운영자</h1>
+      <nav class="board-tabs" style="margin-top:14px"><a href="admin.html">입금 · 회원</a><a href="accuracy.html" aria-current="page">수집 · 적중률</a></nav>
+    </section>
+    <section class="section">
+      <div><h2>데이터 수집 상태</h2>
+        <p class="hint">R이 GitHub에 CSV를 올리면 10분 안에 자동으로 가져와요. 시작 후 50분이 지나도 없으면 미수신으로 표시되고, GitHub이 메일로 알려줘요</p></div>
+      ${logErr ? `<div class="msg error">${esc(errText(logErr))}</div>` : `<div class="grid3">${MK.map(statusCard).join("")}</div>`}
+    </section>
+    <section class="section">
+      <div class="board-head">
+        <div><h2>예측 적중률 <span class="badge gray" style="vertical-align:middle">운영자만 보기</span></h2>
+          <p class="hint">데이터가 2~4주 쌓이기 전에는 회원에게 공개하지 않아요. 공개할 때는 상승·하락·전체 세 가지를 항상 함께 보여줘요</p></div>
+        <div class="seg" style="width:240px" role="tablist">
+          <button type="button" data-days="7" aria-selected="false">7일</button>
+          <button type="button" data-days="30" aria-selected="true">30일</button>
+        </div>
+      </div>
+      <div id="acc" class="stack"></div>
+    </section>`;
+
+  main.querySelectorAll("[data-days]").forEach((b) => b.addEventListener("click", () => {
+    days = Number(b.dataset.days);
+    main.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+    renderAccuracy();
+  }));
+  renderAccuracy();
+})();
+</script>
+</body>
+</html>

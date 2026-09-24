@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>로그인 · 예측 포털</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+</head>
+<body>
+<main class="auth-wrap">
+  <div class="card auth-card">
+    <span class="auth-badge">코인 · 나스닥 · 코스피 예측</span>
+    <div>
+      <h1 id="title">다시 오신 걸 환영해요</h1>
+      <p class="hint" id="subtitle">이메일과 비밀번호로 로그인해요</p>
+    </div>
+
+    <div class="seg" role="tablist">
+      <button type="button" role="tab" id="tabLogin" aria-selected="true">로그인</button>
+      <button type="button" role="tab" id="tabSignup" aria-selected="false">가입하기</button>
+    </div>
+
+    <form class="auth-form" id="form" novalidate>
+      <div class="field" id="nickField" hidden>
+        <label for="nickname">닉네임</label>
+        <input id="nickname" name="nickname" autocomplete="nickname" maxlength="20">
+        <small>게시판에는 이 닉네임만 표시돼요. 입금자명도 이 닉네임으로 적어주세요</small>
+      </div>
+      <div class="field">
+        <label for="email">이메일</label>
+        <input id="email" name="email" type="email" autocomplete="email" required>
+        <small id="emailHint" hidden>로그인 용도로만 쓰이고, 다른 회원에게 공개되지 않아요</small>
+      </div>
+      <div class="field">
+        <label for="password">비밀번호</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required minlength="6">
+        <small id="pwHint" hidden>6자 이상</small>
+      </div>
+
+      <div class="msg" id="msg" hidden></div>
+      <button class="btn block" id="submit" type="submit">로그인</button>
+      <p class="fine" id="terms" hidden>가입하면 서비스 이용약관과 개인정보 처리방침에 동의하는 것으로 간주돼요</p>
+    </form>
+  </div>
+</main>
+
+<script>
+(async function () {
+  const { sb, renderHeader } = Portal;
+  renderHeader(null);
+
+  const $ = (id) => document.getElementById(id);
+  const next = new URLSearchParams(location.search).get("next") || "index.html";
+  let mode = "login";
+
+  if (!sb) { show("error", "Supabase 연결 정보가 아직 없어요. config.js를 먼저 채워주세요."); $("submit").disabled = true; return; }
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { location.replace(next); return; }
+
+  function show(kind, text) { const m = $("msg"); m.className = "msg " + kind; m.textContent = text; m.hidden = false; }
+
+  function setMode(m) {
+    mode = m;
+    const signup = m === "signup";
+    $("tabLogin").setAttribute("aria-selected", String(!signup));
+    $("tabSignup").setAttribute("aria-selected", String(signup));
+    $("nickField").hidden = !signup;
+    $("emailHint").hidden = !signup;
+    $("pwHint").hidden = !signup;
+    $("terms").hidden = !signup;
+    $("password").autocomplete = signup ? "new-password" : "current-password";
+    $("title").textContent = signup ? "닉네임으로 간편하게 시작해요" : "다시 오신 걸 환영해요";
+    $("subtitle").textContent = signup ? "이름이나 연락처를 밝히지 않아도 돼요 · 가입 후 7일 무료" : "이메일과 비밀번호로 로그인해요";
+    $("submit").textContent = signup ? "가입하고 시작하기" : "로그인";
+    $("msg").hidden = true;
+  }
+  $("tabLogin").onclick = () => setMode("login");
+  $("tabSignup").onclick = () => setMode("signup");
+  if (location.hash === "#signup") setMode("signup");
+
+  const KO = {
+    "Invalid login credentials": "이메일 또는 비밀번호가 맞지 않아요.",
+    "Email not confirmed": "메일함에서 인증 링크를 먼저 눌러주세요.",
+    "User already registered": "이미 가입된 이메일이에요. 로그인해 주세요.",
+    "Database error saving new user": "이미 사용 중인 닉네임이에요. 다른 닉네임을 골라주세요.",
+  };
+
+  $("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("email").value.trim();
+    const password = $("password").value;
+    const nickname = $("nickname").value.trim();
+
+    if (!email || !password) return show("error", "이메일과 비밀번호를 입력해 주세요.");
+    if (mode === "signup") {
+      if (nickname.length < 2) return show("error", "닉네임은 2자 이상으로 정해주세요.");
+      if (password.length < 6) return show("error", "비밀번호는 6자 이상이어야 해요.");
+    }
+
+    $("submit").disabled = true;
+    try {
+      if (mode === "login") {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        location.replace(next);
+      } else {
+        const { data, error } = await sb.auth.signUp({ email, password, options: { data: { nickname } } });
+        if (error) throw error;
+        if (data.session) location.replace(next);
+        else { setMode("login"); show("ok", "가입 신청이 끝났어요! 메일함에서 인증 링크를 누른 뒤 로그인해 주세요."); }
+      }
+    } catch (err) {
+      show("error", KO[err.message] || err.message);
+    } finally {
+      $("submit").disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

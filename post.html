@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>게시글 · 예측 포털</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, cfg, requireUser, renderHeader, esc, ago, ymd, errText, confirmClick } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  renderHeader(me);
+
+  const id = Number(new URLSearchParams(location.search).get("id"));
+  const main = document.createElement("main");
+  main.className = "page";
+  main.style.cssText = "max-width:860px;gap:24px";
+  document.body.appendChild(main);
+
+  const { data: post } = await sb.from("posts").select("*").eq("id", id).maybeSingle();
+  if (!post) {
+    main.innerHTML = `<div class="card locked-panel"><h2>글을 찾을 수 없어요</h2>
+      <p class="hint">삭제됐거나, 글쓴이와 운영자만 볼 수 있는 비밀글이에요.</p><a class="btn" href="board.html">게시판으로</a></div>`;
+    return;
+  }
+  const board = cfg.BOARDS[post.board];
+  const mine = post.user_id === me.user.id;
+  const canEdit = mine || me.acc.isAdmin;
+  document.title = post.title + " · 예측 포털";
+
+  const { data: myReport } = await sb.from("post_reports").select("post_id").eq("post_id", id).eq("user_id", me.user.id).maybeSingle();
+
+  main.innerHTML = `
+    <a class="hint" href="board.html?b=${post.board}">← ${esc(board.name)} 게시판</a>
+    <article class="card post-view">
+      <div style="display:flex;gap:6px">
+        ${post.pinned ? `<span class="tag notice">공지</span>` : ""}
+        ${post.is_secret ? `<span class="tag secret">비밀글 · 나와 운영자만 볼 수 있어요</span>` : ""}
+        ${me.acc.isAdmin && post.report_count ? `<span class="tag report">신고 ${post.report_count}건</span>` : ""}
+      </div>
+      <h1>${esc(post.title)}</h1>
+      <div class="post-meta">
+        <b style="color:var(--ink)">${esc(post.author)}</b>${mine ? `<span class="mine">내 글</span>` : ""}
+        <span>${ymd(post.created_at)} · ${ago(post.created_at)}</span>
+        ${post.updated_at ? `<span>(수정됨)</span>` : ""}
+      </div>
+      <div class="post-body">${esc(post.body)}</div>
+      <div class="post-actions">
+        <div>
+          ${!mine && !post.is_secret ? `<button class="btn sm ghost" id="reportBtn" type="button">${myReport ? "신고 취소" : "신고"}</button>` : ""}
+        </div>
+        <div>
+          ${me.acc.isAdmin ? `<button class="btn sm ghost" id="pinBtn" type="button">${post.pinned ? "공지 해제" : "공지로 고정"}</button>` : ""}
+          ${canEdit ? `<a class="btn sm ghost" href="write.html?id=${post.id}">수정</a>
+                       <button class="btn sm ghost" id="delBtn" type="button">삭제</button>` : ""}
+        </div>
+      </div>
+      <div class="msg" id="msg" hidden></div>
+    </article>
+
+    <section class="card">
+      <h3>댓글 <span id="ccount" style="color:var(--muted);font-weight:500"></span></h3>
+      <div id="comments"></div>
+      <form id="cform" class="form-stack" style="margin-top:16px;gap:10px" novalidate>
+        <label for="cbody" class="label" style="margin:0">댓글 쓰기</label>
+        <textarea class="input" id="cbody" maxlength="1000" placeholder="${post.is_secret ? "운영자와 나만 보는 댓글이에요" : "서로 존중하는 댓글을 남겨주세요"}"></textarea>
+        <div style="display:flex;justify-content:flex-end"><button class="btn sm" id="csubmit" type="submit" style="height:40px;padding:0 18px">등록</button></div>
+      </form>
+    </section>`;
+
+  const $ = (x) => document.getElementById(x);
+  const show = (kind, text) => { const m = $("msg"); m.className = "msg " + kind; m.textContent = text; m.hidden = false; };
+
+  async function loadComments() {
+    const { data, error } = await sb.from("comments").select("*").eq("post_id", id).order("created_at");
+    if (error) return ($("comments").innerHTML = `<div class="msg error">${esc(errText(error))}</div>`);
+    $("ccount").textContent = data.length;
+    $("comments").innerHTML = data.length
+      ? data.map((c) => `
+        <div class="comment">
+          <div class="who">
+            <span style="display:flex;gap:8px;align-items:center;color:var(--ink)"><b>${esc(c.author)}</b>
+              ${c.user_id === post.user_id ? `<span class="mine">글쓴이</span>` : ""}
+              <span>${ago(c.created_at)}</span></span>
+            ${c.user_id === me.user.id || me.acc.isAdmin ? `<button class="linkbtn" data-del="${c.id}" type="button">삭제</button>` : ""}
+          </div>
+          <p>${esc(c.body)}</p>
+        </div>`).join("")
+      : `<p class="hint" style="font-size:13px">아직 댓글이 없어요</p>`;
+  }
+
+  $("comments").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-del]");
+    if (!b || !confirmClick(b, "한 번 더 누르면 삭제")) return;
+    const { error } = await sb.from("comments").delete().eq("id", b.dataset.del);
+    if (error) return show("error", errText(error));
+    loadComments();
+  });
+
+  $("cform").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const body = $("cbody").value.trim();
+    if (!body) return;
+    $("csubmit").disabled = true;
+    const { error } = await sb.from("comments").insert({ post_id: id, body });
+    $("csubmit").disabled = false;
+    if (error) return show("error", errText(error));
+    $("cbody").value = "";
+    loadComments();
+  });
+
+  if ($("delBtn")) $("delBtn").onclick = async () => {
+    if (!confirmClick($("delBtn"), "한 번 더 누르면 삭제")) return;
+    const { error } = await sb.from("posts").delete().eq("id", id);
+    if (error) return show("error", errText(error));
+    location.replace("board.html?b=" + post.board);
+  };
+
+  if ($("pinBtn")) $("pinBtn").onclick = async () => {
+    const { error } = await sb.from("posts").update({ pinned: !post.pinned }).eq("id", id);
+    if (error) return show("error", errText(error));
+    location.reload();
+  };
+
+  if ($("reportBtn")) $("reportBtn").onclick = async () => {
+    if (myReport) {
+      const { error } = await sb.from("post_reports").delete().eq("post_id", id).eq("user_id", me.user.id);
+      if (error) return show("error", errText(error));
+    } else {
+      if (!confirmClick($("reportBtn"), "한 번 더 누르면 신고")) return;
+      const { error } = await sb.from("post_reports").insert({ post_id: id });
+      if (error) return show("error", errText(error));
+    }
+    location.reload();
+  };
+
+  loadComments();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>대시보드 · 예측 포털</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="assets/app.js"></script>
+</head>
+<body>
+<script>
+(async function () {
+  const { cfg, requireUser, renderHeader, esc, ICONS } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  renderHeader(me);
+
+  const params = new URLSearchParams(location.search);
+  const key = cfg.MARKETS[params.get("m")] ? params.get("m") : "coin";
+  const market = cfg.MARKETS[key];
+  let viewKey = market.views.some((v) => v.key === params.get("v")) ? params.get("v") : market.views[0].key;
+  document.title = market.name + " · 예측 포털";
+
+  const marketTabs = Object.entries(cfg.MARKETS).map(([k, m]) =>
+    `<a href="dashboard.html?m=${k}" ${k === key ? 'aria-current="page"' : ""} class="${me.acc.tabs[k].open ? "" : "locked"}">${esc(m.name)}</a>`).join("");
+
+  // 이용권이 없는 탭은 대시보드 대신 잠금 안내
+  if (!me.acc.tabs[key].open) {
+    document.body.insertAdjacentHTML("beforeend", `
+      <main class="dash">
+        <div class="dash-bar">
+          <div class="dash-title"><a class="back" href="index.html">← 포털로</a><h1>${esc(market.name)}</h1></div>
+          <nav class="tabs" aria-label="시장">${marketTabs}</nav>
+        </div>
+        <div class="card locked-panel">
+          <span class="dot">${ICONS.lock}</span>
+          <h2>${esc(market.name)} 탭이 잠겨 있어요</h2>
+          <p class="hint">${me.acc.inTrial ? "" : "무료체험 기간이 끝났어요. "}마이페이지에서 이 탭을 골라 입금 신청하시면, 운영자가 확인한 뒤 바로 열어드려요.</p>
+          <a class="btn" href="mypage.html">마이페이지에서 열기</a>
+        </div>
+      </main>`);
+    return;
+  }
+  const viewTabs = market.views.map((v) =>
+    `<button type="button" role="tab" data-view="${v.key}">${esc(v.label)}</button>`).join("");
+
+  document.body.insertAdjacentHTML("beforeend", `
+    <main class="dash">
+      <div class="dash-bar">
+        <div class="dash-title">
+          <a class="back" href="index.html">← 포털로</a>
+          <h1>${esc(market.name)}</h1>
+          <span class="note">${esc(market.note)}</span>
+        </div>
+        <div class="tabs">
+          <div class="tabs" role="tablist" aria-label="보기">${viewTabs}</div>
+          <span class="tabs-divider"></span>
+          <nav class="tabs" aria-label="시장">${marketTabs}</nav>
+        </div>
+      </div>
+      <div class="frame-wrap" id="frames"><div class="frame-loading" id="loading">불러오는 중…</div></div>
+    </main>`);
+
+  // 보기마다 iframe 하나씩, 처음 열 때만 불러오고 이후엔 숨김/표시만 바꿔서 빠르게 전환
+  const frames = {};
+  function showView(vk) {
+    viewKey = vk;
+    document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === vk)));
+    if (!frames[vk]) {
+      const v = market.views.find((x) => x.key === vk);
+      const f = document.createElement("iframe");
+      f.src = v.url;
+      f.title = market.name + " " + v.label;
+      f.loading = "eager";
+      document.getElementById("loading").hidden = false;
+      f.addEventListener("load", () => { if (viewKey === vk) document.getElementById("loading").hidden = true; });
+      document.getElementById("frames").appendChild(f);
+      frames[vk] = f;
+    } else {
+      document.getElementById("loading").hidden = true;
+    }
+    Object.entries(frames).forEach(([k, f]) => (f.hidden = k !== vk));
+    history.replaceState(null, "", `dashboard.html?m=${key}&v=${vk}`);
+  }
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
+  showView(viewKey);
+})();
+</script>
+</body>
+</html>
