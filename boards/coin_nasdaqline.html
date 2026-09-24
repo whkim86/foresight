@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>나스닥 6일 가격 예측 보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F4F8; --surface:#FFFFFF; --ink:#101A33; --muted:#58637A;
+  --line:#DCE1EA; --line-strong:#C3CBD8; --fc-bg:#F5F7FB;
+  --up:#D92D3A; --up-text:#C0242F; --dn:#2563D9; --dn-bg:#E4ECFB; --dn-ink:#1D4FB0;
+  --mx-bg:#FFF0D2; --mx-ink:#8A5300; --hold-bg:#ECEEF3; --hold-ink:#5A6478;
+  --focus:#2563D9; --shadow:0 8px 24px rgba(16,26,51,.14);
+  --mc0:#2563EB;--mc1:#F97316;--mc2:#16A34A;--mc3:#DC2626;--mc4:#9333EA;--mc5:#0891B2;--mc6:#CA8A04;--mc7:#DB2777;
+  --mc8:#65A30D;--mc9:#4F46E5;--mc10:#0D9488;--mc11:#B45309;--mc12:#7C3AED;--mc13:#E11D48;--mc14:#64748B;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0D1220; --surface:#151C2E; --ink:#E9EDF6; --muted:#98A3BA;
+    --line:#262F47; --line-strong:#35405C; --fc-bg:#1A2236;
+    --up:#E2404C; --up-text:#FF6B75; --dn:#5B93FF; --dn-bg:#1B2A4A; --dn-ink:#8DB2FF;
+    --mx-bg:#3A2C10; --mx-ink:#F0B75A; --hold-bg:#222B41; --hold-ink:#98A3BA;
+    --focus:#8DB2FF; --shadow:0 8px 24px rgba(0,0,0,.5);
+    --mc0:#60A5FA;--mc1:#FB923C;--mc2:#4ADE80;--mc3:#F87171;--mc4:#C084FC;--mc5:#22D3EE;--mc6:#FACC15;--mc7:#F472B6;
+    --mc8:#A3E635;--mc9:#818CF8;--mc10:#2DD4BF;--mc11:#FDBA74;--mc12:#A78BFA;--mc13:#FB7185;--mc14:#94A3B8;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0D1220; --surface:#151C2E; --ink:#E9EDF6; --muted:#98A3BA;
+  --line:#262F47; --line-strong:#35405C; --fc-bg:#1A2236;
+  --up:#E2404C; --up-text:#FF6B75; --dn:#5B93FF; --dn-bg:#1B2A4A; --dn-ink:#8DB2FF;
+  --mx-bg:#3A2C10; --mx-ink:#F0B75A; --hold-bg:#222B41; --hold-ink:#98A3BA;
+  --focus:#8DB2FF; --shadow:0 8px 24px rgba(0,0,0,.5);
+  --mc0:#60A5FA;--mc1:#FB923C;--mc2:#4ADE80;--mc3:#F87171;--mc4:#C084FC;--mc5:#22D3EE;--mc6:#FACC15;--mc7:#F472B6;
+  --mc8:#A3E635;--mc9:#818CF8;--mc10:#2DD4BF;--mc11:#FDBA74;--mc12:#A78BFA;--mc13:#FB7185;--mc14:#94A3B8;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  font-size:15px;line-height:1.55;font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 56px}
+h1,h2,h3,h4,p,ul{margin:0}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
+.top h1{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.top .sub{color:var(--muted);font-size:14px;margin-top:2px}
+.top .sub select{background:transparent;border:0;border-bottom:1px solid var(--line-strong);padding:0 2px;font-weight:600}
+.loader{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;border:1px solid var(--line-strong);background:var(--surface);
+  border-radius:999px;padding:7px 14px;font-size:14px;font-weight:500;color:var(--ink)}
+.btn:hover{border-color:var(--ink)}
+.btn input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.btn:focus-within{outline:2px solid var(--focus);outline-offset:2px}
+#msg.err{color:var(--up-text)}
+
+.sec-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:6px 20px;margin-bottom:12px}
+.sec-head h2{font-size:22px;font-weight:700}
+.sec-head p{font-size:13px;color:var(--muted)}
+section+section{margin-top:40px}
+
+/* panel */
+.panel{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px;align-items:start}
+.chart-card,.read{background:var(--surface);border:1px solid var(--line);border-radius:16px}
+.chart-card{padding:20px 20px 16px}
+.chart-top{display:flex;flex-wrap:wrap;gap:10px 16px;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ptitle{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.pname{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.badge{font-size:13px;font-weight:600;border-radius:999px;padding:2px 12px;line-height:1.5;white-space:nowrap}
+.badge.up{background:var(--up);color:#fff}
+.badge.dn{background:var(--dn-bg);color:var(--dn-ink)}
+.badge.mx{background:var(--mx-bg);color:var(--mx-ink)}
+.badge.hold,.badge.stale{background:var(--hold-bg);color:var(--hold-ink)}
+.seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:999px;padding:2px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;border-radius:999px;padding:4px 12px;font-size:13px;font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.meta{font-size:13px;color:var(--muted);margin-bottom:6px}
+.chart{position:relative;touch-action:pan-y}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{font-family:inherit;fill:var(--muted)}
+.gl{stroke:var(--line);stroke-width:1}
+.yl,.xl{font-size:11.5px}
+.rg{font-size:11.5px;fill:var(--muted)}
+.act{fill:none;stroke:var(--ink);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.mline{fill:none;stroke-width:1.9;stroke-linejoin:round;stroke-linecap:round;transition:opacity .12s}
+.mline.dim{opacity:.14}
+.medl{fill:none;stroke:var(--ink);stroke-width:3;stroke-dasharray:2 5;stroke-linecap:round}
+.guide{stroke:var(--line-strong);stroke-width:1}
+.hdot{stroke:var(--surface);stroke-width:2}
+.tip{position:absolute;top:6px;pointer-events:none;background:var(--surface);border:1px solid var(--line-strong);
+  border-radius:10px;padding:9px 12px;font-size:12.5px;min-width:190px;max-width:260px;box-shadow:var(--shadow);z-index:2;line-height:1.5}
+.tip b{font-weight:700}
+.tip .th{font-weight:600;margin-bottom:4px}
+.tip .tr{display:flex;justify-content:space-between;gap:12px}
+.tip .tm{color:var(--muted);margin-top:4px;padding-top:4px;border-top:1px solid var(--line)}
+.tip i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.lg{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);background:transparent;border-radius:999px;padding:3px 10px 3px 8px;font-size:12.5px}
+.lg svg{display:block}
+.lg[aria-pressed="false"]{opacity:.42;text-decoration:line-through}
+.lg.tool{padding:3px 12px;font-weight:500}
+.lg.tool[aria-pressed="false"]{opacity:1;text-decoration:none}
+.lg.tool[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.fine{font-size:12.5px;color:var(--muted);margin-top:8px}
+.empty{padding:56px 8px;text-align:center;color:var(--muted)}
+
+/* reading card */
+.read{padding:22px}
+.read h4{font-size:14px;font-weight:600;color:var(--muted)}
+.read-sec+.read-sec{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+.read .vword{font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1.15;margin:4px 0 10px}
+.read .vword.up{color:var(--up-text)} .read .vword.dn{color:var(--dn)} .read .vword.mx{color:var(--mx-ink)} .read .vword.hold,.read .vword.stale{color:var(--hold-ink)}
+.why{list-style:none;padding:0;display:flex;flex-direction:column;gap:7px}
+.why li{font-size:14.5px;line-height:1.6;padding-left:14px;position:relative}
+.why li::before{content:"";position:absolute;left:0;top:.72em;width:6px;height:2px;background:var(--line-strong)}
+.read p{font-size:14.5px;line-height:1.7}
+.read p+p{margin-top:9px}
+.read h4+p,.read h4+.vword{margin-top:6px}
+details.rule{margin-top:18px;font-size:13px;color:var(--muted)}
+details.rule summary{cursor:pointer;width:max-content}
+details.rule p{margin-top:6px;font-size:13px;line-height:1.65;color:var(--muted)}
+
+/* picker */
+.picker{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:16px}
+.pick-row{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:12px}
+.coinpick{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.coinpick input{width:170px;border:1px solid var(--line-strong);border-radius:10px;background:var(--paper);padding:7px 12px;font-size:15px;font-weight:600}
+.coinlist{display:flex;flex-wrap:wrap;gap:6px;max-height:158px;overflow:auto;padding:2px}
+.cc{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);background:transparent;border-radius:8px;padding:3px 10px;font-size:13px;font-weight:600}
+.cc::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--hold-ink)}
+.cc.up::before{background:var(--up)} .cc.dn::before{background:var(--dn)} .cc.mx::before{background:#E0A020}
+.cc.stale,.cc.hold{font-weight:500;color:var(--muted)}
+.cc[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.keyrow{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12.5px;color:var(--muted);margin-top:10px}
+.keyrow span{display:inline-flex;align-items:center;gap:6px}
+.keyrow i{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+@media (max-width:960px){
+  .panel{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .wrap{padding:18px 14px 48px}
+  .chart-card{padding:16px 14px 14px}
+  .read{padding:18px}
+  .pname{font-size:24px}
+  .read .vword{font-size:32px}
+  .coinpick input{width:130px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<script>window.PORTAL_BOARD={market:"nasdaq",kind:"chart"};</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../config.js"></script>
+<script src="../assets/board-data.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>나스닥 6일 가격 예측 보드</h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="loader">
+      <label class="btn"><input type="file" id="file" accept=".csv,text/csv"><span>새 CSV 불러오기</span></label>
+      <span id="msg" role="status"></span>
+    </div>
+  </header>
+  <main id="app"></main>
+</div>
+<script type="text/plain" id="csv">pred_day,coin,SEQ,date,variable,value_close,value_high,value_low
+</script>
+
+<script>
+(function(){
+'use strict';
+var HOST=true;
+var HOST_FILE='final_rst_dfa_web_Day_raw_v3.csv';
+var CFG={main:'SP500',noun:'종목',example:'NVDA',unit:'',with_:'과 '};
+var $=function(s,r){return (r||document).querySelector(s)};
+var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var fmtDate=function(s){return String(s).replace(/\s*Day\s*$/i,'')};
+var round=Math.round;
+
+var VLAB={up:'상승',dn:'하락',mx:'혼돈',hold:'보류',stale:'지연'};
+var METRIC={c:'종가',h:'고점',l:'저점'};
+var METRIC_KEY={c:'c',h:'h',l:'l'};
+
+/* ---------- CSV ---------- */
+function parseCSV(text){
+  var rows=[],row=[],f='',q=false;
+  for(var i=0;i<text.length;i++){
+    var ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===','){row.push(f);f='';}
+    else if(ch==='\n'||ch==='\r'){
+      if(ch==='\r'&&text[i+1]==='\n') i++;
+      row.push(f);f='';
+      if(row.some(function(x){return x!==''})) rows.push(row);
+      row=[];
+    }else f+=ch;
+  }
+  if(f!==''||row.length){row.push(f); if(row.some(function(x){return x!==''})) rows.push(row);}
+  return rows;
+}
+function dayIndex(s){
+  var m=String(s).match(/(\d{1,2})\s*-\s*(\d{1,2})/); if(!m) return null;
+  return Math.round(Date.UTC(2001,+m[1]-1,+m[2])/86400000);
+}
+function wrapDelta(d){ if(d>182) d-=365; if(d<-182) d+=365; return d; }
+
+/* ---------- build ---------- */
+function build(text){
+  var rows=parseCSV(text.replace(/^\uFEFF/,''));
+  if(rows.length<2) throw new Error('데이터 행이 없습니다. 첫 행은 컬럼명, 둘째 행부터 데이터여야 합니다.');
+  var head=rows[0].map(function(h){return h.trim().toLowerCase()});
+  var need=['pred_day','coin','seq','date','variable','value_close','value_high','value_low'];
+  var miss=need.filter(function(k){return head.indexOf(k)<0});
+  if(miss.length) throw new Error('없는 컬럼: '+miss.join(', '));
+  var ix={}; need.forEach(function(k){ix[k]=head.indexOf(k)});
+  var byPred={}, bad=0;
+  rows.slice(1).forEach(function(r){
+    var pd=(r[ix.pred_day]||'').trim(), coin=(r[ix.coin]||'').trim(), date=(r[ix.date]||'').trim(), va=(r[ix.variable]||'').trim();
+    var seq=parseInt(r[ix.seq],10), c=parseFloat(r[ix.value_close]), h=parseFloat(r[ix.value_high]), l=parseFloat(r[ix.value_low]);
+    if(!pd||!coin||!date||isNaN(seq)||!isFinite(c)||!isFinite(h)||!isFinite(l)){bad++;return;}
+    var P=byPred[pd]||(byPred[pd]={});
+    var co=P[coin]||(P[coin]={name:coin,histMap:{},mod:{}});
+    var e={date:date,c:c,h:h,l:l};
+    if(seq===0) co.histMap[date]=e;
+    else if(va){ (co.mod[va]||(co.mod[va]={}))[seq]=e; }
+  });
+  var preds=Object.keys(byPred).sort();
+  if(!preds.length) throw new Error('읽을 수 있는 행이 없습니다. 컬럼 형식을 확인해 주세요.');
+  var out={preds:preds,days:{},bad:bad};
+  preds.forEach(function(pd){ out.days[pd]=finalize(byPred[pd],pd); });
+  return out;
+}
+function numKey(n){var m=String(n).match(/\d+/); return m?parseInt(m[0],10):1e9}
+function finalize(P,pd){
+  var coins=new Map(), modelSet={};
+  Object.keys(P).sort().forEach(function(k){
+    var co=P[k], names=Object.keys(co.mod);
+    if(!names.length) return;
+    names.forEach(function(n){modelSet[n]=1});
+    var anchorDate=null;
+    names.forEach(function(n){ if(!anchorDate&&co.mod[n][1]) anchorDate=co.mod[n][1].date; });
+    var hd=Object.keys(co.histMap);
+    if(!anchorDate&&!hd.length) return;
+    var anchor=dayIndex(anchorDate||hd[0]);
+    var hist=hd.map(function(d){var e=co.histMap[d]; return {n:wrapDelta(dayIndex(d)-anchor),date:d,c:e.c,h:e.h,l:e.l}}).sort(function(a,b){return a.n-b.n});
+    var models={};
+    names.forEach(function(n){
+      models[n]=Object.keys(co.mod[n]).map(function(s){var e=co.mod[n][s]; return {seq:+s,n:wrapDelta(dayIndex(e.date)-anchor),date:e.date,c:e.c,h:e.h,l:e.l}}).sort(function(a,b){return a.seq-b.seq});
+    });
+    var s1=anchorDate;
+    var delta=s1?wrapDelta(dayIndex(s1)-dayIndex(pd)):0;
+    coins.set(k,{name:k,hist:hist,models:models,modelNames:names.slice().sort(function(a,b){return numKey(a)-numKey(b)}),d1:s1,stale:s1?(delta<0||delta>1):false});
+  });
+  var order=Object.keys(modelSet).sort(function(a,b){return numKey(a)-numKey(b)});
+  var idx={}; order.forEach(function(n,i){idx[n]=i});
+  return {coins:coins,order:order,idx:idx};
+}
+
+/* ---------- stats helpers ---------- */
+function median(a){ if(!a.length) return NaN; var s=a.slice().sort(function(x,y){return x-y}), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+function pct(x,d){ var v=x*100; return (v>=0?'+':'')+v.toFixed(d==null?1:d)+'%'; }
+function fmtNum(v){
+  var a=Math.abs(v);
+  if(a>=1000) return Math.round(v).toLocaleString('ko-KR');
+  if(a>=1) return v.toLocaleString('ko-KR',{maximumFractionDigits:2});
+  return v.toLocaleString('ko-KR',{maximumSignificantDigits:4});
+}
+function fmtAxis(v,step){
+  var a=Math.abs(v);
+  if(a>=1e8){ var d=Math.max(0,Math.min(4,Math.ceil(-Math.log10(step/1e8)-1e-9))); return (v/1e8).toFixed(d)+'억'; }
+  if(step>=1) return Math.round(v).toLocaleString('ko-KR');
+  var dd=Math.min(8,Math.max(0,Math.ceil(-Math.log10(step)-1e-9)));
+  return v.toLocaleString('ko-KR',{minimumFractionDigits:dd,maximumFractionDigits:dd});
+}
+function niceTicks(lo,hi,count){
+  var span=hi-lo;
+  if(!(span>0)){ var s=Math.abs(hi)||1; lo-=s*0.05; hi+=s*0.05; span=hi-lo; }
+  var raw=span/count, mag=Math.pow(10,Math.floor(Math.log10(raw))), norm=raw/mag;
+  var step=(norm<1.5?1:norm<3?2:norm<7?5:10)*mag;
+  var start=Math.floor(lo/step+1e-9)*step, ticks=[], v=start, g=0;
+  while(g++<20){ ticks.push(+v.toPrecision(12)); if(v>=hi-1e-12) break; v+=step; }
+  return {ticks:ticks,step:step};
+}
+
+/* ---------- analysis ---------- */
+function analyze(co,pd){
+  var names=co.modelNames, N=names.length;
+  var a={n:N,stale:co.stale,d1:co.d1,hasBase:co.hist.length>0};
+  var seqs=[1,2,3,4,5,6];
+  var bySeq=seqs.map(function(s){
+    return names.map(function(m){var p=co.models[m].filter(function(x){return x.seq===s})[0]; return p?p:null});
+  });
+  var medc=bySeq.map(function(arr){return median(arr.filter(Boolean).map(function(p){return p.c}))});
+  var spread=bySeq.map(function(arr,i){
+    var v=arr.filter(Boolean).map(function(p){return p.c}); if(!v.length||!(medc[i]>0)) return NaN;
+    return (Math.max.apply(null,v)-Math.min.apply(null,v))/medc[i];
+  });
+  var base=null;
+  if(a.hasBase){ var lh=co.hist[co.hist.length-1]; base={c:lh.c,date:lh.date}; }
+  a.base=base;
+  var ref=base?base.c:medc[0];
+  a.path=medc.map(function(m,i){ return isFinite(m)&&ref>0?(m/ref-1):NaN; });
+  a.spread1=spread[0]; a.spread6=spread[5];
+  // D+1 range from high/low
+  var rng=[]; bySeq[0].forEach(function(p){ if(p&&p.c>0) rng.push((Math.max(p.h,p.l)-Math.min(p.h,p.l))/p.c); });
+  a.range1=median(rng);
+  // outliers
+  var devs=names.map(function(m){
+    var s=0,k=0; co.models[m].forEach(function(p){ var md=medc[p.seq-1]; if(md>0){ s+=Math.abs(p.c/md-1); k++; } });
+    return k?s/k:0;
+  });
+  var md=median(devs), lim=Math.max(0.05,3*md);
+  a.outliers=names.map(function(m,i){return {name:m,dev:devs[i]}}).filter(function(o){return o.dev>lim}).sort(function(x,y){return y.dev-x.dev}).map(function(o){return o.name});
+  // inverted high/low
+  a.inverted=names.filter(function(m){return co.models[m].some(function(p){return p.h<p.l})});
+  // verdict
+  if(a.stale){ a.verdict='stale'; return a; }
+  if(!base){ a.verdict='hold'; return a; }
+  var closes=co.hist.map(function(h){return h.c}), moves=[];
+  for(var i=1;i<closes.length;i++){ if(closes[i-1]>0) moves.push(Math.abs(closes[i]/closes[i-1]-1)); }
+  var vol=moves.length>=4?median(moves):0.02;
+  a.thr=Math.max(0.002,0.25*vol);
+  var r=[]; bySeq[0].forEach(function(p){ if(p) r.push(p.c/base.c-1); });
+  a.r=r;
+  a.up=r.filter(function(x){return x>a.thr}).length;
+  a.dn=r.filter(function(x){return x<-a.thr}).length;
+  a.flat=r.length-a.up-a.dn;
+  a.med1=median(r); a.min1=Math.min.apply(null,r); a.max1=Math.max.apply(null,r);
+  var m=r.length||1;
+  a.verdict=(a.up/m>=0.6&&a.med1>a.thr)?'up':((a.dn/m>=0.6&&a.med1<-a.thr)?'dn':'mx');
+  return a;
+}
+function reading(a,co,pd){
+  var out={why:[],flow:[]};
+  var d1=a.d1?fmtDate(a.d1):'D+1';
+  out.head='D+1 ('+d1+') 판단';
+  if(a.verdict==='stale'){
+    out.why.push('D+1 날짜('+d1+')가 예측수행일('+fmtDate(pd)+')과 어긋나 있어 방향을 판단하지 않았어요.');
+    if(!a.hasBase) out.why.push('직전 실제값도 없어 예측선만 표시합니다. 데이터가 갱신됐는지 확인해 주세요.');
+  }else if(a.verdict==='hold'){
+    out.why.push('직전 실제값이 없어 D+1이 오르는지 내리는지 판단할 수 없어요.');
+    out.why.push('대신 모델 중앙값 기준으로 D+1 대비 이후 흐름을 아래에 적었어요.');
+  }else{
+    var lab=fmtDate(a.base.date);
+    out.why.push(a.n+'개 모델 중 '+a.up+'개는 D+1 종가를 직전 실제 종가('+lab+')보다 높게, '+a.dn+'개는 낮게 예측했어요'+(a.flat?' (보합 '+a.flat+'개)':'')+'.');
+    out.why.push('D+1 종가 중앙값은 직전 종가 대비 '+pct(a.med1)+'이고, 모델 범위는 '+pct(a.min1)+' ~ '+pct(a.max1)+'입니다.');
+    var m=a.n||1;
+    if(a.verdict==='up') out.why.push(round(a.up/m*100)+'%의 모델이 상승 쪽이라 상승으로 판단했어요.');
+    else if(a.verdict==='dn') out.why.push(round(a.dn/m*100)+'%의 모델이 하락 쪽이라 하락으로 판단했어요.');
+    else if(a.up/m>=0.6||a.dn/m>=0.6) out.why.push('다수 모델이 한 방향이지만 중앙값 변화가 작아(기준 ±'+(a.thr*100).toFixed(1)+'%) 혼돈으로 봤어요.');
+    else out.why.push('상승 '+a.up+'개, 하락 '+a.dn+'개로 의견이 갈려 방향을 단정하기 어려워 혼돈으로 봤어요.');
+  }
+  // flow
+  var p=a.path, ok=p.every(function(x){return isFinite(x)});
+  if(ok){
+    var d3=p[2], d6=p[5], mx=Math.max.apply(null,p), mn=Math.min.apply(null,p), iMax=p.indexOf(mx), iMin=p.indexOf(mn);
+    var word=d6>=0.05?'뚜렷한 상승':d6>=0.01?'완만한 상승':d6>-0.01?'횡보':d6>-0.05?'완만한 하락':'뚜렷한 하락';
+    var s1=a.hasBase?'모델 중앙값 경로는 직전 실제 종가 대비 D+1 '+pct(p[0])+', D+3 '+pct(d3)+', D+6 '+pct(d6)+'로 '+word+' 흐름입니다.'
+                    :'모델 중앙값 경로는 D+1 대비 D+3 '+pct(d3)+', D+6 '+pct(d6)+'로 '+word+' 흐름입니다.';
+    if(iMax<=4&&mx-d6>=0.02) s1+=iMax===0?' D+1이 정점이고 이후 내려가는 모양이에요.':' D+'+(iMax+1)+' 부근에서 정점을 찍고 되돌리는 모양이에요.';
+    else if(iMin<=4&&d6-mn>=0.02) s1+=iMin===0?' D+1이 저점이고 이후 올라가는 모양이에요.':' D+'+(iMin+1)+' 부근에서 저점을 찍고 반등하는 모양이에요.';
+    out.flow.push(s1);
+  }
+  if(isFinite(a.spread1)&&isFinite(a.spread6)){
+    var s=a.spread6>a.spread1*1.3?'벌어져 뒤로 갈수록 예측 불확실성이 커져요':a.spread6<a.spread1*0.77?'좁혀지고 있어요':'비슷한 수준이에요';
+    out.flow.push('모델 간 편차(최고와 최저의 차이, 중앙값 대비)는 D+1 '+round(a.spread1*100)+'%에서 D+6 '+round(a.spread6*100)+'%로 '+s+'.'+(a.spread6>=0.5?' 모델별 차이가 매우 큰 '+CFG.noun+'이에요.':''));
+  }
+  if(isFinite(a.range1)) out.flow.push('D+1 하루 예상 변동폭(고점과 저점의 차이)은 모델 중앙값 기준 약 '+(a.range1*100).toFixed(1)+'%입니다.');
+  if(a.outliers.length){
+    out.flow.push(a.outliers.slice(0,3).join(', ')+(a.outliers.length>3?' 등 ':' ')+a.outliers.length+'개 모델은 나머지와 크게 달라 차트 범위를 넓혀요. "튀는 모델 끄기"를 누르면 나머지 흐름이 더 잘 보여요.');
+  }
+  return out;
+}
+
+/* ---------- state ---------- */
+var DATA=null, cur=null, state={pred:null,filter:'all',q:'',alt:null,src:'내장 데이터'};
+var panels={};
+function setPred(pd){
+  state.pred=pd;
+  var D=DATA.days[pd];
+  var an=new Map();
+  D.coins.forEach(function(co,k){ an.set(k,analyze(co,pd)); });
+  cur={D:D,an:an,pd:pd};
+  state.filter='all'; state.q='';
+  var list=altList();
+  state.alt=list.length?list[0]:null;
+}
+function altNames(){ var r=[]; cur.D.coins.forEach(function(co,k){ if(k!==CFG.main) r.push(k); }); return r; }
+var VORDER={up:0,mx:1,dn:2,hold:3,stale:4};
+function altList(){
+  var q=state.q.trim().toUpperCase();
+  return altNames().filter(function(k){
+    var v=cur.an.get(k).verdict;
+    if(state.filter!=='all'&&v!==state.filter) return false;
+    return !q||k.toUpperCase().indexOf(q)>=0;
+  }).sort(function(x,y){
+    var ax=cur.an.get(x), ay=cur.an.get(y);
+    if(VORDER[ax.verdict]!==VORDER[ay.verdict]) return VORDER[ax.verdict]-VORDER[ay.verdict];
+    if(ax.verdict==='up') return ay.med1-ax.med1;
+    if(ax.verdict==='dn') return ax.med1-ay.med1;
+    if(ax.verdict==='mx') return Math.abs(ay.med1)-Math.abs(ax.med1);
+    return x<y?-1:1;
+  });
+}
+
+/* ---------- panel ---------- */
+function legendSample(i){
+  var dash=i>=8?' stroke-dasharray="5 3"':'';
+  return '<svg width="22" height="8" aria-hidden="true"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--mc'+(i%15)+')" stroke-width="2.4" stroke-linecap="round"'+dash+'/></svg>';
+}
+function Panel(root){
+  var P={root:root,coin:null,metric:'c',hidden:new Set(),median:false,hi:null,a:null,geom:null};
+  root.innerHTML=
+    '<div class="chart-card"><div class="chart-top"><div class="ptitle"><h3 class="pname"></h3><span class="badge"></span></div>'+
+    '<div class="seg" role="group" aria-label="차트 지표"><button data-m="c" aria-pressed="true">종가</button><button data-m="h" aria-pressed="false">고점</button><button data-m="l" aria-pressed="false">저점</button></div></div>'+
+    '<p class="meta"></p><div class="chart"></div><div class="legend"></div><p class="fine"></p></div>'+
+    '<aside class="read"></aside>';
+  P.el={name:$('.pname',root),badge:$('.badge',root),meta:$('.meta',root),chart:$('.chart',root),legend:$('.legend',root),fine:$('.fine',root),read:$('.read',root),seg:$('.seg',root)};
+  P.el.seg.addEventListener('click',function(ev){
+    var b=ev.target.closest('button'); if(!b) return;
+    P.metric=b.dataset.m; P.draw(); P.syncSeg();
+  });
+  P.syncSeg=function(){ P.el.seg.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.m===P.metric)}); };
+  P.el.legend.addEventListener('click',function(ev){
+    var b=ev.target.closest('button'); if(!b) return;
+    var co=cur.D.coins.get(P.coin);
+    if(b.dataset.model){
+      var m=b.dataset.model; if(P.hidden.has(m)) P.hidden.delete(m); else P.hidden.add(m);
+    }else if(b.dataset.act==='all'){ P.hidden.clear(); }
+    else if(b.dataset.act==='out'){ P.a.outliers.forEach(function(m){P.hidden.add(m)}); }
+    else if(b.dataset.act==='med'){ P.median=!P.median; }
+    P.drawLegend(); P.draw();
+  });
+  P.el.legend.addEventListener('pointerover',function(ev){ var b=ev.target.closest('button[data-model]'); P.setHi(b?b.dataset.model:null); });
+  P.el.legend.addEventListener('pointerleave',function(){P.setHi(null)});
+  P.setHi=function(m){
+    P.hi=m;
+    P.el.chart.querySelectorAll('.mline').forEach(function(p){ p.classList.toggle('dim',!!m&&p.dataset.model!==m); });
+  };
+  P.setCoin=function(name){
+    var co=cur.D.coins.get(name); if(!co) return;
+    P.coin=name; P.hidden=new Set(); P.hi=null;
+    P.a=cur.an.get(name);
+    P.el.name.textContent=name;
+    var b=P.el.badge, v=P.a.verdict;
+    b.className='badge '+v;
+    b.textContent=(v==='stale'||v==='hold')?VLAB[v]:'D+1 '+VLAB[v];
+    var meta=[];
+    if(co.hist.length){ var lh=co.hist[co.hist.length-1]; meta.push('직전 실제 종가 '+fmtDate(lh.date)+' '+fmtNum(lh.c)+CFG.unit); }
+    else meta.push('실제값이 없어 예측선만 표시합니다');
+    P.el.meta.textContent=meta.join(' ');
+    P.drawLegend(); P.draw(); P.drawRead();
+  };
+  P.drawLegend=function(){
+    var co=cur.D.coins.get(P.coin), h='';
+    co.modelNames.forEach(function(m){
+      var i=cur.D.idx[m];
+      h+='<button class="lg" data-model="'+esc(m)+'" aria-pressed="'+(!P.hidden.has(m))+'">'+legendSample(i)+esc(m)+'</button>';
+    });
+    h+='<button class="lg tool" data-act="all">전체 켜기</button>';
+    if(P.a.outliers.length) h+='<button class="lg tool" data-act="out">튀는 모델 끄기</button>';
+    h+='<button class="lg tool" data-act="med" aria-pressed="'+P.median+'">중앙값 선</button>';
+    P.el.legend.innerHTML=h;
+    var note='';
+    if(P.metric!=='c'&&P.a.inverted.length) note=P.a.inverted.slice(0,3).join(', ')+(P.a.inverted.length>3?' 등 ':' ')+P.a.inverted.length+'개 모델은 고점이 저점보다 낮게 나온 날이 있어요. 값은 그대로 표시합니다.';
+    P.el.fine.textContent=note; P.el.fine.hidden=!note;
+  };
+  P.drawRead=function(){
+    var co=cur.D.coins.get(P.coin), t=reading(P.a,co,cur.pd), v=P.a.verdict;
+    var h='<div class="read-sec"><h4>'+esc(t.head)+'</h4><p class="vword '+v+'">'+VLAB[v]+'</p><ul class="why">'+t.why.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul></div>';
+    if(t.flow.length) h+='<div class="read-sec"><h4>6일 흐름 해석</h4>'+t.flow.map(function(x){return '<p>'+esc(x)+'</p>'}).join('')+'</div>';
+    h+='<details class="rule"><summary>판단 기준</summary><p>모델 예측값을 규칙으로 요약한 자동 해석입니다. 15개 모델의 D+1 종가를 직전 실제 종가와 비교해서, 60% 이상이 같은 방향이고 중앙값 변화가 최근 일간 변동의 25%(최소 0.2%) 이상이면 상승 또는 하락, 그렇지 않으면 혼돈입니다. 직전 실제값이 없으면 보류, D+1 날짜가 예측수행일과 어긋나면 지연으로 표시합니다.</p></details>';
+    P.el.read.innerHTML=h;
+  };
+  P.draw=function(){
+    var co=cur.D.coins.get(P.coin), box=P.el.chart, k=METRIC_KEY[P.metric];
+    P.syncSeg(); P.drawLegend();
+    var series=[];
+    co.modelNames.forEach(function(m){ if(P.hidden.has(m)) return; series.push({name:m,idx:cur.D.idx[m],pts:co.models[m]}); });
+    var actual=co.hist;
+    var vals=[]; series.forEach(function(s){s.pts.forEach(function(p){vals.push(p[k])})}); actual.forEach(function(p){vals.push(p[k])});
+    if(!vals.length){ box.innerHTML='<p class="empty">표시할 모델이 없어요. 범례에서 모델을 켜 주세요.</p>'; return; }
+    var lo=Math.min.apply(null,vals), hi=Math.max.apply(null,vals), padv=(hi-lo)*0.06||Math.abs(hi)*0.05||1;
+    var nt=niceTicks(lo-padv,hi+padv,5), ticks=nt.ticks, y0=ticks[0], y1=ticks[ticks.length-1];
+    var W=Math.max(300,Math.floor(box.clientWidth)||720), H=W<520?320:400;
+    var sample=fmtAxis(ticks[ticks.length-1],nt.step);
+    var ml=Math.max(54,Math.min(92,sample.length*7.4+16)), mr=14, mt=16, mb=36, iw=W-ml-mr, ih=H-mt-mb;
+    var ns=[]; actual.forEach(function(p){ns.push(p.n)}); series.forEach(function(s){s.pts.forEach(function(p){ns.push(p.n)})});
+    co.modelNames.forEach(function(m){co.models[m].forEach(function(p){ns.push(p.n)})});
+    var nMin=Math.min.apply(null,ns), nMax=Math.max.apply(null,ns), span=nMax-nMin+1;
+    var X=function(n){return ml+(n-nMin+0.5)/span*iw}, Y=function(v){return mt+ih*(1-(v-y0)/(y1-y0))};
+    var dateOf={}; actual.forEach(function(p){dateOf[p.n]=p.date}); co.modelNames.forEach(function(m){co.models[m].forEach(function(p){dateOf[p.n]=p.date})});
+    var uniq=Object.keys(dateOf).map(Number).sort(function(a,b){return a-b});
+    var g='';
+    ticks.forEach(function(v){ g+='<line class="gl" x1="'+ml+'" x2="'+(W-mr)+'" y1="'+Y(v).toFixed(1)+'" y2="'+Y(v).toFixed(1)+'"/><text class="yl" x="'+(ml-8)+'" y="'+(Y(v)+4).toFixed(1)+'" text-anchor="end">'+esc(fmtAxis(v,nt.step))+'</text>'; });
+    var firstF=Infinity; co.modelNames.forEach(function(m){co.models[m].forEach(function(p){ if(p.n<firstF) firstF=p.n; })});
+    var bx=X(firstF-0.5);
+    g+='<rect x="'+bx.toFixed(1)+'" y="'+mt+'" width="'+(W-mr-bx).toFixed(1)+'" height="'+ih+'" fill="var(--fc-bg)"/>';
+    // re-draw grid above region
+    ticks.forEach(function(v){ g+='<line class="gl" x1="'+bx.toFixed(1)+'" x2="'+(W-mr)+'" y1="'+Y(v).toFixed(1)+'" y2="'+Y(v).toFixed(1)+'"/>'; });
+    g+='<text class="rg" x="'+(bx+8).toFixed(1)+'" y="'+(mt+13)+'">예측</text>';
+    if(actual.length) g+='<text class="rg" x="'+(bx-8).toFixed(1)+'" y="'+(mt+13)+'" text-anchor="end">실제</text>';
+    var step=Math.max(1,Math.ceil(uniq.length/(W<520?5:8)));
+    uniq.forEach(function(n,i){ if((uniq.length-1-i)%step===0) g+='<text class="xl" x="'+X(n).toFixed(1)+'" y="'+(H-12)+'" text-anchor="middle">'+esc(fmtDate(dateOf[n]))+'</text>'; });
+    if(actual.length){
+      g+='<path class="act" d="'+actual.map(function(p,i){return (i?'L':'M')+X(p.n).toFixed(1)+' '+Y(p[k]).toFixed(1)}).join('')+'"/>';
+      var lp=actual[actual.length-1]; g+='<circle cx="'+X(lp.n).toFixed(1)+'" cy="'+Y(lp[k]).toFixed(1)+'" r="4.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>';
+    }
+    series.forEach(function(s){
+      var d=s.pts.map(function(p,i){return (i?'L':'M')+X(p.n).toFixed(1)+' '+Y(p[k]).toFixed(1)}).join('');
+      g+='<path class="mline'+(P.hi&&P.hi!==s.name?' dim':'')+'" data-model="'+esc(s.name)+'" d="'+d+'" style="stroke:var(--mc'+(s.idx%15)+')"'+(s.idx>=8?' stroke-dasharray="6 4"':'')+'/>';
+    });
+    var medPts=[];
+    if(P.median){
+      var byN={}; series.forEach(function(s){s.pts.forEach(function(p){(byN[p.n]||(byN[p.n]=[])).push(p[k])})});
+      Object.keys(byN).map(Number).sort(function(a,b){return a-b}).forEach(function(n){medPts.push({n:n,v:median(byN[n])})});
+      if(medPts.length) g+='<path class="medl" d="'+medPts.map(function(p,i){return (i?'L':'M')+X(p.n).toFixed(1)+' '+Y(p.v).toFixed(1)}).join('')+'"/>';
+    }
+    g+='<line class="guide" id="gd" y1="'+mt+'" y2="'+(mt+ih)+'" x1="0" x2="0" style="display:none"/><circle class="hdot" id="hd" r="5" style="display:none"/>';
+    box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="'+esc(P.coin)+' 실제값과 예측 모델별 '+METRIC[P.metric]+' 선 그래프">'+g+'</svg><div class="tip" style="display:none"></div>';
+    var svg=box.querySelector('svg'), tip=box.querySelector('.tip'), gd=box.querySelector('#gd'), hd=box.querySelector('#hd');
+    var base=P.a.base;
+    function show(ev){
+      var r=svg.getBoundingClientRect(), x=(ev.clientX-r.left)*(W/r.width), y=(ev.clientY-r.top)*(H/r.height);
+      var best=uniq[0], bd=1e9; uniq.forEach(function(n){var d=Math.abs(X(n)-x); if(d<bd){bd=d;best=n}});
+      var n=best, cx=X(n), html='', dotV=null, dotColor='var(--ink)';
+      var ah=actual.filter(function(p){return p.n===n})[0];
+      var cand=series.map(function(s){var p=s.pts.filter(function(q){return q.n===n})[0]; return p?{s:s,p:p}:null}).filter(Boolean);
+      if(ah&&!cand.length){
+        html='<div class="th">'+esc(fmtDate(ah.date))+' 실제값</div><div class="tr"><span>종가</span><b>'+fmtNum(ah.c)+'</b></div><div class="tr"><span>고점</span><b>'+fmtNum(ah.h)+'</b></div><div class="tr"><span>저점</span><b>'+fmtNum(ah.l)+'</b></div>';
+        dotV=ah[k];
+        P.setHi(null);
+      }else if(cand.length){
+        var near=cand[0], nd=1e18;
+        cand.forEach(function(c){var d=Math.abs(Y(c.p[k])-y); if(d<nd){nd=d;near=c}});
+        P.setHi(near.s.name);
+        var vs=cand.map(function(c){return c.p[k]}), md=median(vs);
+        html='<div class="th"><i style="background:var(--mc'+(near.s.idx%15)+')"></i>'+esc(near.s.name)+' · '+esc(fmtDate(near.p.date))+' (D+'+near.p.seq+')</div>';
+        html+='<div class="tr"><span>'+METRIC[P.metric]+' 예측</span><b>'+fmtNum(near.p[k])+'</b></div>';
+        if(base) html+='<div class="tr"><span>직전 종가 대비</span><b>'+pct(near.p[k]/base.c-1)+'</b></div>';
+        html+='<div class="tm">표시 모델 중앙값 '+fmtNum(md)+'<br>범위 '+fmtNum(Math.min.apply(null,vs))+' ~ '+fmtNum(Math.max.apply(null,vs))+'</div>';
+        dotV=near.p[k]; dotColor='var(--mc'+(near.s.idx%15)+')';
+      }
+      if(!html) return;
+      gd.setAttribute('x1',cx);gd.setAttribute('x2',cx);gd.style.display='';
+      hd.setAttribute('cx',cx);hd.setAttribute('cy',Y(dotV));hd.style.fill=dotColor;hd.style.display='';
+      tip.innerHTML=html; tip.style.display='block';
+      var px=cx*(r.width/W), tw=tip.offsetWidth, left=px+14; if(left+tw>r.width) left=px-tw-14; if(left<0) left=0;
+      tip.style.left=left+'px';
+    }
+    function hide(){tip.style.display='none';gd.style.display='none';hd.style.display='none';P.setHi(null);}
+    svg.addEventListener('pointermove',show); svg.addEventListener('pointerdown',show); svg.addEventListener('pointerleave',hide);
+  };
+  return P;
+}
+
+/* ---------- page ---------- */
+function renderHeader(){
+  var sel='';
+  if(DATA.preds.length>1){
+    sel='<select id="predSel" aria-label="예측 수행일">'+DATA.preds.map(function(p){return '<option value="'+esc(p)+'"'+(p===state.pred?' selected':'')+'>'+esc(fmtDate(p))+'</option>'}).join('')+'</select>';
+  }else sel='<b>'+esc(fmtDate(state.pred))+'</b>';
+  $('#sub').innerHTML='예측 수행일 '+sel+', '+CFG.noun+' '+cur.D.coins.size+'개, 모델 '+cur.D.order.length+'개, '+esc(state.src);
+  var ps=$('#predSel'); if(ps) ps.onchange=function(){setPred(ps.value);renderAll();};
+}
+function counts(){
+  var c={all:0,up:0,mx:0,dn:0,hold:0,stale:0};
+  altNames().forEach(function(k){ c.all++; c[cur.an.get(k).verdict]++; });
+  return c;
+}
+function renderAll(){
+  renderHeader();
+  var hasBtc=cur.D.coins.has(CFG.main);
+  var h='';
+  if(hasBtc){
+    h+='<section aria-labelledby="btc-h"><div class="sec-head"><h2 id="btc-h">'+CFG.main+'</h2><p>실제값(굵은 실선)과 예측 모델 '+cur.D.order.length+'개의 선을 함께 보여줍니다</p></div><div class="panel" id="pBtc"></div></section>';
+  }
+  h+='<section aria-labelledby="alt-h"><div class="sec-head"><h2 id="alt-h">'+CFG.noun+'</h2><p>'+CFG.noun+'을 고르면 '+CFG.main+CFG.with_+'같은 차트와 D+1 해석이 나옵니다</p></div>';
+  h+='<div class="picker"><div class="pick-row"><label class="coinpick">'+CFG.noun+' 검색<input id="q" type="text" autocomplete="off" spellcheck="false" placeholder="예: '+CFG.example+'"></label><div class="seg" id="flt" role="group" aria-label="D+1 판단별 보기"></div></div>';
+  h+='<div class="coinlist" id="coinlist"></div>';
+  h+='<div class="keyrow"><span><i style="background:var(--up)"></i>상승</span><span><i style="background:#E0A020"></i>혼돈</span><span><i style="background:var(--dn)"></i>하락</span><span><i style="background:var(--hold-ink)"></i>보류(실제값 없음), 지연(D+1 날짜 어긋남)</span></div></div>';
+  h+='<div class="panel" id="pAlt"></div></section>';
+  $('#app').innerHTML=h;
+  panels={};
+  if(hasBtc){ panels.btc=Panel($('#pBtc')); panels.btc.setCoin(CFG.main); }
+  panels.alt=Panel($('#pAlt'));
+  $('#q').oninput=function(){ state.q=this.value; renderPicker(); };
+  $('#flt').onclick=function(ev){ var b=ev.target.closest('button'); if(!b) return; state.filter=b.dataset.f; renderPicker(); };
+  $('#coinlist').onclick=function(ev){ var b=ev.target.closest('button[data-coin]'); if(!b) return; selectAlt(b.dataset.coin); };
+  renderPicker();
+  if(state.alt) selectAlt(state.alt);
+  else $('#pAlt').innerHTML='<p class="empty">'+CFG.noun+' 데이터가 없어요.</p>';
+}
+function renderPicker(){
+  var c=counts(), F=[['all','전체'],['up','상승'],['mx','혼돈'],['dn','하락'],['hold','보류'],['stale','지연']];
+  $('#flt').innerHTML=F.filter(function(f){return f[0]==='all'||c[f[0]]>0}).map(function(f){return '<button data-f="'+f[0]+'" aria-pressed="'+(state.filter===f[0])+'">'+f[1]+' '+c[f[0]]+'</button>'}).join('');
+  var list=altList();
+  $('#coinlist').innerHTML=list.length?list.map(function(k){
+    var v=cur.an.get(k).verdict;
+    return '<button class="cc '+v+'" data-coin="'+esc(k)+'" aria-pressed="'+(k===state.alt)+'">'+esc(k)+'</button>';
+  }).join(''):'<span class="fine">조건에 맞는 '+CFG.noun+'이 없어요.</span>';
+}
+function selectAlt(name){
+  state.alt=name;
+  if(panels.alt&&cur.D.coins.has(name)) panels.alt.setCoin(name);
+  $('#coinlist').querySelectorAll('.cc').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.coin===name)});
+}
+
+/* ---------- boot / upload ---------- */
+var msg=$('#msg');
+function setMsg(t,cls){msg.className=cls||'';msg.textContent=t;}
+function load(text,src){
+  var d=build(text);
+  DATA=d; state.src=src;
+  setPred(d.preds[d.preds.length-1]);
+  renderAll();
+  return d;
+}
+try{ void 0; }
+catch(err){ $('#app').innerHTML='<p class="empty">'+esc(err.message)+'</p>'; }
+$('#file').addEventListener('change',function(ev){
+  var f=ev.target.files[0]; if(!f) return;
+  setMsg('불러오는 중','');
+  var fr=new FileReader();
+  fr.onload=function(){
+    try{ var d=load(String(fr.result),f.name); setMsg('불러왔습니다'+(d.bad?' ('+d.bad+'행은 형식이 달라 건너뜀)':''),''); }
+    catch(err){ setMsg(err.message,'err'); }
+  };
+  fr.onerror=function(){setMsg('파일을 읽지 못했습니다. .csv 파일인지 확인해 주세요.','err')};
+  fr.readAsText(f,'utf-8');
+  ev.target.value='';
+});
+if(HOST&&/^https?:$/.test(location.protocol)){
+  portalFetch()
+    .then(function(r){if(!r.ok) throw new Error('HTTP '+r.status); return r.arrayBuffer();})
+    .then(function(buf){ var d=load(new TextDecoder('utf-8').decode(buf),'최신 예측 데이터'); setMsg('최신 예측을 불러왔어요'+(d.bad?' ('+d.bad+'행은 형식이 달라 건너뜀)':''),''); })
+    .catch(function(){ setMsg('데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요','err'); });
+}
+if(window.ResizeObserver){
+  var t=null, lastW=0;
+  new ResizeObserver(function(){
+    var w=document.body.clientWidth; if(Math.abs(w-lastW)<2) return; lastW=w;
+    clearTimeout(t); t=setTimeout(function(){ if(!cur) return; Object.keys(panels).forEach(function(k){ if(panels[k]&&panels[k].coin) panels[k].draw(); }); },80);
+  }).observe(document.body);
+}
+})();
+</script>
+</body>
+</html>

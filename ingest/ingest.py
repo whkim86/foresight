@@ -196,7 +196,9 @@ def log(market, kind, status, **kw):
 
 
 def upload(path, text):
-    h = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "text/csv; charset=utf-8", "x-upsert": "true"}
+    # latest.csv 는 매일 덮어쓰므로 브라우저가 오래 캐시하지 않게 1분으로
+    h = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "text/csv; charset=utf-8",
+         "x-upsert": "true", "cache-control": "max-age=60"}
     http("POST", f"{SUPA}/storage/v1/object/{BUCKET}/{path}", text.encode("utf-8"), h)
 
 

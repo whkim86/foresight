@@ -33,8 +33,8 @@ window.PORTAL_CONFIG = {
       desc: "업비트 알트코인 6일 예측과 우선순위, 해석을 한 화면에서 봐요",
       note: "매일 오전 9시 업데이트되는 업비트 예측이에요",
       views: [
-        { key: "priority", label: "우선순위", url: "https://whkim86.github.io/coin_upbit/" },
-        { key: "chart", label: "가격 차트", url: "https://whkim86.github.io/coin_upbitline/" },
+        { key: "priority", label: "우선순위", url: "boards/coin_upbit.html" },
+        { key: "chart", label: "가격 차트", url: "boards/coin_upbitline.html" },
       ],
     },
     nasdaq: {
@@ -42,8 +42,8 @@ window.PORTAL_CONFIG = {
       desc: "S&P500과 나스닥 종목의 6일 예측을 확인해요",
       note: "나스닥·S&P500 종목의 6일 예측이에요",
       views: [
-        { key: "priority", label: "우선순위", url: "https://whkim86.github.io/coin_nasdaq/" },
-        { key: "chart", label: "가격 차트", url: "https://whkim86.github.io/coin_nasdaqline/" },
+        { key: "priority", label: "우선순위", url: "boards/coin_nasdaq.html" },
+        { key: "chart", label: "가격 차트", url: "boards/coin_nasdaqline.html" },
       ],
     },
     kospi: {
@@ -51,8 +51,8 @@ window.PORTAL_CONFIG = {
       desc: "SK하이닉스, 삼성전자를 기준으로 종목별 예측을 봐요",
       note: "코스피200 종목의 6일 예측이에요",
       views: [
-        { key: "priority", label: "우선순위", url: "https://whkim86.github.io/coin_kospi/" },
-        { key: "chart", label: "가격 차트", url: "https://whkim86.github.io/coin_kospiline/" },
+        { key: "priority", label: "우선순위", url: "boards/coin_kospi.html" },
+        { key: "chart", label: "가격 차트", url: "boards/coin_kospiline.html" },
       ],
     },
   },
