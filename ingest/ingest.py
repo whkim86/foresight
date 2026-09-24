@@ -129,8 +129,10 @@ def analyze(text, today):
             continue
         d1 = next((co["mod"][n][1][0] for n in names if 1 in co["mod"][n]), None)
         stale = d1 is not None and not (0 <= day_delta(d1, pred_label) <= 1)
-        row = {"market": None, "symbol": sym, "pred_date": pred_date.isoformat(),
-               "d1_date": to_date(d1, pred_date).isoformat() if d1 else None, "n_models": len(names)}
+        # 한 번에 upsert 하는 행은 칸 구성이 모두 같아야 해서, 지연·보류 종목도 모든 칸을 갖게 함
+        row = dict.fromkeys(("base_date", "base_close", "up_n", "dn_n", "med1", "thr", "cons_up", "cons_dn"))
+        row.update({"market": None, "symbol": sym, "pred_date": pred_date.isoformat(),
+                    "d1_date": to_date(d1, pred_date).isoformat() if d1 else None, "n_models": len(names)})
 
         if stale or not hist:
             row["verdict"] = "stale" if stale else "hold"
