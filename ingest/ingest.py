@@ -5,6 +5,7 @@
 2. 가격 차트 CSV 로 종목별 D+1 판정(대시보드와 같은 공식)과 6일 합의도를 계산해 predictions 에 저장
 3. 새 CSV 의 실제 종가(SEQ=0)로 지난 예측을 채점
 4. 업로드 예정 시각 + 50분이 지나도 새 CSV 가 없으면 ingest_log 에 '미수신' 기록 (GitHub 이 실패 메일을 보냄)
+   단, 주말·휴장일(KRX_HOLIDAYS, US_HOLIDAYS)은 원래 새 결과가 없으니 제외
 
 로컬 점검:  python ingest/ingest.py --dry-run   (Supabase 없이 판정 결과만 출력)
 """
@@ -33,6 +34,25 @@ MARKETS = {
     "nasdaq": {"start": (8, 0), "repos": {"priority": "coin_nasdaq", "chart": "coin_nasdaqline"}},
     "kospi": {"start": (23, 0), "repos": {"priority": "coin_kospi", "chart": "coin_kospiline"}},
 }
+
+# 휴장일에는 R 결과가 같아서 커밋이 없음 → 미수신으로 보지 않음. 매년 말에 다음 해 날짜를 추가해 주세요
+KRX_HOLIDAYS = {  # 한국거래소 휴장일
+    "2026-09-24", "2026-09-25", "2026-10-05", "2026-10-09", "2026-12-25", "2026-12-31",
+}
+US_HOLIDAYS = {   # 미국 증시 휴장일 (현지 날짜)
+    "2026-11-26", "2026-12-25", "2027-01-01",
+}
+
+
+def trading_expected(market, run_day):
+    """run_day(KST)에 R 이 새 결과를 올릴 거라고 기대할 수 있는지"""
+    if market == "kospi":   # 23시 실행 → 그날 한국 장 마감 데이터
+        return run_day.weekday() < 5 and run_day.isoformat() not in KRX_HOLIDAYS
+    if market == "nasdaq":  # 아침 8시 실행 → 전날 미국 장 마감 데이터
+        us_day = run_day - timedelta(days=1)
+        return us_day.weekday() < 5 and us_day.isoformat() not in US_HOLIDAYS
+    return True             # 코인은 매일
+
 
 DRY = "--dry-run" in sys.argv
 SUPA = os.environ.get("SUPABASE_URL", "").rstrip("/")
@@ -235,6 +255,8 @@ def check_missing(market, cfg, now):
         start = datetime(d.year, d.month, d.day, *cfg["start"], tzinfo=KST)
         if not (start + timedelta(minutes=LATE_MINUTES) <= now <= start + timedelta(hours=3)):
             continue
+        if not trading_expected(market, d):
+            return False
         since = start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         base = f"/rest/v1/ingest_log?select=id&market=eq.{market}&created_at=gte.{since}&limit=1"
         if supa("GET", base + "&kind=eq.chart&status=eq.ok") or supa("GET", base + "&status=eq.missing"):
