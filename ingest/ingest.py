@@ -251,7 +251,7 @@ def ingest_market(market, cfg, today):
 
 
 def check_missing(market, cfg, now):
-    """R 시작 시각 + 50분이 지났는데 그 이후 새 가격 차트 CSV 가 없으면 한 번만 '미수신' 기록"""
+    """R 시작 시각 + 50분이 지났는데 그 이후 새 CSV(우선순위·가격 차트 중 하나라도)가 없으면 한 번만 '미수신' 기록"""
     for back in (0, 1):  # 코스피(23시)는 자정을 넘길 수 있어 어제 시작분도 확인
         d = (now - timedelta(days=back)).date()
         start = datetime(d.year, d.month, d.day, *cfg["start"], tzinfo=KST)
@@ -261,7 +261,7 @@ def check_missing(market, cfg, now):
             return False
         since = start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         base = f"/rest/v1/ingest_log?select=id&market=eq.{market}&created_at=gte.{since}&limit=1"
-        if supa("GET", base + "&kind=eq.chart&status=eq.ok") or supa("GET", base + "&status=eq.missing"):
+        if supa("GET", base + "&status=eq.ok") or supa("GET", base + "&status=eq.missing"):
             return False
         log(market, "check", "missing",
             message=f"{start:%m-%d %H:%M} 시작 후 {LATE_MINUTES}분이 지나도 새 CSV 가 없어요. R 실행을 확인해 주세요.")

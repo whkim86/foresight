@@ -35,8 +35,10 @@
 
   function statusCard(m) {
     const mine = (logs || []).filter((l) => l.market === m);
-    const ok = mine.find((l) => l.status === "ok" && l.kind === "chart");
+    const ok = mine.find((l) => l.status === "ok");
+    const okOf = (kind) => mine.find((l) => l.status === "ok" && l.kind === kind);
     const bad = mine.find((l) => l.status !== "ok");
+    const when = (l) => l ? `${l.pred_date} 예측 · ${ago(l.created_at)} 수신` : "-";
     const badNewer = bad && (!ok || new Date(bad.created_at) > new Date(ok.created_at));
     const badge = !ok && !bad ? `<span class="badge gray">기록 없음</span>`
       : badNewer ? `<span class="badge ${bad.status === "missing" ? "warn" : "red"}">${bad.status === "missing" ? "미수신" : "오류"}</span>`
@@ -46,9 +48,8 @@
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span class="market-head">${ICONS[m]}${esc(cfg.MARKETS[m].name)}</span>${badge}
         </div>
-        <div class="kv"><span class="k" style="font-weight:500">마지막 수신</span>
-          <span class="v">${ok ? `${ymd(ok.created_at)} ${new Date(ok.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} · ${ago(ok.created_at)}` : "-"}</span></div>
-        <div class="kv"><span class="k" style="font-weight:500">예측 수행일</span><span class="v">${ok ? ok.pred_date : "-"}</span></div>
+        <div class="kv"><span class="k" style="font-weight:500">우선순위</span><span class="v">${when(okOf("priority"))}</span></div>
+        <div class="kv"><span class="k" style="font-weight:500">가격 차트</span><span class="v">${when(okOf("chart"))}</span></div>
         ${badNewer ? `<div class="msg ${bad.status === "missing" ? "warn" : "error"}" style="font-size:12.5px">${esc(bad.message || "")}</div>` : ""}
       </div>`;
   }
