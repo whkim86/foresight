@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 해설 사용량 · AI 신호등</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=20260929d">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20260929d"></script>
+<script src="assets/app.js?v=20260929d"></script>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, cfg, requireUser, renderHeader, esc, ymd, ago, errText } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  if (!me.acc.isAdmin) { location.replace("index.html"); return; }
+  renderHeader(me);
+
+  const main = document.createElement("main");
+  main.className = "page";
+  document.body.appendChild(main);
+
+  const P = cfg.AI_PRICE;
+  const usd = (i, o) => (i * P.input + o * P.output) / 1e6;
+  const fmtUsd = (x) => "$" + (x < 1 ? x.toFixed(4) : x.toFixed(2));
+
+  async function load() {
+    const [statsRes, usersRes, logsRes, setRes] = await Promise.all([
+      sb.rpc("ai_admin_stats"),
+      sb.rpc("ai_admin_users"),
+      sb.from("ai_logs").select("created_at, question, answer, input_tokens, output_tokens, profiles(nickname)")
+        .order("created_at", { ascending: false }).limit(20),
+      sb.from("app_settings").select("value").eq("key", "ai_budget").maybeSingle(),
+    ]);
+    const err = statsRes.error || usersRes.error || logsRes.error || setRes.error;
+    if (err) { main.innerHTML = `<div class="msg error">${esc(errText(err))}</div>`; return; }
+
+    const S = Object.fromEntries(statsRes.data.map((r) => [r.scope, r]));
+    const budget = setRes.data?.value || { usd: 0, krw_rate: 1400 };
+    const rate = Number(budget.krw_rate) || 1400;
+    const krw = (x) => Math.round(x * rate).toLocaleString("ko-KR") + "원";
+    const cost = (s) => (s ? usd(s.input_tokens, s.output_tokens) : 0);
+
+    const spent = cost(S.all);
+    const charged = Number(budget.usd) || 0;
+    const ratio = charged ? Math.min(1, spent / charged) : 0;
+    const left = Math.max(0, charged - spent);
+    const perQ = S.all?.questions ? spent / S.all.questions : 0;
+    const barColor = ratio >= 0.9 ? "var(--up)" : ratio >= 0.7 ? "var(--mx)" : "var(--dn)";
+
+    const users = usersRes.data.map((u) => `
+      <tr><td><b>${esc(u.nickname)}</b></td><td class="num">${u.questions}개</td>
+        <td class="num">${fmtUsd(usd(u.input_tokens, u.output_tokens))} <span class="muted">(${krw(usd(u.input_tokens, u.output_tokens))})</span></td>
+        <td class="muted">${ago(u.last_at)}</td></tr>`).join("");
+
+    const logs = logsRes.data.map((l) => `
+      <tr>
+        <td class="muted">${ymd(l.created_at)}<br>${new Date(l.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })}</td>
+        <td>${esc(l.profiles?.nickname || "-")}</td>
+        <td><details><summary style="cursor:pointer;font-weight:600">${esc(l.question)}</summary>
+          <p style="white-space:pre-wrap;font-size:13px;color:var(--sub);line-height:1.6;margin:8px 0 0">${esc(l.answer || "")}</p></details></td>
+        <td class="num muted">${fmtUsd(usd(l.input_tokens || 0, l.output_tokens || 0))}</td>
+      </tr>`).join("");
+
+    main.innerHTML = `
+      <section class="on-night">
+        <h1>운영자</h1>
+        <nav class="board-tabs" style="margin-top:14px">
+          <a href="admin.html">입금 · 회원</a><a href="accuracy.html">수집 · 적중률</a><a href="ai.html" aria-current="page">AI 해설</a>
+        </nav>
+      </section>
+      <div class="msg" id="msg" hidden></div>
+
+      <section class="card" style="display:flex;flex-direction:column;gap:16px">
+        <div class="title-row" style="justify-content:space-between">
+          <h2 style="margin:0">충전 대비 사용량</h2>
+          <span class="hint" style="font-size:12.5px">${esc(P.model)} · 입력 $${P.input} / 출력 $${P.output} (100만 토큰당)</span>
+        </div>
+        ${charged ? `
+        <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px">
+          <div><span style="font-size:30px;font-weight:700">${fmtUsd(spent)}</span>
+            <span class="hint"> / 충전 $${charged.toFixed(2)} 중 ${(ratio * 100).toFixed(1)}% 사용</span></div>
+          <div class="hint">남은 금액 약 <b style="color:var(--ink)">$${left.toFixed(2)}</b> (${krw(left)})
+            ${perQ ? ` · 질문 약 <b style="color:var(--ink)">${Math.floor(left / perQ).toLocaleString("ko-KR")}개</b> 더 가능` : ""}</div>
+        </div>
+        <div style="height:12px;border-radius:6px;background:var(--line-soft);overflow:hidden">
+          <i style="display:block;height:100%;width:${(ratio * 100).toFixed(1)}%;background:${barColor};border-radius:6px"></i></div>
+        ${ratio >= 0.8 ? `<div class="msg warn">충전 금액의 ${(ratio * 100).toFixed(0)}%를 썼어요. Anthropic 콘솔에서 크레딧을 충전해 주세요.</div>` : ""}`
+        : `<div class="msg warn">아래에 Anthropic 콘솔에서 충전한 금액을 입력하면 남은 금액을 계산해 드려요.</div>`}
+
+        <form id="budget" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+          <div class="field" style="width:180px"><label for="bUsd">총 충전 금액 ($)</label>
+            <input id="bUsd" type="number" min="0" step="0.01" value="${charged || ""}" placeholder="예: 10"></div>
+          <div class="field" style="width:160px"><label for="bRate">환율 (원/$)</label>
+            <input id="bRate" type="number" min="1" step="1" value="${rate}"></div>
+          <button class="btn" type="submit" style="height:48px">저장</button>
+        </form>
+        <p class="hint" style="font-size:12px;line-height:1.6;margin:0">
+          비용은 이 사이트의 질문 기록(토큰 수) × 단가로 계산한 추정치예요(세금 제외). 크레딧을 추가 충전하면 <b>총 충전 금액</b>을 누적해서 고쳐 주세요.
+          정확한 청구액은 Anthropic 콘솔 → Usage / Billing 에서 확인할 수 있어요.</p>
+      </section>
+
+      <div class="grid3">
+        ${[["오늘", S.today], ["이번 달", S.month], ["전체", S.all]].map(([label, s]) => `
+          <div class="card" style="display:flex;flex-direction:column;gap:6px">
+            <span class="hint" style="font-size:12.5px;font-weight:600">${label}</span>
+            <b style="font-size:24px">${s?.questions || 0}개 질문</b>
+            <span class="hint">${fmtUsd(cost(s))} · ${krw(cost(s))}</span>
+          </div>`).join("")}
+      </div>
+
+      <section class="section">
+        <div><h2>회원별 사용량</h2><p class="hint">최근 30일 · 1인 하루 최대 20개</p></div>
+        <div class="card table-wrap" style="padding:8px 12px">
+          ${users ? `<table class="list" style="min-width:520px"><thead><tr><th>회원</th><th class="num">질문</th><th class="num">비용</th><th>마지막 질문</th></tr></thead><tbody>${users}</tbody></table>`
+            : `<div class="empty">아직 질문 기록이 없어요</div>`}
+        </div>
+      </section>
+
+      <section class="section">
+        <div><h2>최근 질문 20개</h2><p class="hint">질문을 누르면 AI 답변을 볼 수 있어요. 이상한 답변이 없는지 가끔 확인해 주세요</p></div>
+        <div class="card table-wrap" style="padding:8px 12px">
+          ${logs ? `<table class="list" style="min-width:640px"><thead><tr><th>시간</th><th>회원</th><th>질문 / 답변</th><th class="num">비용</th></tr></thead><tbody>${logs}</tbody></table>`
+            : `<div class="empty">아직 질문 기록이 없어요</div>`}
+        </div>
+      </section>`;
+
+    document.getElementById("budget").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const value = { usd: Number(document.getElementById("bUsd").value) || 0, krw_rate: Number(document.getElementById("bRate").value) || 1400 };
+      const { error } = await sb.from("app_settings").upsert({ key: "ai_budget", value, updated_at: new Date().toISOString() });
+      if (error) { const m = document.getElementById("msg"); m.className = "msg error"; m.textContent = errText(error); m.hidden = false; return; }
+      load();
+    });
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>

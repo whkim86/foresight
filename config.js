@@ -18,6 +18,9 @@ window.PORTAL_CONFIG = {
     { months: 12, days: 365, label: "1년", discount: 0.4 },
   ],
 
+  // AI 해설(Claude Haiku 4.5) 단가 — 100만 토큰당 달러. 운영자 화면 비용 추정에 사용
+  AI_PRICE: { model: "Claude Haiku 4.5", input: 1, output: 5 },
+
   // 게시판 — key 는 supabase/stage3.sql 의 posts.board 값과 같아야 함
   BOARDS: {
     coin: { name: "코인", desc: "코인 예측과 매매에 대해 자유롭게 이야기해요" },
