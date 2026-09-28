@@ -19,10 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20260929b">
+<link rel="stylesheet" href="assets/style.css?v=20260929c">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20260929b"></script>
-<script src="assets/app.js?v=20260929b"></script>
+<script src="config.js?v=20260929c"></script>
+<script src="assets/app.js?v=20260929c"></script>
 </head>
 <body>
 <script>
@@ -38,6 +38,9 @@
   document.body.appendChild(main);
 
   const TABS = Object.keys(cfg.MARKETS);
+  // 회원 목록 만료일 칸: 시장 탭 + 프리미엄 AI 해설
+  const COLS = [...TABS, "ai"];
+  const colName = (t) => (t === "ai" ? "AI 해설" : cfg.MARKETS[t].name);
   const tabNames = (tabs) => tabs.map((t) => cfg.MARKETS[t]?.name || t).join(" · ");
   const planLabel = (m) => cfg.PLANS.find((p) => p.months === m)?.label || m + "달";
   const STATUS = { approved: ["승인", "teal"], rejected: ["거절", "red"], cancelled: ["회원 취소", "gray"] };
@@ -80,7 +83,7 @@
 
     const memberRows = members.map((p) => {
       const a = access(p);
-      const cells = TABS.map((t) => `<td><input type="date" data-user="${p.id}" data-tab="${t}" value="${ymd(p[t + "_until"])}" data-orig="${ymd(p[t + "_until"])}" aria-label="${esc(p.nickname)} ${cfg.MARKETS[t].name} 만료일"></td>`).join("");
+      const cells = COLS.map((t) => `<td><input type="date" data-user="${p.id}" data-tab="${t}" value="${ymd(p[t + "_until"])}" data-orig="${ymd(p[t + "_until"])}" aria-label="${esc(p.nickname)} ${colName(t)} 만료일"></td>`).join("");
       const state = p.role === "admin" ? `<span class="badge teal">운영자</span>`
         : a.inTrial ? `<span class="badge red">체험 ~${ymd(a.trialEnd)}</span>`
         : a.anyOpen ? `<span class="badge teal">이용 중</span>` : `<span class="badge warn">잠김</span>`;
@@ -116,7 +119,7 @@
           <p class="hint">탭별 만료일을 직접 고칠 수 있어요(환불·보상 등). 날짜를 지우고 저장하면 그 탭 이용권이 없어져요</p>
         </div>
         <div class="card table-wrap" style="padding:8px 12px">
-          <table class="list"><thead><tr><th>회원</th><th>가입일</th><th>상태</th>${TABS.map((t) => `<th>${cfg.MARKETS[t].name} 만료</th>`).join("")}<th></th></tr></thead>
+          <table class="list"><thead><tr><th>회원</th><th>가입일</th><th>상태</th>${COLS.map((t) => `<th>${colName(t)} 만료</th>`).join("")}<th></th></tr></thead>
           <tbody>${memberRows}</tbody></table>
         </div>
       </section>

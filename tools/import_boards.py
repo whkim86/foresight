@@ -24,11 +24,15 @@ BOARDS = {  # 원본 저장소 → (시장, 종류)
     "coin_kospi": ("kospi", "priority"),
     "coin_kospiline": ("kospi", "chart"),
 }
+# 보드별로 추가로 붙이는 기능 스크립트 (assets/ 아래)
+EXTRA_JS = {
+    ("coin", "priority"): ["ask-ai.js"],  # BTC 아래 'AI에게 물어보기' (프리미엄)
+}
 OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20260929b"
+ASSET_VERSION = "20260929c"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 
@@ -73,6 +77,11 @@ def convert(html, market, kind):
         f'<script src="../assets/board-data.js?v={ASSET_VERSION}"></script>\n'
     )
     html = sub_once(r"</head>", inject + "</head>", html, "<head> 삽입")
+
+    # 5) 보드별 추가 기능 (대시보드 스크립트가 #app 을 만든 뒤 실행되도록 </body> 앞)
+    extra = "".join(f'<script src="../assets/{js}?v={ASSET_VERSION}"></script>\n' for js in EXTRA_JS.get((market, kind), []))
+    if extra:
+        html = sub_once(r"</body>", extra + "</body>", html, "</body> 삽입")
     return html
 
 
