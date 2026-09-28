@@ -19,15 +19,22 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20260928c">
+<link rel="stylesheet" href="assets/style.css?v=20260929a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20260928c"></script>
-<script src="assets/app.js?v=20260928c"></script>
+<script src="config.js?v=20260929a"></script>
+<script src="assets/app.js?v=20260929a"></script>
+<script src="assets/landing.js?v=20260929a"></script>
 </head>
 <body class="home">
 <script>
 (async function () {
   const { sb, cfg, requireUser, renderHeader, esc, ymd, ago, daysLeft, ICONS, DAY } = Portal;
+
+  // 로그인 안 된 방문자에게는 소개 화면
+  if (sb) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { await window.renderLanding(); return; }
+  }
   const me = await requireUser();
   if (!me) return;
   renderHeader(me);
