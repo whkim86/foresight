@@ -370,6 +370,8 @@ body.home {
       var(--bg);
   }
 }
+/* 빛 번짐이 짧은 페이지에서 아래로 반복되지 않게 */
+body, body.home { background-repeat: no-repeat; background-color: var(--bg); }
 /* 대시보드 화면은 흰 바가 바로 이어져서 배경 무늬 없이 */
 body:has(.dash) { background: var(--bg); }
 body:has(.auth-wrap) { background-attachment: fixed; }
