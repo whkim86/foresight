@@ -27,7 +27,10 @@ BOARDS = {  # 원본 저장소 → (시장, 종류)
 OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
-LOAD_ERR = "데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
+# CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
+ASSET_VERSION = "20260928b"
+
+LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 
 
 def fetch_index(repo):
@@ -66,8 +69,8 @@ def convert(html, market, kind):
     inject = (
         f'<script>window.PORTAL_BOARD={{market:"{market}",kind:"{kind}"}};</script>\n'
         '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n'
-        '<script src="../config.js"></script>\n'
-        '<script src="../assets/board-data.js"></script>\n'
+        f'<script src="../config.js?v={ASSET_VERSION}"></script>\n'
+        f'<script src="../assets/board-data.js?v={ASSET_VERSION}"></script>\n'
     )
     html = sub_once(r"</head>", inject + "</head>", html, "<head> 삽입")
     return html
