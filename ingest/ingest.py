@@ -6,6 +6,8 @@
 3. 새 CSV 의 실제 종가(SEQ=0)로 지난 예측을 채점
 4. 업로드 예정 시각 + 50분이 지나도 새 CSV 가 없으면 ingest_log 에 '미수신' 기록 (GitHub 이 실패 메일을 보냄)
    단, 주말·휴장일(KRX_HOLIDAYS, US_HOLIDAYS)은 원래 새 결과가 없으니 제외
+5. 시장 게시판에 운영자 이름('AI 신호등')으로 '오늘의 신호 요약' 글을 예측일마다 하나씩 씀
+   (게시판은 이용권 없는 회원도 보므로 종목 순위 같은 유료 내용은 넣지 않음)
 
 로컬 점검:  python ingest/ingest.py --dry-run   (Supabase 없이 판정 결과만 출력)
 """
@@ -213,12 +215,121 @@ def prune(prefix, today):
         print(f"  {prefix}: 오래된 백업 {len(old)}개 삭제")
 
 
+# ---------------------------------------------------------------- 게시판 '오늘의 신호 요약'
+# 게시판은 이용권 없는 회원도 보므로, 유료 내용(종목 순위)은 넣지 않고 분포와 기준 종목 판정만
+LEAD = {"coin": "BTC", "nasdaq": "SP500", "kospi": "SK하이닉스"}
+MARKET_NAME = {"coin": "코인", "nasdaq": "나스닥", "kospi": "코스피200"}
+NOUN = {"coin": "코인", "nasdaq": "종목", "kospi": "종목"}
+VERDICT_KO = {"up": "상승", "dn": "하락", "mx": "혼돈", "hold": "보류", "stale": "지연"}
+_admin_id = None
+
+
+def admin_id():
+    global _admin_id
+    if _admin_id is None:
+        rows = supa("GET", "/rest/v1/profiles?select=id&role=eq.admin&order=joined_at&limit=1")
+        if not rows:
+            raise RuntimeError("운영자 계정이 없어 요약 글을 쓸 수 없어요")
+        _admin_id = rows[0]["id"]
+    return _admin_id
+
+
+def verdict_counts(rows):
+    c = {v: 0 for v in VERDICT_KO}
+    for r in rows:
+        c[r["verdict"]] = c.get(r["verdict"], 0) + 1
+    return c
+
+
+def summary_post(market, pred_date, preds, prev=None):
+    """그날 판정으로 게시판 요약 글(title, body)을 만든다. prev: 전 예측일 판정 개수"""
+    c = verdict_counts(preds)
+    judged = c["up"] + c["mx"] + c["dn"]
+    share = lambda n: round(n / judged * 100) if judged else 0
+    if judged and c["up"] / judged >= 0.5:
+        mood, mood_line = "상승 우세", "상승 쪽으로 기운 날이에요."
+    elif judged and c["dn"] / judged >= 0.5:
+        mood, mood_line = "하락 우세", "하락 쪽으로 기운 날이에요."
+    elif c["mx"] >= max(c["up"], c["dn"]):
+        mood, mood_line = "혼돈 우세", "방향을 단정하기 어려운 종목이 가장 많은 날이에요."
+    else:
+        mood, mood_line = "방향 엇갈림", "상승과 하락 의견이 엇갈린 날이에요."
+
+    name, noun = MARKET_NAME[market], NOUN[market]
+    wd = "월화수목금토일"[pred_date.weekday()]
+    lines = [
+        f"{pred_date:%m-%d}({wd}) {name} 예측이 업데이트됐어요.",
+        "",
+        f"■ 전체 신호 ({len(preds)}개 {noun})",
+        f"· 상승 {c['up']}개 ({share(c['up'])}%)",
+        f"· 혼돈 {c['mx']}개 ({share(c['mx'])}%)",
+        f"· 하락 {c['dn']}개 ({share(c['dn'])}%)",
+    ]
+    if c["hold"] + c["stale"]:
+        lines.append(f"· 판정 보류·지연 {c['hold'] + c['stale']}개")
+    lines.append(f"→ {mood_line}")
+
+    lead = next((p for p in preds if p["symbol"] == LEAD[market]), None)
+    if lead:
+        lines += ["", f"■ 기준 종목 {LEAD[market]}"]
+        d1 = lead.get("d1_date") or ""
+        lines.append(f"· D+1({d1[5:]}) 판정: {VERDICT_KO[lead['verdict']]}")
+        if lead.get("up_n") is not None:
+            lines.append(f"· {lead['n_models']}개 모델 중 {lead['up_n']}개는 오른다고, {lead['dn_n']}개는 내린다고 봤어요")
+        if lead.get("med1") is not None:
+            lines.append(f"· 모델 중앙값: 직전 종가 대비 {lead['med1'] * 100:+.1f}%")
+        if lead.get("cons_up") is not None:
+            lines.append(f"· 6일 합의도: 상승 {lead['cons_up'] * 100:.0f}% · 하락 {lead['cons_dn'] * 100:.0f}%")
+
+    if prev:
+        lines += ["", "■ 전 예측일과 비교",
+                  f"· 상승 {prev['up']} → {c['up']} · 혼돈 {prev['mx']} → {c['mx']} · 하락 {prev['dn']} → {c['dn']}"]
+
+    lines += ["", "종목별 우선순위와 6일 차트, 해석은 대시보드에서 확인하세요.",
+              "※ 예측 모델의 출력을 정리한 참고 자료이며, 투자 권유나 종목 추천이 아닙니다."]
+    title = f"[{pred_date:%m.%d}] {name} 오늘의 신호 요약 — {mood}"
+    return title, "\n".join(lines)
+
+
+def post_summary(market, pred_date, preds):
+    prev_rows = supa("GET", f"/rest/v1/predictions?select=pred_date&market=eq.{market}"
+                            f"&pred_date=lt.{pred_date.isoformat()}&order=pred_date.desc&limit=1")
+    prev = None
+    if prev_rows:
+        rows = supa("GET", f"/rest/v1/predictions?select=verdict&market=eq.{market}&pred_date=eq.{prev_rows[0]['pred_date']}")
+        prev = verdict_counts(rows)
+    title, body = summary_post(market, pred_date, preds, prev)
+    # 같은 예측일 요약은 한 글 — 수정본 CSV 가 다시 올라오면 내용만 갱신
+    supa("POST", "/rest/v1/posts?on_conflict=auto_key",
+         {"board": market, "user_id": admin_id(), "author": "AI 신호등", "title": title, "body": body,
+          "auto_key": f"daily-{market}-{pred_date.isoformat()}"},
+         Prefer="resolution=merge-duplicates,return=minimal")
+    print(f"  [{market}] 게시판 요약 글: {title}")
+
+
+def ensure_summary(market, text, today):
+    """이미 수집한 CSV 라도 그날 요약 글이 없으면 씀 (요약 기능 도입 첫날, 이전 실패 복구)"""
+    try:
+        first = next(csv.DictReader(io.StringIO(text)), None)
+        pred_date = to_date(first["pred_day"], today) if first else None
+        if not pred_date or supa("GET", f"/rest/v1/posts?select=id&auto_key=eq.daily-{market}-{pred_date.isoformat()}"):
+            return
+        pred_date, preds, _ = analyze(text, today)
+        for p in preds:
+            p["market"] = market
+        post_summary(market, pred_date, preds)
+    except Exception as e:
+        print(f"  [{market}] 요약 글 확인 실패: {e}")
+
+
 def ingest_market(market, cfg, today):
     for kind, repo in cfg["repos"].items():
         text = decode(fetch_source(repo, FILES[kind]))
         digest = hashlib.sha256(text.encode()).hexdigest()
         if not DRY and already_ingested(market, kind, digest):
             print(f"  [{market}/{kind}] 변경 없음")
+            if kind == "chart":
+                ensure_summary(market, text, today)
             continue
 
         if kind == "chart":
@@ -228,8 +339,8 @@ def ingest_market(market, cfg, today):
             counts = {v: sum(p["verdict"] == v for p in preds) for v in ("up", "dn", "mx", "hold", "stale")}
             print(f"  [{market}/chart] {pred_date} 종목 {len(preds)}개 판정 {counts}")
             if DRY:
-                for p in [p for p in preds if p["symbol"] in ("BTC", "SK하이닉스", "SP500", "APPLE")]:
-                    print("   ", {k: p.get(k) for k in ("symbol", "d1_date", "base_date", "base_close", "verdict", "up_n", "dn_n", "cons_up", "cons_dn")})
+                title, body = summary_post(market, pred_date, preds)
+                print(f"\n----- 요약 글 미리보기 -----\n{title}\n\n{body}\n---------------------------\n")
                 continue
             # 같은 CSV 가 수정돼 다시 올라와도 채점 전 판정은 최신으로 덮어씀
             for i in range(0, len(preds), 500):
@@ -237,6 +348,10 @@ def ingest_market(market, cfg, today):
                      Prefer="resolution=merge-duplicates,return=minimal")
             graded = supa("POST", "/rest/v1/rpc/grade_predictions", {"p_market": market, "p_actuals": actuals})
             print(f"  [{market}/chart] 지난 예측 {graded}건 채점")
+            try:
+                post_summary(market, pred_date, preds)
+            except Exception as e:  # 요약 글이 실패해도 수집은 계속
+                print(f"  [{market}] 요약 글 실패: {e}")
         else:
             first = next(csv.DictReader(io.StringIO(text)), None)
             pred_date = to_date(first["pred_day"], today) if first else today
