@@ -22,7 +22,7 @@ window.renderLanding = async function () {
     const top = t && t.top_symbol
       ? `<div class="t-row first">
            <span class="rank">1</span>
-           <span class="sym"><b>${esc(t.top_symbol)}</b><small title="D+1 모델 중앙값 ${signed(t.top_med1)}">모델 ${t.top_up_n}/${t.top_models} 상승</small></span>
+           <span class="sym"><b>${esc(t.top_symbol.replace(/_/g, " "))}</b><small title="D+1 모델 중앙값 ${signed(t.top_med1)}">모델 ${t.top_up_n}/${t.top_models} 상승</small></span>
            <span class="badge red" title="15개 모델 × 6일 예측 중 기준가보다 높은 비율">합의 ${pct(t.top_cons_up)}</span>
          </div>`
       : `<div class="t-row first"><span class="sym"><b style="color:var(--muted)">오늘은 상승 신호가 뚜렷한 ${NOUN[key]}이 없어요</b></span></div>`;
