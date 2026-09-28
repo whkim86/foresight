@@ -5,8 +5,8 @@
   const sb = configured ? window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY) : null;
   const DAY = 86400000;
 
-  const LOGO =
-    '<span class="brand-mark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></span>';
+  // 로고: 빨강·노랑·파랑 신호등
+  const LOGO = '<span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>';
 
   const ICONS = {
     coin: '<span class="icon-box red"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D92D3A" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v8M9.5 10a2.4 2.4 0 0 1 2.5-1.8c1.4 0 2.5.8 2.5 1.8s-1 1.6-2.5 1.8c-1.5.2-2.5.8-2.5 1.8s1.1 1.8 2.5 1.8a2.4 2.4 0 0 0 2.5-1.8"/></svg></span>',
@@ -104,7 +104,7 @@
       : "";
     document.body.insertAdjacentHTML(
       "afterbegin",
-      `<header class="topbar"><a class="brand" href="index.html">${LOGO}<span>예측 포털</span></a>${right}</header>`
+      `<header class="topbar"><a class="brand" href="index.html">${LOGO}<b><span class="ai">AI</span>신호등</b></a>${right}</header>`
     );
     const btn = document.getElementById("logoutBtn");
     if (btn) btn.addEventListener("click", async () => { await sb.auth.signOut(); location.replace("login.html"); });

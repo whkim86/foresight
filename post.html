@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>게시글 · 예측 포털</title>
+<title>게시글 · AI 신호등</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -35,7 +35,7 @@
   const board = cfg.BOARDS[post.board];
   const mine = post.user_id === me.user.id;
   const canEdit = mine || me.acc.isAdmin;
-  document.title = post.title + " · 예측 포털";
+  document.title = post.title + " · AI 신호등";
 
   const { data: myReport } = await sb.from("post_reports").select("post_id").eq("post_id", id).eq("user_id", me.user.id).maybeSingle();
 

@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>예측 포털</title>
+<title>AI 신호등 · 코인·나스닥·코스피 6일 예측</title>
+<meta name="description" content="매일 업데이트되는 코인·나스닥·코스피200 6일 예측 신호">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,18 +21,25 @@
   if (!me) return;
   renderHeader(me);
 
-  // 시장별 게시판 최신 글 2개씩
+  const MK = Object.keys(cfg.MARKETS);
+  const VERDICT = { up: ["상승", "v-up"], mx: ["혼돈", "v-mx"], dn: ["하락", "v-dn"], hold: ["보류", "v-na"], stale: ["지연", "v-na"] };
+
+  // 오늘의 신호(시장별 요약) + 게시판 최신 글 2개씩
   const latest = {};
-  await Promise.all(Object.keys(cfg.MARKETS).map(async (k) => {
-    const { data } = await sb.from("posts").select("id, title, author, created_at")
-      .eq("board", k).order("created_at", { ascending: false }).limit(2);
-    latest[k] = data || [];
-  }));
+  const [sigRes] = await Promise.all([
+    sb.rpc("market_signals"),
+    ...MK.map(async (k) => {
+      const { data } = await sb.from("posts").select("id, title, author, created_at")
+        .eq("board", k).order("created_at", { ascending: false }).limit(2);
+      latest[k] = data || [];
+    }),
+  ]);
+  const sig = Object.fromEntries((sigRes.data || []).map((r) => [r.market, r]));
 
   const { acc } = me;
   const day = Math.floor((Date.now() - acc.joined.getTime()) / DAY) + 1;
 
-  // 인사말 아래 상태 안내
+  // ---------- 히어로: 인사 + 이용 상태 ----------
   let status;
   if (acc.isAdmin) {
     status = `<p class="lead">운영자 계정이라 모든 탭이 열려 있어요.</p>`;
@@ -39,45 +47,74 @@
     const left = daysLeft(acc.trialEnd);
     const used = Math.min(cfg.TRIAL_DAYS, cfg.TRIAL_DAYS - left + 1);
     status = `
-      <p class="lead">가입하신 지 ${day}일째예요. 무료체험이 <b style="color:var(--accent)">${left}일</b> 남았어요.</p>
+      <p class="lead">가입하신 지 ${day}일째예요. 무료체험이 <b>${left}일</b> 남았어요.</p>
       <div class="progress"><div class="bar"><i style="width:${Math.round((used / cfg.TRIAL_DAYS) * 100)}%"></i></div>
       <span>${used} / ${cfg.TRIAL_DAYS}일 사용</span></div>`;
   } else if (acc.anyOpen) {
-    status = `<p class="lead">이용 중인 탭의 오늘 예측을 확인해 보세요. 기간은 <a href="mypage.html" style="font-weight:600">마이페이지</a>에서 연장할 수 있어요.</p>`;
+    status = `<p class="lead">이용 중인 탭의 오늘 신호를 확인해 보세요. 기간은 <a href="mypage.html" style="color:#fff;font-weight:600;text-decoration:underline">마이페이지</a>에서 연장할 수 있어요.</p>`;
   } else {
-    status = `<p class="lead">무료체험 기간이 끝나서 대시보드의 자세한 내용이 잠겼어요. 마이페이지에서 결제하시면 다시 열어드려요.</p>`;
+    status = `<p class="lead">무료체험 기간이 끝나서 신호의 자세한 내용이 잠겼어요. 마이페이지에서 결제하시면 다시 열어드려요.</p>`;
   }
   const expiredBadge = !acc.isAdmin && !acc.inTrial && !acc.anyOpen ? `<span class="badge warn">무료체험 종료</span>` : "";
 
-  const cards = Object.entries(cfg.MARKETS).map(([key, m]) => {
+  // ---------- 오늘의 신호 카드 ----------
+  const pct = (x) => (x == null ? "" : (x >= 0 ? "+" : "") + (x * 100).toFixed(1) + "%");
+  const cards = MK.map((key) => {
+    const m = cfg.MARKETS[key];
     const t = acc.tabs[key];
+    const s = sig[key];
     const note = acc.isAdmin ? "" : acc.inTrial && !t.paid ? "무료체험 중"
       : t.paid ? `${ymd(t.until)}까지 · D-${daysLeft(t.until)}` : "";
-    const head = `<span class="market-head">${ICONS[key] || ""}${esc(m.name)}</span>`;
-    const top = t.open
-      ? `<a class="market-card" href="dashboard.html?m=${key}">
-          ${head}
-          <p>${esc(m.desc)}</p>
-          <span class="views">${m.views.map((v) => `<span class="pill">${esc(v.label)}</span>`).join("")}</span>
-          ${note ? `<span class="status">${note}</span>` : ""}
-          <span class="open">탭 열기 →</span>
-        </a>`
-      : `<a class="market-card" href="mypage.html">
-          ${head}
-          <div class="lockbox"><div class="ghost"><i style="width:70%"></i><i style="width:45%"></i><i style="width:85%"></i></div>
-            <div class="over"><span class="dot">${ICONS.lock}</span>결제 후 열람 가능</div></div>
-          <span class="open" style="color:var(--sub)">마이페이지에서 열기 →</span>
-        </a>`;
-    // 게시판은 잠금과 상관없이 항상 보임
+
+    let lamp = "", what;
+    if (!s) {
+      what = `<small>오늘의 신호</small><b class="v-na" style="font-size:18px">준비 중</b><span>예측이 들어오면 표시돼요</span>`;
+    } else if (!t.open) {
+      what = `<small>${esc(s.lead_symbol)} D+1 판정</small><b>결제 후 열람</b><span>${ICONS.lock} 신호가 잠겨 있어요</span>`;
+    } else {
+      const [label, cls] = VERDICT[s.lead_verdict] || ["-", "v-na"];
+      lamp = s.lead_verdict || "";
+      what = `<small>${esc(s.lead_symbol)} · D+1 판정</small><b class="${cls}">${label}</b>
+        <span>${s.lead_med1 != null ? `모델 중앙값 ${pct(s.lead_med1)}` : "&nbsp;"}</span>`;
+    }
+
+    const total = s ? s.up_n + s.mx_n + s.dn_n : 0;
+    const w = (n) => (total ? (n / total) * 100 : 0);
+    const dist = s ? `
+      <div class="dist">
+        <div class="bar" role="img" aria-label="상승 ${s.up_n}, 혼돈 ${s.mx_n}, 하락 ${s.dn_n}">
+          <i class="u" style="width:${w(s.up_n)}%"></i><i class="m" style="width:${w(s.mx_n)}%"></i><i class="d" style="width:${w(s.dn_n)}%"></i>
+        </div>
+        <div class="nums"><span class="v-up">상승 <b>${s.up_n}</b></span><span class="v-mx">혼돈 <b>${s.mx_n}</b></span><span class="v-dn">하락 <b>${s.dn_n}</b></span></div>
+      </div>` : "";
+
+    return `
+      <a class="card signal-card ${t.open ? "" : "locked"}" href="${t.open ? `dashboard.html?m=${key}` : "mypage.html"}">
+        <div class="top"><span class="market-head">${ICONS[key] || ""}${esc(m.name)}</span>
+          <small>${s ? `${s.pred_date.slice(5).replace("-", ".")} 예측` : ""}</small></div>
+        <div class="signal-main">
+          <div class="lamp ${lamp}" aria-hidden="true"><i></i><i></i><i></i></div>
+          <div class="what">${what}</div>
+        </div>
+        ${dist}
+        <div class="foot">
+          <span class="status" style="font-size:12px;color:var(--muted)">${note || "&nbsp;"}</span>
+          <span class="open ${t.open ? "" : "v-na"}">${t.open ? "탭 열기 →" : "마이페이지에서 열기 →"}</span>
+        </div>
+      </a>`;
+  }).join("");
+
+  // ---------- 커뮤니티 ----------
+  const dotColor = { coin: "var(--up)", nasdaq: "var(--dn)", kospi: "var(--mx)" };
+  const boards = MK.map((key) => {
     const posts = latest[key] || [];
     return `
-      <div class="card market-card static">
-        ${top}
-        <div class="divider"></div>
+      <div class="card board-card">
+        <div class="head"><span><i class="dot" style="background:${dotColor[key]}"></i>${esc(cfg.BOARDS[key].name)}</span>
+          <a href="board.html?b=${key}">전체 보기 →</a></div>
         <div class="mini-posts">
-          <a class="label" href="board.html?b=${key}">${esc(cfg.BOARDS[key].name)} 게시판 →</a>
           ${posts.length ? posts.map((p) => `<a href="post.html?id=${p.id}"><b>${esc(p.title)}</b><span>${esc(p.author)} · ${ago(p.created_at)}</span></a>`).join("")
-            : `<span class="none">아직 글이 없어요</span>`}
+            : `<span class="none">아직 글이 없어요. <a href="write.html?b=${key}" style="font-weight:600;color:var(--sub)">첫 글 쓰기</a></span>`}
         </div>
       </div>`;
   }).join("");
@@ -94,24 +131,36 @@
 
   document.body.insertAdjacentHTML("beforeend", `
     <main class="page">
-      <section>
-        <div class="title-row" style="margin-bottom:6px"><h1>안녕하세요, ${esc(me.profile.nickname)}님</h1>${expiredBadge}</div>
-        ${status}
-      </section>
-      <section class="section">
+      <section class="hero">
         <div>
-          <h2>대시보드</h2>
-          <p class="hint">${acc.anyOpen ? "탭을 눌러 오늘의 예측을 확인하세요" : "결제가 확인되면 아래 탭이 바로 다시 열려요"}</p>
+          <div class="title-row" style="margin-bottom:8px"><h1>안녕하세요, ${esc(me.profile.nickname)}님</h1>${expiredBadge}</div>
+          ${status}
+        </div>
+        <div class="hero-light" aria-label="신호 색: 빨강 상승, 노랑 혼돈, 파랑 하락">
+          <span class="u"><i></i>상승</span><span class="m"><i></i>혼돈</span><span class="d"><i></i>하락</span>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <h2>오늘의 신호</h2>
+            <p class="hint">대표 종목의 D+1 판정과 전체 종목의 신호 분포예요. 카드를 누르면 자세한 대시보드가 열려요</p>
+          </div>
         </div>
         <div class="grid3">${cards}</div>
       </section>
+
       <section class="section">
-        <div>
-          <h2>문의</h2>
-          <p class="hint">종목 요청과 입금 문의는 여기서 남겨주세요</p>
-        </div>
+        <div><h2>커뮤니티</h2><p class="hint">시장별 게시판의 최신 글이에요</p></div>
+        <div class="grid3">${boards}</div>
+      </section>
+
+      <section class="section">
+        <div><h2>문의</h2><p class="hint">종목 요청과 입금 문의는 여기서 남겨주세요</p></div>
         <div class="grid2">${inquiry}</div>
       </section>
+
       <p class="hint" style="font-size:12px;color:var(--faint);line-height:1.6">
         이 화면의 정보는 예측 모델의 출력을 정리해 보여주는 참고 자료이며, 투자 권유나 종목 추천이 아닙니다.
         투자 판단과 그 결과에 대한 책임은 이용자 본인에게 있습니다.

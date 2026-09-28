@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>게시판 · 예측 포털</title>
+<title>게시판 · AI 신호등</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,7 +23,7 @@
   const PAGE = 20;
   const key = cfg.BOARDS[new URLSearchParams(location.search).get("b")] ? new URLSearchParams(location.search).get("b") : "coin";
   const board = cfg.BOARDS[key];
-  document.title = board.name + " 게시판 · 예측 포털";
+  document.title = board.name + " 게시판 · AI 신호등";
 
   const tabs = Object.entries(cfg.BOARDS).map(([k, b]) =>
     `<a href="board.html?b=${k}" ${k === key ? 'aria-current="page"' : ""}>${b.secret ? ICONS.lock : ""}${esc(b.name)}</a>`).join("");

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>대시보드 · 예측 포털</title>
+<title>대시보드 · AI 신호등</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -24,7 +24,7 @@
   const key = cfg.MARKETS[params.get("m")] ? params.get("m") : "coin";
   const market = cfg.MARKETS[key];
   let viewKey = market.views.some((v) => v.key === params.get("v")) ? params.get("v") : market.views[0].key;
-  document.title = market.name + " · 예측 포털";
+  document.title = market.name + " · AI 신호등";
 
   const marketTabs = Object.entries(cfg.MARKETS).map(([k, m]) =>
     `<a href="dashboard.html?m=${k}" ${k === key ? 'aria-current="page"' : ""} class="${me.acc.tabs[k].open ? "" : "locked"}">${esc(m.name)}</a>`).join("");
