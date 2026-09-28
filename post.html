@@ -40,7 +40,7 @@
   const { data: myReport } = await sb.from("post_reports").select("post_id").eq("post_id", id).eq("user_id", me.user.id).maybeSingle();
 
   main.innerHTML = `
-    <a class="hint" href="board.html?b=${post.board}">← ${esc(board.name)} 게시판</a>
+    <a class="hint on-night" href="board.html?b=${post.board}">← ${esc(board.name)} 게시판</a>
     <article class="card post-view">
       <div style="display:flex;gap:6px">
         ${post.pinned ? `<span class="tag notice">공지</span>` : ""}

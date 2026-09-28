@@ -30,8 +30,8 @@
 
   document.body.insertAdjacentHTML("beforeend", `
     <main class="page" style="gap:24px">
-      <nav class="board-tabs" aria-label="게시판">${tabs}</nav>
-      <div class="board-head">
+      <nav class="board-tabs on-night" aria-label="게시판">${tabs}</nav>
+      <div class="board-head on-night">
         <div><h1>${esc(board.name)}</h1><p class="hint">${esc(board.desc)}</p></div>
         <a class="btn" href="write.html?b=${key}">글쓰기</a>
       </div>

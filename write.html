@@ -34,7 +34,7 @@
 
   document.body.insertAdjacentHTML("beforeend", `
     <main class="page" style="max-width:860px;gap:24px">
-      <div>
+      <div class="on-night">
         <a class="hint" href="board.html?b=${key}">← ${esc(board.name)} 게시판</a>
         <h1 style="margin-top:10px">${post ? "글 수정" : "글쓰기"}</h1>
         ${board.secret ? `<p class="hint">이 게시판의 글은 비밀글이라 <b>나와 운영자만</b> 볼 수 있어요</p>` : ""}

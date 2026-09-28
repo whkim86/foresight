@@ -13,7 +13,7 @@
 <script src="config.js"></script>
 <script src="assets/app.js"></script>
 </head>
-<body>
+<body class="home">
 <script>
 (async function () {
   const { sb, cfg, requireUser, renderHeader, esc, ymd, ago, daysLeft, ICONS, DAY } = Portal;
@@ -131,7 +131,7 @@
 
   document.body.insertAdjacentHTML("beforeend", `
     <main class="page">
-      <section class="hero">
+      <section class="hero on-night">
         <div>
           <div class="title-row" style="margin-bottom:8px"><h1>안녕하세요, ${esc(me.profile.nickname)}님</h1>${expiredBadge}</div>
           ${status}
@@ -142,7 +142,7 @@
       </section>
 
       <section class="section">
-        <div class="section-head">
+        <div class="section-head on-night">
           <div>
             <h2>오늘의 신호</h2>
             <p class="hint">대표 종목의 D+1 판정과 전체 종목의 신호 분포예요. 카드를 누르면 자세한 대시보드가 열려요</p>
