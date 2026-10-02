@@ -51,12 +51,15 @@ def main():
         "apikey": anon, "Authorization": f"Bearer {anon}", "Content-Type": "application/json"}, b"{}"))
     portal = {r["market"]: r for r in teaser}
 
-    # 마지막 수집 실행
-    runs = json.loads(get("https://api.github.com/repos/whkim86/foresight/actions/runs?per_page=1&event=workflow_dispatch"))["workflow_runs"]
-    last_run = datetime.fromisoformat(runs[0]["created_at"].replace("Z", "+00:00")).astimezone(KST) if runs else None
+    # 마지막으로 '끝난' 수집 실행 (대기·진행 중인 실행은 아직 반영 전)
+    runs = json.loads(get("https://api.github.com/repos/whkim86/foresight/actions/runs?per_page=10&event=workflow_dispatch"))["workflow_runs"]
+    done = [r for r in runs if r["status"] == "completed" and r["conclusion"] in ("success", "failure")]
+    last_run = datetime.fromisoformat(done[0]["created_at"].replace("Z", "+00:00")).astimezone(KST) if done else None
+    running = runs and runs[0]["status"] != "completed"
 
     now = datetime.now(KST)
-    print(f"점검 시각 {now:%m-%d %H:%M} KST · 마지막 수집 {last_run:%m-%d %H:%M} ({runs[0]['conclusion'] or runs[0]['status']})\n" if last_run else "")
+    print(f"점검 시각 {now:%m-%d %H:%M} KST · 마지막 완료 수집 {last_run:%m-%d %H:%M}"
+          + (" · 지금 수집 중" if running else "") + "\n" if last_run else "")
     for name, m in REPOS.items():
         print(f"■ {name}")
         for kind, label in (("priority", "우선순위"), ("chart", "가격 차트")):
