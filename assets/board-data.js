@@ -13,6 +13,12 @@
   const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
   window.portalSb = sb; // 같은 페이지의 추가 기능(ask-ai.js 등)이 함께 씀
 
+  // 가격 차트의 예측 모델 이름: Pred1 → '모델 A' (config.js MODEL_LABELS)
+  window.portalModelName = function (v) {
+    const label = (cfg.MODEL_LABELS || {})[v];
+    return label ? "모델 " + label : String(v).replace(/^Pred\s*/i, "모델 ");
+  };
+
   // 원래 대시보드의 fetch('같은 폴더 CSV') 자리에 들어감. fetch 와 같은 Response 를 돌려줌
   window.portalFetch = async function () {
     const { data, error } = await sb.storage.from("forecasts").download(`${board.market}/${board.kind}/latest.csv`);

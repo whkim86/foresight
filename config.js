@@ -18,6 +18,13 @@ window.PORTAL_CONFIG = {
     { months: 12, days: 365, label: "1년", discount: 0.4 },
   ],
 
+  // 가격 차트에 보이는 예측 모델 이름: R 결과의 Pred번호 → 모델 A~O (번호가 1, 2, 6 … 52 로 띄엄띄엄이라 알파벳으로)
+  // 새 모델이 생기면 여기에 추가하세요. 표에 없는 모델은 'Pred53' → '모델 53' 으로 보여요
+  MODEL_LABELS: {
+    Pred1: "A", Pred2: "B", Pred6: "C", Pred7: "D", Pred9: "E", Pred12: "F", Pred15: "G", Pred18: "H",
+    Pred21: "I", Pred24: "J", Pred27: "K", Pred33: "L", Pred34: "M", Pred37: "N", Pred52: "O",
+  },
+
   // AI 해설(Claude Haiku 4.5) 단가 — 100만 토큰당 달러. 운영자 화면 비용 추정에 사용
   AI_PRICE: { model: "Claude Haiku 4.5", input: 1, output: 5 },
 

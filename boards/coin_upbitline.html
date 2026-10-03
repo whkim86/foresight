@@ -162,8 +162,8 @@ details.rule p{margin-top:6px;font-size:13px;line-height:1.65;color:var(--muted)
 </style>
 <script>window.PORTAL_BOARD={market:"coin",kind:"chart"};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../config.js?v=20260929d"></script>
-<script src="../assets/board-data.js?v=20260929d"></script>
+<script src="../config.js?v=20261003a"></script>
+<script src="../assets/board-data.js?v=20261003a"></script>
 </head>
 <body>
 <div class="wrap">
@@ -231,7 +231,7 @@ function build(text){
   var ix={}; need.forEach(function(k){ix[k]=head.indexOf(k)});
   var byPred={}, bad=0;
   rows.slice(1).forEach(function(r){
-    var pd=(r[ix.pred_day]||'').trim(), coin=(r[ix.coin]||'').trim(), date=(r[ix.date]||'').trim(), va=(r[ix.variable]||'').trim();
+    var pd=(r[ix.pred_day]||'').trim(), coin=(r[ix.coin]||'').trim(), date=(r[ix.date]||'').trim(), va=portalModelName((r[ix.variable]||'').trim());
     var seq=parseInt(r[ix.seq],10), c=parseFloat(r[ix.value_close]), h=parseFloat(r[ix.value_high]), l=parseFloat(r[ix.value_low]);
     if(!pd||!coin||!date||isNaN(seq)||!isFinite(c)||!isFinite(h)||!isFinite(l)){bad++;return;}
     var P=byPred[pd]||(byPred[pd]={});
@@ -246,7 +246,7 @@ function build(text){
   preds.forEach(function(pd){ out.days[pd]=finalize(byPred[pd],pd); });
   return out;
 }
-function numKey(n){var m=String(n).match(/\d+/); return m?parseInt(m[0],10):1e9}
+function numKey(n){var s=String(n),m=s.match(/\d+/);if(m)return parseInt(m[0],10);var l=s.match(/([A-Z])$/);return l?1000+l[1].charCodeAt(0):1e9}
 function finalize(P,pd){
   var coins=new Map(), modelSet={};
   Object.keys(P).sort().forEach(function(k){

@@ -32,7 +32,7 @@ OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20260929d"
+ASSET_VERSION = "20261003a"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 
@@ -68,6 +68,14 @@ def convert(html, market, kind):
     html = sub_once(r"\.catch\(function\(\)\{\s*setMsg\([^;]*?'err'\);\s*\}\)",
                     f".catch(function(){{ setMsg('{LOAD_ERR}','err'); }})", html, "불러오기 실패 문구")
     html = html.replace("같은 폴더의 최신 CSV를 불러왔어요", "최신 예측을 불러왔어요").replace("같은 폴더의 CSV 파일", "최신 예측 데이터")
+
+    # 3-1) 가격 차트: 예측 모델 이름 Pred1 → '모델 A' (board-data.js portalModelName), 정렬도 알파벳 순서가 되게
+    if kind == "chart":
+        html = sub_once(r"va=\(r\[ix\.variable\]\|\|''\)\.trim\(\);",
+                        "va=portalModelName((r[ix.variable]||'').trim());", html, "모델 이름")
+        numkey = (r"function numKey(n){var s=String(n),m=s.match(/\d+/);if(m)return parseInt(m[0],10);"
+                  r"var l=s.match(/([A-Z])$/);return l?1000+l[1].charCodeAt(0):1e9}")
+        html = sub_once(r"function numKey\(n\)\{[^}]*\}", lambda _m: numkey, html, "모델 정렬")
 
     # 4) 포털 도우미 스크립트 삽입 (대시보드 스크립트보다 먼저 실행되도록 <head> 안)
     inject = (
