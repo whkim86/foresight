@@ -68,6 +68,21 @@ def expected_last_close(market, at):
     return prev_trading_day((at - timedelta(hours=17)).date(), ingest.KRX_HOLIDAYS)
 
 
+def missing_today(market, uploads, now):
+    """가장 최근 R 실행 시각 이후 업로드가 없으면 경고 문장, 실행 직후 대기 중이면 안내 문장"""
+    hh, mm = ingest.MARKETS[market]["start"]
+    start = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+    if now < start:
+        start -= timedelta(days=1)
+    if not ingest.trading_expected(market, start.date()):
+        return None, f"{start:%m-%d}은 휴장이라 새 결과가 없는 게 정상이에요"
+    if max(uploads) >= start:
+        return None, None
+    if now < start + timedelta(minutes=ingest.LATE_MINUTES):
+        return None, f"{start:%m-%d %H:%M} 실행분을 기다리는 중이에요 (보통 50분 안에 올라와요)"
+    return f"{start:%m-%d %H:%M} R 실행분이 아직 GitHub에 없어요 → R 실행이나 업로드를 확인해 주세요.", None
+
+
 def main():
     tok = token()
     gh = {"Authorization": f"Bearer {tok}"} if tok else {}
@@ -92,11 +107,12 @@ def main():
     warnings = []
     for name, m in REPOS.items():
         print(f"■ {name}")
-        preds = {}
+        preds, uploads = {}, []
         for kind, label in (("priority", "우선순위"), ("chart", "가격 차트")):
             repo = m[kind]
             c = json.loads(get(f"https://api.github.com/repos/whkim86/{repo}/commits?per_page=1", gh))[0]
             at = datetime.fromisoformat(c["commit"]["author"]["date"].replace("Z", "+00:00")).astimezone(KST)
+            uploads.append(at)
             text = ingest.decode(get(f"https://api.github.com/repos/whkim86/{repo}/contents/{FILES[kind]}",
                                      {**gh, "Accept": "application/vnd.github.raw"}))
             rows = list(csv.DictReader(io.StringIO(text)))
@@ -121,6 +137,13 @@ def main():
                 note.append("포털 반영됨 ✅" if last_run > at else "⏳ 다음 수집 때 반영")
             print(f"  {label:6s} 업로드 {at:%m-%d %H:%M} · 파일 예측일 {pred:%m-%d} · {' '.join(n for n in note if n)}"
                   if pred else f"  {label:6s} 업로드 {at:%m-%d %H:%M} · 파일을 읽지 못했어요")
+
+        warn, info = missing_today(m["key"], uploads, now)
+        if warn:
+            print(f"  ⚠️ 오늘 업로드 없음")
+            warnings.append(f"{name}: {warn}")
+        elif info:
+            print(f"  ℹ️ {info}")
 
         if preds.get("priority") and preds.get("chart") and preds["priority"] != preds["chart"]:
             warnings.append(f"{name}: 우선순위({preds['priority']:%m-%d})와 가격 차트({preds['chart']:%m-%d})의 예측일이 달라요 → 둘 중 하나가 덜 올라왔을 수 있어요.")
