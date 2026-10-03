@@ -331,25 +331,56 @@ def parse_chart(text, today):
     return to_date(label, today), by_pred[label]
 
 
+SCORE_FIELDS = ("n", "dir_n", "dir_hit", "abs_err_sum", "up_n", "up_hit", "dn_n", "dn_hit", "mx_n")
+
+
 def grade_snapshot(data, actual):
-    """한 예측일 CSV 의 모델별 예측을 실제 종가와 비교 → {(모델, D+n, 대상일): [n, dir_n, dir_hit, abs_err_sum]}"""
+    """한 예측일 CSV 의 모델별 예측을 실제 종가와 비교 → {(모델, D+n, 대상일): SCORE_FIELDS 순서의 합계 리스트}
+    모델 예측은 대시보드 신호등과 같은 기준값(종목별 평소 일간 변동폭의 25%, 최소 0.2%)으로
+    상승·하락·혼돈(약한 예측)으로 나눔"""
     agg = {}
     for sym, co in data.items():
         if not co["hist"]:
             continue
-        base = co["hist"][max(co["hist"])]  # 이 예측의 기준(직전) 종가
+        days = sorted(co["hist"])
+        closes = [co["hist"][d] for d in days]
+        base = closes[-1]  # 이 예측의 기준(직전) 종가
+        moves = [abs(closes[i] / closes[i - 1] - 1) for i in range(1, len(closes)) if closes[i - 1] > 0]
+        thr = max(0.002, 0.25 * (statistics.median(moves) if len(moves) >= 4 else 0.02))
         for model, seqs in co["mod"].items():
             for seq, (d, pred) in seqs.items():
                 real = actual.get((sym, d))
                 if real is None or not 1 <= seq <= 6:
                     continue
-                a = agg.setdefault((model, seq, d), [0, 0, 0, 0.0])
+                a = agg.setdefault((model, seq, d), [0, 0, 0, 0.0, 0, 0, 0, 0, 0])
                 a[0] += 1
                 a[3] += abs(pred - real) / real
                 if pred != base and real != base:  # 기준가와 같으면 방향을 말할 수 없어 제외
                     a[1] += 1
                     a[2] += (pred > base) == (real > base)
+                r = pred / base - 1
+                if -thr <= r <= thr:
+                    a[8] += 1
+                elif real != base:  # 실제 가격이 그대로면 방향을 말할 수 없어 상승·하락 채점에서 제외
+                    if r > thr:
+                        a[4] += 1
+                        a[5] += real > base
+                    else:
+                        a[6] += 1
+                        a[7] += real < base
     return agg
+
+
+def score_rows(market, pred_date, agg):
+    now = datetime.now(timezone.utc).isoformat()
+    rows = []
+    for (model, seq, d), vals in agg.items():
+        row = {"market": market, "model": model, "horizon": seq, "pred_date": pred_date.isoformat(),
+               "target_date": d.isoformat(), "updated_at": now}
+        row.update(zip(SCORE_FIELDS, vals))
+        row["abs_err_sum"] = round(row["abs_err_sum"], 6)
+        rows.append(row)
+    return rows
 
 
 def score_models(market, text, today):
@@ -367,10 +398,7 @@ def score_models(market, text, today):
         pred_date, data = parse_chart(snap, today)
         if not pred_date:
             continue
-        for (model, seq, d), (n, dn, dh, err) in grade_snapshot(data, actual).items():
-            rows.append({"market": market, "model": model, "horizon": seq, "pred_date": pred_date.isoformat(),
-                         "target_date": d.isoformat(), "n": n, "dir_n": dn, "dir_hit": dh,
-                         "abs_err_sum": round(err, 6), "updated_at": datetime.now(timezone.utc).isoformat()})
+        rows += score_rows(market, pred_date, grade_snapshot(data, actual))
     for i in range(0, len(rows), 500):
         supa("POST", "/rest/v1/model_scores?on_conflict=market,model,horizon,pred_date,target_date", rows[i:i + 500],
              Prefer="resolution=merge-duplicates,return=minimal")
@@ -416,10 +444,7 @@ def backfill_model_scores(market, cfg, days, today):
         if pred_date >= keep_from and f"{pred_date.isoformat()}.csv" not in have:
             upload(f"{market}/chart/{pred_date.isoformat()}.csv", text)
             restored += 1
-        for (model, seq, d), (n, dn, dh, err) in grade_snapshot(data, actual).items():
-            rows.append({"market": market, "model": model, "horizon": seq, "pred_date": pred_date.isoformat(),
-                         "target_date": d.isoformat(), "n": n, "dir_n": dn, "dir_hit": dh,
-                         "abs_err_sum": round(err, 6), "updated_at": datetime.now(timezone.utc).isoformat()})
+        rows += score_rows(market, pred_date, grade_snapshot(data, actual))
     for i in range(0, len(rows), 500):
         supa("POST", "/rest/v1/model_scores?on_conflict=market,model,horizon,pred_date,target_date", rows[i:i + 500],
              Prefer="resolution=merge-duplicates,return=minimal")

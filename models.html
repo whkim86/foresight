@@ -59,10 +59,19 @@
           <button type="button" data-days="30" aria-selected="true">30일</button>
         </div>
       </div>
-      <nav class="board-tabs" id="mk">${MK.map((k) => `<a href="#" data-m="${k}">${esc(cfg.MARKETS[k].name)}</a>`).join("")}</nav>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <nav class="board-tabs" id="mk">${MK.map((k) => `<a href="#" data-m="${k}">${esc(cfg.MARKETS[k].name)}</a>`).join("")}</nav>
+        <div class="seg" style="width:330px" role="tablist" aria-label="예측 방향">
+          <button type="button" data-mode="all" aria-selected="true">전체</button>
+          <button type="button" data-mode="up" aria-selected="false">상승 예측</button>
+          <button type="button" data-mode="dn" aria-selected="false">하락 예측</button>
+        </div>
+      </div>
       <div id="box" class="stack"></div>
       <p class="hint" style="font-size:12.5px;line-height:1.7">
-        <b>방향 적중</b>: 모델이 직전 종가보다 오른다(내린다)고 본 방향이 실제와 맞은 비율이에요. 50%가 동전 던지기 수준이에요.
+        <b>전체</b>: 모델이 직전 종가보다 오른다(내린다)고 본 방향이 실제와 맞은 비율이에요. 아주 작은 변화 예측까지 섞여 50% 근처가 되기 쉬워요.<br>
+        <b>상승 예측 / 하락 예측</b>: 신호등과 같은 기준(종목별 평소 변동폭)보다 크게 오른다(내린다)고 본 경우만 따로 채점해요. 모델이 '자신 있게' 말한 방향이 얼마나 맞는지 보여줘요.<br>
+        <b>혼돈 비율</b>: 기준보다 작은 변화를 예측해 상승·하락 채점에서 빠진 비율이에요. 적중률은 50%가 동전 던지기 수준이에요.
         파란 칸은 55% 이상, 흐린 칸은 45% 이하, ★는 그 열에서 가장 높은 모델이에요.<br>
         <b>평균 오차</b>: 예측 종가가 실제 종가와 평균 몇 % 차이 났는지예요(낮을수록 정확). 각 칸 아래 n은 비교한 종목 수예요.<br>
         채점은 새 실제 종가가 들어올 때마다 최근 14일 백업 예측으로 자동으로 해요. 데이터가 2~4주 쌓여야 의미 있는 차이가 보여요.
@@ -71,6 +80,9 @@
 
   const box = document.getElementById("box");
   const pct = (h, n) => (n ? (h / n) * 100 : null);
+  let mode = "all";
+  const KEY = { all: ["dir_hit", "dir_n"], up: ["up_hit", "up_n"], dn: ["dn_hit", "dn_n"] };
+  const MODE_NAME = { all: "방향 적중", up: "상승 예측 적중", dn: "하락 예측 적중" };
 
   async function render() {
     main.querySelectorAll("#mk a").forEach((a) => a.setAttribute("aria-current", a.dataset.m === market ? "page" : "false"));
@@ -89,30 +101,33 @@
     const models = Object.keys(by).sort((a, b) => order(a) - order(b));
     const H = [1, 2, 3, 4, 5, 6];
     const best = {};
-    for (const h of H) best[h] = Math.max(...models.map((m) => pct(by[m][h]?.dir_hit, by[m][h]?.dir_n) ?? -1));
+    const [HIT, CNT] = KEY[mode];
+    for (const h of H) best[h] = Math.max(...models.map((m) => pct(by[m][h]?.[HIT], by[m][h]?.[CNT]) ?? -1));
     const bestErr = Math.min(...models.map((m) => by[m][1]?.mape ?? 9));
 
     const rows = models.map((m) => {
       const cells = H.map((h) => {
         const r = by[m][h];
-        const p = pct(r?.dir_hit, r?.dir_n);
+        const p = pct(r?.[HIT], r?.[CNT]);
         if (p == null) return `<td class="cell"><small>-</small></td>`;
         const cls = [p >= 55 ? "hi" : p <= 45 ? "lo" : "", p === best[h] ? "best" : ""].join(" ");
-        return `<td class="cell ${cls}"><b>${p.toFixed(0)}%</b><small>n=${r.dir_n}</small></td>`;
+        return `<td class="cell ${cls}"><b>${p.toFixed(0)}%</b><small>n=${r[CNT]}</small></td>`;
       }).join("");
-      const tot = H.reduce((a, h) => [a[0] + (by[m][h]?.dir_hit || 0), a[1] + (by[m][h]?.dir_n || 0)], [0, 0]);
+      const tot = H.reduce((a, h) => [a[0] + (by[m][h]?.[HIT] || 0), a[1] + (by[m][h]?.[CNT] || 0)], [0, 0]);
       const err = by[m][1]?.mape;
+      const mx = by[m][1] && by[m][1].n ? (by[m][1].mx_n / by[m][1].n) * 100 : null;
       return `<tr><td><b>${esc(label(m))}</b><br><span class="muted">${esc(m)}</span></td>${cells}
         <td class="cell"><b>${pct(tot[0], tot[1])?.toFixed(0) ?? "-"}%</b><small>D+1~6 전체</small></td>
+        <td class="cell"><b>${mx != null ? mx.toFixed(0) + "%" : "-"}</b><small>D+1</small></td>
         <td class="cell ${err === bestErr ? "best" : ""}"><b>${err != null ? (err * 100).toFixed(2) + "%" : "-"}</b><small>D+1</small></td></tr>`;
     }).join("");
 
     box.innerHTML = `
       ${maxDays < 10 ? `<div class="msg warn">아직 ${maxDays}일치 기록이에요. 하루 이틀은 그날 시장 분위기에 크게 휘둘리니 참고만 해주세요.</div>` : ""}
       <div class="card table-wrap score" style="padding:8px 12px">
-        <table class="list" style="min-width:860px">
-          <thead><tr><th>모델</th>${H.map((h) => `<th class="cell">D+${h}<br><span class="muted" style="font-weight:500">방향 적중</span></th>`).join("")}
-            <th class="cell">종합<br><span class="muted" style="font-weight:500">방향 적중</span></th><th class="cell">평균 오차</th></tr></thead>
+        <table class="list" style="min-width:940px">
+          <thead><tr><th>모델</th>${H.map((h) => `<th class="cell">D+${h}<br><span class="muted" style="font-weight:500">${MODE_NAME[mode]}</span></th>`).join("")}
+            <th class="cell">종합<br><span class="muted" style="font-weight:500">${MODE_NAME[mode]}</span></th><th class="cell">혼돈 비율</th><th class="cell">평균 오차</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
@@ -126,6 +141,11 @@
     history.replaceState(null, "", `models.html?m=${market}`);
     render();
   });
+  main.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => {
+    mode = b.dataset.mode;
+    main.querySelectorAll("[data-mode]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+    render();
+  }));
   main.querySelectorAll("[data-days]").forEach((b) => b.addEventListener("click", () => {
     days = Number(b.dataset.days);
     main.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
