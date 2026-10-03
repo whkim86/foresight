@@ -377,6 +377,55 @@ def score_models(market, text, today):
     print(f"  [{market}] 모델 성적 {len(rows)}줄 갱신 (백업 {len(snaps)}개)")
 
 
+def gh_get(path, raw=False):
+    h = {"User-Agent": "foresight-ingest", "Accept": "application/vnd.github.raw" if raw else "application/vnd.github+json"}
+    if GH_TOKEN:
+        h["Authorization"] = f"Bearer {GH_TOKEN}"
+    body = http("GET", f"https://api.github.com{path}", headers=h)
+    return body if raw else json.loads(body)
+
+
+def backfill_model_scores(market, cfg, days, today):
+    """GitHub 원본 저장소의 커밋 기록에서 최근 days 일 동안의 가격 차트 CSV 를 꺼내 모델 성적을 소급 채점.
+    예측일마다 마지막으로 올라온 파일을 쓰고, 백업 보관 기간 안의 파일은 Storage 백업에도 채워 넣음"""
+    repo, fname = cfg["repos"]["chart"], FILES["chart"]
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    commits, page = [], 1
+    while True:
+        batch = gh_get(f"/repos/{OWNER}/{repo}/commits?path={fname}&since={since}&per_page=100&page={page}")
+        commits += batch
+        if len(batch) < 100:
+            break
+        page += 1
+    if not commits:
+        print(f"  [{market}] 소급할 커밋 없음")
+        return
+
+    _, latest = parse_chart(decode(gh_get(f"/repos/{OWNER}/{repo}/contents/{fname}", raw=True)), today)
+    actual = {(sym, d): c for sym, co in latest.items() for d, c in co["hist"].items()}
+    have = {it["name"] for it in (supa("POST", f"/storage/v1/object/list/{BUCKET}", {"prefix": f"{market}/chart/", "limit": 1000}) or [])}
+    keep_from = today - timedelta(days=KEEP_DAYS - 1)
+
+    seen, rows, restored = set(), [], 0
+    for c in commits:  # 최신 커밋부터 → 같은 예측일은 가장 나중에 올라온 파일만 사용
+        text = decode(gh_get(f"/repos/{OWNER}/{repo}/contents/{fname}?ref={c['sha']}", raw=True))
+        pred_date, data = parse_chart(text, today)
+        if not pred_date or pred_date in seen:
+            continue
+        seen.add(pred_date)
+        if pred_date >= keep_from and f"{pred_date.isoformat()}.csv" not in have:
+            upload(f"{market}/chart/{pred_date.isoformat()}.csv", text)
+            restored += 1
+        for (model, seq, d), (n, dn, dh, err) in grade_snapshot(data, actual).items():
+            rows.append({"market": market, "model": model, "horizon": seq, "pred_date": pred_date.isoformat(),
+                         "target_date": d.isoformat(), "n": n, "dir_n": dn, "dir_hit": dh,
+                         "abs_err_sum": round(err, 6), "updated_at": datetime.now(timezone.utc).isoformat()})
+    for i in range(0, len(rows), 500):
+        supa("POST", "/rest/v1/model_scores?on_conflict=market,model,horizon,pred_date,target_date", rows[i:i + 500],
+             Prefer="resolution=merge-duplicates,return=minimal")
+    print(f"  [{market}] 소급 채점: 예측일 {len(seen)}개({min(seen)}~{max(seen)}), 성적 {len(rows)}줄, 백업 복원 {restored}개")
+
+
 def ensure_model_scores(market, text, digest, today):
     """이 가격 차트 내용으로 아직 모델 채점을 안 했으면 함 (새 CSV · 기능 도입 첫날 소급)"""
     try:
@@ -474,6 +523,16 @@ def main():
     now = datetime.now(KST)
     today = now.date()
     problems = []
+
+    # Actions 탭에서 '소급 채점 일수'를 넣고 수동 실행했을 때만
+    backfill_days = int(os.environ.get("BACKFILL_DAYS") or 0)
+    if backfill_days > 0 and not DRY:
+        print(f"== 모델 성적 소급 채점 (최근 {backfill_days}일)")
+        for market, cfg in MARKETS.items():
+            try:
+                backfill_model_scores(market, cfg, backfill_days, today)
+            except Exception as e:
+                problems.append(f"{market} 소급 채점 실패: {e}")
     for market, cfg in MARKETS.items():
         print(f"== {market}")
         try:

@@ -8,6 +8,11 @@ on:
     - cron: "45 1 * * *"         # KST 10:45 (코인·나스닥 가격 차트)
     - cron: "15 14,15 * * *"     # KST 23:15, 00:15
   workflow_dispatch:             # Supabase 요청 · Actions 탭에서 수동 실행
+    inputs:
+      backfill_days:
+        description: "모델 성적 소급 채점 일수 (GitHub 커밋 기록에서 예전 CSV 를 꺼내 채점, 0 이면 안 함)"
+        required: false
+        default: "0"
 
 permissions:
   contents: read
@@ -20,7 +25,7 @@ concurrency:
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
 
@@ -35,6 +40,7 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           SOURCE_TOKEN: ${{ secrets.SOURCE_TOKEN }}   # 4-2 에서 CSV 저장소를 비공개로 바꿀 때 추가
           GITHUB_TOKEN: ${{ github.token }}
+          BACKFILL_DAYS: ${{ inputs.backfill_days }}
           PYTHONIOENCODING: utf-8
 
       # 저장소에 60일간 커밋이 없으면 GitHub 이 예약 실행을 끄기 때문에, 매번 다시 켜둠
