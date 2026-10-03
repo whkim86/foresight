@@ -331,6 +331,10 @@ def parse_chart(text, today):
     return to_date(label, today), by_pred[label]
 
 
+# 채점 규칙을 바꾸면 이 번호를 올림 → 다음 수집 때 GitHub 커밋 기록으로 SCORE_REBUILD_DAYS 일을 한 번 자동 재채점
+SCORE_VERSION = 2          # 2: 상승·하락·혼돈 예측 분리, 가격이 그대로인 경우 제외
+SCORE_REBUILD_DAYS = 30
+
 SCORE_FIELDS = ("n", "dir_n", "dir_hit", "abs_err_sum", "up_n", "up_hit", "dn_n", "dn_hit", "mx_n")
 
 
@@ -549,15 +553,22 @@ def main():
     today = now.date()
     problems = []
 
-    # Actions 탭에서 '소급 채점 일수'를 넣고 수동 실행했을 때만
+    # Actions 탭에서 '소급 채점 일수'를 넣고 수동 실행했을 때, 또는 채점 규칙 버전이 바뀐 뒤 처음 실행될 때
     backfill_days = int(os.environ.get("BACKFILL_DAYS") or 0)
+    marker = f"v{SCORE_VERSION}"
+    if not DRY and not supa("GET", f"/rest/v1/ingest_log?select=id&kind=eq.model_rescore&status=eq.ok&content_hash=eq.{marker}&limit=1"):
+        backfill_days = max(backfill_days, SCORE_REBUILD_DAYS)
+        print(f"== 채점 규칙 {marker} 첫 실행 → 최근 {backfill_days}일 재채점")
     if backfill_days > 0 and not DRY:
         print(f"== 모델 성적 소급 채점 (최근 {backfill_days}일)")
+        before = len(problems)
         for market, cfg in MARKETS.items():
             try:
                 backfill_model_scores(market, cfg, backfill_days, today)
             except Exception as e:
                 problems.append(f"{market} 소급 채점 실패: {e}")
+        if len(problems) == before:  # 모두 성공했을 때만 이 채점 규칙 버전을 완료로 기록
+            log("all", "model_rescore", "ok", content_hash=marker, message=f"최근 {backfill_days}일 재채점")
     for market, cfg in MARKETS.items():
         print(f"== {market}")
         try:
