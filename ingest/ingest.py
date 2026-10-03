@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """R 이 매일 GitHub 에 올리는 예측 CSV 를 Supabase 로 옮긴다 (GitHub Actions 에서 실행).
 
-1. 저장소 6개의 CSV 를 받아 내용이 바뀌었으면 Supabase Storage(forecasts 버킷)에 날짜별로 보관, 7일 지난 건 삭제
+1. 저장소 6개의 CSV 를 받아 내용이 바뀌었으면 Supabase Storage(forecasts 버킷)에 날짜별로 보관, 14일 지난 건 삭제
 2. 가격 차트 CSV 로 종목별 D+1 판정(대시보드와 같은 공식)과 6일 합의도를 계산해 predictions 에 저장
 3. 새 CSV 의 실제 종가(SEQ=0)로 지난 예측을 채점
 4. 업로드 예정 시각 + 50분이 지나도 새 CSV 가 없으면 ingest_log 에 '미수신' 기록 (GitHub 이 실패 메일을 보냄)
@@ -27,7 +27,7 @@ from datetime import date, datetime, timedelta, timezone
 KST = timezone(timedelta(hours=9))
 OWNER = "whkim86"
 BUCKET = "forecasts"
-KEEP_DAYS = 7          # Storage 에 남길 날짜 수
+KEEP_DAYS = 14         # Storage 에 남길 날짜 수 — 나스닥·코스피는 주말·휴장일 때문에 D+6 이 달력으로 8~10일 뒤라, 모델 채점에 14일 필요
 LATE_MINUTES = 50      # R 시작 후 이 시간이 지나도 새 CSV 가 없으면 미수신
 FILES = {"priority": "final_rst_dfa_web_Day_v3.csv", "chart": "final_rst_dfa_web_Day_raw_v3.csv"}
 MARKETS = {
@@ -353,7 +353,7 @@ def grade_snapshot(data, actual):
 
 
 def score_models(market, text, today):
-    """최신 CSV 의 실제 종가로, 7일 백업 CSV 들의 모델별 D+1~D+6 예측을 채점해 model_scores 에 요약 저장.
+    """최신 CSV 의 실제 종가로, 14일 백업 CSV 들의 모델별 D+1~D+6 예측을 채점해 model_scores 에 요약 저장.
     같은 입력이면 같은 결과라 여러 번 돌려도 안전 (덮어씀)"""
     _, latest = parse_chart(text, today)
     actual = {(sym, d): c for sym, co in latest.items() for d, c in co["hist"].items()}
