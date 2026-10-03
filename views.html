@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>조회수 · AI 신호등</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=20261003c">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261003c"></script>
+<script src="assets/app.js?v=20261003c"></script>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, cfg, requireUser, renderHeader, esc, ago, errText } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  if (!me.acc.isAdmin) { location.replace("index.html"); return; }
+  renderHeader(me);
+
+  const main = document.createElement("main");
+  main.className = "page";
+  document.body.appendChild(main);
+
+  // 화면 기록 이름 → 보기 좋은 이름
+  const VIEW = { priority: "우선순위", chart: "가격 차트", locked: "잠금 화면" };
+  function pageName(key) {
+    if (key === "landing") return "소개 화면 (비회원)";
+    if (key === "home") return "포털 홈";
+    if (key === "mypage") return "마이페이지";
+    const [kind, a, b] = key.split(":");
+    if (kind === "dash") return `대시보드 · ${cfg.MARKETS[a]?.name || a} · ${VIEW[b] || b}`;
+    if (kind === "board") return `게시판 · ${cfg.BOARDS[a]?.name || a}`;
+    return key;
+  }
+
+  const [statsRes, postsRes] = await Promise.all([
+    sb.rpc("page_view_stats"),
+    sb.from("posts").select("id, board, title, author, view_count, comment_count, created_at")
+      .order("view_count", { ascending: false }).limit(10),
+  ]);
+  const err = statsRes.error || postsRes.error;
+  if (err) { main.innerHTML = `<div class="msg error">${esc(errText(err))}</div>`; return; }
+
+  const stats = statsRes.data;
+  const sum = (k) => stats.reduce((a, r) => a + Number(r[k]), 0);
+  const max = Math.max(1, ...stats.map((r) => Number(r.month)));
+
+  const rows = stats.map((r) => `
+    <tr>
+      <td><b>${esc(pageName(r.page))}</b><br><span class="muted">${esc(r.page)}</span></td>
+      <td class="num">${Number(r.today).toLocaleString("ko-KR")}</td>
+      <td class="num">${Number(r.week).toLocaleString("ko-KR")}</td>
+      <td class="num">${Number(r.month).toLocaleString("ko-KR")}</td>
+      <td style="width:28%"><div style="height:8px;border-radius:4px;background:var(--line-soft);overflow:hidden">
+        <i style="display:block;height:100%;width:${(Number(r.month) / max) * 100}%;background:var(--dn)"></i></div></td>
+    </tr>`).join("");
+
+  const posts = postsRes.data.filter((p) => p.view_count > 0).map((p, i) => `
+    <tr>
+      <td class="muted">${i + 1}</td>
+      <td><a href="post.html?id=${p.id}"><b>${esc(p.title)}</b></a><br><span class="muted">${esc(cfg.BOARDS[p.board]?.name || p.board)} · ${esc(p.author)} · ${ago(p.created_at)}</span></td>
+      <td class="num"><b>${p.view_count.toLocaleString("ko-KR")}</b></td>
+      <td class="num muted">${p.comment_count}</td>
+    </tr>`).join("");
+
+  main.innerHTML = `
+    <section class="on-night">
+      <h1>운영자</h1>
+      <nav class="board-tabs" style="margin-top:14px">
+        <a href="admin.html">입금 · 회원</a><a href="accuracy.html">수집 · 적중률</a><a href="models.html">모델 성적</a><a href="views.html" aria-current="page">조회수</a><a href="ai.html">AI 해설</a>
+      </nav>
+    </section>
+
+    <div class="grid3">
+      ${[["오늘", "today"], ["최근 7일", "week"], ["최근 30일", "month"]].map(([l, k]) => `
+        <div class="card" style="display:flex;flex-direction:column;gap:6px">
+          <span class="hint" style="font-size:12.5px;font-weight:600">${l} 전체 화면 조회</span>
+          <b style="font-size:26px">${sum(k).toLocaleString("ko-KR")}회</b>
+        </div>`).join("")}
+    </div>
+
+    <section class="section">
+      <div><h2>화면별 조회수</h2><p class="hint">화면을 열거나 탭을 바꿀 때마다 +1 이에요. 운영자 계정의 조회는 세지 않아요</p></div>
+      <div class="card table-wrap" style="padding:8px 12px">
+        ${rows ? `<table class="list" style="min-width:640px"><thead><tr><th>화면</th><th class="num">오늘</th><th class="num">7일</th><th class="num">30일</th><th></th></tr></thead><tbody>${rows}</tbody></table>`
+          : `<div class="empty">아직 기록이 없어요. 회원이 화면을 열면 쌓이기 시작해요</div>`}
+      </div>
+    </section>
+
+    <section class="section">
+      <div><h2>많이 본 글 TOP 10</h2><p class="hint">전체 기간 · 글을 열 때마다 +1</p></div>
+      <div class="card table-wrap" style="padding:8px 12px">
+        ${posts ? `<table class="list" style="min-width:560px"><thead><tr><th></th><th>글</th><th class="num">조회</th><th class="num">댓글</th></tr></thead><tbody>${posts}</tbody></table>`
+          : `<div class="empty">아직 조회된 글이 없어요</div>`}
+      </div>
+    </section>`;
+})();
+</script>
+</body>
+</html>

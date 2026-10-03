@@ -32,7 +32,7 @@ OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20261003b"
+ASSET_VERSION = "20261003c"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 

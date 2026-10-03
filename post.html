@@ -19,10 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261003b">
+<link rel="stylesheet" href="assets/style.css?v=20261003c">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261003b"></script>
-<script src="assets/app.js?v=20261003b"></script>
+<script src="config.js?v=20261003c"></script>
+<script src="assets/app.js?v=20261003c"></script>
 </head>
 <body>
 <script>
@@ -63,6 +63,7 @@
       <div class="post-meta">
         <b style="color:var(--ink)">${esc(post.author)}</b>${mine ? `<span class="mine">내 글</span>` : ""}
         <span>${ymd(post.created_at)} · ${ago(post.created_at)}</span>
+        <span id="views">조회 ${post.view_count ?? 0}</span>
         ${post.updated_at ? `<span>(수정됨)</span>` : ""}
       </div>
       <div class="post-body">${esc(post.body)}</div>
@@ -90,6 +91,8 @@
     </section>`;
 
   const $ = (x) => document.getElementById(x);
+  // 조회수 +1 (운영자는 서버에서 제외하고 현재 값만 돌려줌)
+  sb.rpc("view_post", { p_id: id }).then(({ data }) => { if (data != null) $("views").textContent = "조회 " + data; }, () => {});
   const show = (kind, text) => { const m = $("msg"); m.className = "msg " + kind; m.textContent = text; m.hidden = false; };
 
   async function loadComments() {

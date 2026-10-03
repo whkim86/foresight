@@ -19,10 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261003b">
+<link rel="stylesheet" href="assets/style.css?v=20261003c">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261003b"></script>
-<script src="assets/app.js?v=20261003b"></script>
+<script src="config.js?v=20261003c"></script>
+<script src="assets/app.js?v=20261003c"></script>
 </head>
 <body>
 <script>
@@ -36,6 +36,7 @@
   const key = cfg.BOARDS[new URLSearchParams(location.search).get("b")] ? new URLSearchParams(location.search).get("b") : "coin";
   const board = cfg.BOARDS[key];
   document.title = board.name + " 게시판 · AI 신호등";
+  Portal.track("board:" + key);
 
   const tabs = Object.entries(cfg.BOARDS).map(([k, b]) =>
     `<a href="board.html?b=${k}" ${k === key ? 'aria-current="page"' : ""}>${b.secret ? ICONS.lock : ""}${esc(b.name)}</a>`).join("");
@@ -65,13 +66,13 @@
     return `
       <a class="post-row ${p.pinned ? "pinned" : ""}" href="post.html?id=${p.id}">
         <span class="t"><b>${tags}${esc(p.title)}</b><span>${esc(p.author)}${mine} · ${ago(p.created_at)}</span></span>
-        <span class="c">댓글 ${p.comment_count}</span>
+        <span class="c">조회 ${p.view_count} · 댓글 ${p.comment_count}</span>
       </a>`;
   }
 
   async function load() {
     const { data, error } = await sb.from("posts")
-      .select("id, user_id, author, title, is_secret, pinned, comment_count, report_count, created_at")
+      .select("id, user_id, author, title, is_secret, pinned, comment_count, report_count, view_count, created_at")
       .eq("board", key)
       .order("pinned", { ascending: false })
       .order("created_at", { ascending: false })

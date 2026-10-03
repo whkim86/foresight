@@ -19,11 +19,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261003b">
+<link rel="stylesheet" href="assets/style.css?v=20261003c">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261003b"></script>
-<script src="assets/app.js?v=20261003b"></script>
-<script src="assets/landing.js?v=20261003b"></script>
+<script src="config.js?v=20261003c"></script>
+<script src="assets/app.js?v=20261003c"></script>
+<script src="assets/landing.js?v=20261003c"></script>
 </head>
 <body class="home">
 <script>
@@ -38,6 +38,7 @@
   const me = await requireUser();
   if (!me) return;
   renderHeader(me);
+  Portal.track("home");
 
   const MK = Object.keys(cfg.MARKETS);
   const VERDICT = { up: ["상승", "v-up"], mx: ["혼돈", "v-mx"], dn: ["하락", "v-dn"], hold: ["보류", "v-na"], stale: ["지연", "v-na"] };

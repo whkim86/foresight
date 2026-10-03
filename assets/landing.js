@@ -12,6 +12,7 @@ window.renderLanding = async function () {
   const pct = (x) => (x == null ? "-" : Math.round(x * 100) + "%");
   const signed = (x) => (x == null ? "" : (x >= 0 ? "+" : "") + (x * 100).toFixed(1) + "%");
   const SIGNUP = "login.html#signup";
+  Portal.track("landing");
 
   // ---------- 시장별 맛보기 카드 ----------
   const cards = MK.map((key) => {

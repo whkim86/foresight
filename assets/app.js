@@ -94,7 +94,7 @@
     const link = (href, label, pages = [href]) => `<a href="${href}" ${pages.includes(here) ? 'aria-current="page"' : ""}>${label}</a>`;
     const right = me
       ? `<nav class="nav">
-           ${me.acc.isAdmin ? link("admin.html", "운영자", ["admin.html", "accuracy.html", "ai.html", "models.html"]) : ""}
+           ${me.acc.isAdmin ? link("admin.html", "운영자", ["admin.html", "accuracy.html", "ai.html", "models.html", "views.html"]) : ""}
            ${link("mypage.html", "마이페이지")}
            ${link("board.html", "게시판", ["board.html", "post.html", "write.html"])}
            <span class="nav-sep"></span>
@@ -135,5 +135,10 @@
     return false;
   }
 
-  window.Portal = { sb, cfg, configured, requireUser, renderHeader, esc, won, ymd, ago, daysLeft, price, access, errText, confirmClick, ICONS, DAY };
+  // 화면 조회수 +1 (운영자는 서버에서 제외). 실패해도 화면에는 영향 없음
+  function track(page) {
+    if (sb) sb.rpc("track_page", { p_page: page }).then(() => {}, () => {});
+  }
+
+  window.Portal = { sb, cfg, configured, requireUser, renderHeader, esc, won, ymd, ago, daysLeft, price, access, errText, confirmClick, track, ICONS, DAY };
 })();
