@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>모델 성적 · AI 신호등</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=20261003b">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261003b"></script>
+<script src="assets/app.js?v=20261003b"></script>
+<style>
+  .score td.cell { text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .score td.cell b { display: block; font-size: 14.5px; }
+  .score td.cell small { font-size: 11px; color: var(--muted); }
+  .score td.hi { background: var(--dn-soft); }
+  .score td.hi b { color: var(--dn); }
+  .score td.lo b { color: var(--faint); }
+  .score td.best b::after { content: " ★"; color: var(--mx); }
+  .score th.cell { text-align: center; }
+</style>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, cfg, requireUser, renderHeader, esc, errText } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  if (!me.acc.isAdmin) { location.replace("index.html"); return; }
+  renderHeader(me);
+
+  const LABELS = cfg.MODEL_LABELS || {};
+  const label = (m) => (LABELS[m] ? "모델 " + LABELS[m] : m.replace(/^Pred/, "모델 "));
+  const order = (m) => (LABELS[m] ? LABELS[m].charCodeAt(0) : 1000 + (parseInt(m.replace(/\D/g, ""), 10) || 0));
+  const MK = Object.keys(cfg.MARKETS);
+  let market = new URLSearchParams(location.search).get("m") || "coin";
+  if (!MK.includes(market)) market = "coin";
+  let days = 30;
+
+  const main = document.createElement("main");
+  main.className = "page";
+  document.body.appendChild(main);
+  main.innerHTML = `
+    <section class="on-night">
+      <h1>운영자</h1>
+      <nav class="board-tabs" style="margin-top:14px">
+        <a href="admin.html">입금 · 회원</a><a href="accuracy.html">수집 · 적중률</a><a href="models.html" aria-current="page">모델 성적</a><a href="ai.html">AI 해설</a>
+      </nav>
+    </section>
+    <section class="section">
+      <div class="board-head">
+        <div><h2>예측 모델별 성적</h2>
+          <p class="hint">15개 모델 각각의 D+1~D+6 예측을 실제 종가와 비교했어요. R 모델 개선용 자료예요</p></div>
+        <div class="seg" style="width:200px" role="tablist">
+          <button type="button" data-days="7" aria-selected="false">7일</button>
+          <button type="button" data-days="30" aria-selected="true">30일</button>
+        </div>
+      </div>
+      <nav class="board-tabs" id="mk">${MK.map((k) => `<a href="#" data-m="${k}">${esc(cfg.MARKETS[k].name)}</a>`).join("")}</nav>
+      <div id="box" class="stack"></div>
+      <p class="hint" style="font-size:12.5px;line-height:1.7">
+        <b>방향 적중</b>: 모델이 직전 종가보다 오른다(내린다)고 본 방향이 실제와 맞은 비율이에요. 50%가 동전 던지기 수준이에요.
+        파란 칸은 55% 이상, 흐린 칸은 45% 이하, ★는 그 열에서 가장 높은 모델이에요.<br>
+        <b>평균 오차</b>: 예측 종가가 실제 종가와 평균 몇 % 차이 났는지예요(낮을수록 정확). 각 칸 아래 n은 비교한 종목 수예요.<br>
+        채점은 새 실제 종가가 들어올 때마다 최근 7일 백업 예측으로 자동으로 해요. 데이터가 2~4주 쌓여야 의미 있는 차이가 보여요.
+      </p>
+    </section>`;
+
+  const box = document.getElementById("box");
+  const pct = (h, n) => (n ? (h / n) * 100 : null);
+
+  async function render() {
+    main.querySelectorAll("#mk a").forEach((a) => a.setAttribute("aria-current", a.dataset.m === market ? "page" : "false"));
+    box.innerHTML = `<div class="card empty">불러오는 중…</div>`;
+    const { data, error } = await sb.rpc("model_accuracy", { p_market: market, p_days: days });
+    if (error) { box.innerHTML = `<div class="msg error">${esc(errText(error))}</div>`; return; }
+    if (!data.length) { box.innerHTML = `<div class="card empty">아직 채점 기록이 없어요. 새 실제 종가가 들어오면 자동으로 쌓여요</div>`; return; }
+
+    // 모델 × D+n 표 만들기
+    const by = {};
+    let maxDays = 0;
+    for (const r of data) {
+      (by[r.model] ||= {})[r.horizon] = r;
+      maxDays = Math.max(maxDays, r.days);
+    }
+    const models = Object.keys(by).sort((a, b) => order(a) - order(b));
+    const H = [1, 2, 3, 4, 5, 6];
+    const best = {};
+    for (const h of H) best[h] = Math.max(...models.map((m) => pct(by[m][h]?.dir_hit, by[m][h]?.dir_n) ?? -1));
+    const bestErr = Math.min(...models.map((m) => by[m][1]?.mape ?? 9));
+
+    const rows = models.map((m) => {
+      const cells = H.map((h) => {
+        const r = by[m][h];
+        const p = pct(r?.dir_hit, r?.dir_n);
+        if (p == null) return `<td class="cell"><small>-</small></td>`;
+        const cls = [p >= 55 ? "hi" : p <= 45 ? "lo" : "", p === best[h] ? "best" : ""].join(" ");
+        return `<td class="cell ${cls}"><b>${p.toFixed(0)}%</b><small>n=${r.dir_n}</small></td>`;
+      }).join("");
+      const tot = H.reduce((a, h) => [a[0] + (by[m][h]?.dir_hit || 0), a[1] + (by[m][h]?.dir_n || 0)], [0, 0]);
+      const err = by[m][1]?.mape;
+      return `<tr><td><b>${esc(label(m))}</b><br><span class="muted">${esc(m)}</span></td>${cells}
+        <td class="cell"><b>${pct(tot[0], tot[1])?.toFixed(0) ?? "-"}%</b><small>D+1~6 전체</small></td>
+        <td class="cell ${err === bestErr ? "best" : ""}"><b>${err != null ? (err * 100).toFixed(2) + "%" : "-"}</b><small>D+1</small></td></tr>`;
+    }).join("");
+
+    box.innerHTML = `
+      ${maxDays < 10 ? `<div class="msg warn">아직 ${maxDays}일치 기록이에요. 하루 이틀은 그날 시장 분위기에 크게 휘둘리니 참고만 해주세요.</div>` : ""}
+      <div class="card table-wrap score" style="padding:8px 12px">
+        <table class="list" style="min-width:860px">
+          <thead><tr><th>모델</th>${H.map((h) => `<th class="cell">D+${h}<br><span class="muted" style="font-weight:500">방향 적중</span></th>`).join("")}
+            <th class="cell">종합<br><span class="muted" style="font-weight:500">방향 적중</span></th><th class="cell">평균 오차</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  main.querySelector("#mk").addEventListener("click", (e) => {
+    const a = e.target.closest("[data-m]");
+    if (!a) return;
+    e.preventDefault();
+    market = a.dataset.m;
+    history.replaceState(null, "", `models.html?m=${market}`);
+    render();
+  });
+  main.querySelectorAll("[data-days]").forEach((b) => b.addEventListener("click", () => {
+    days = Number(b.dataset.days);
+    main.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+    render();
+  }));
+  render();
+})();
+</script>
+</body>
+</html>

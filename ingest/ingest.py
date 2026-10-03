@@ -307,6 +307,87 @@ def post_summary(market, pred_date, preds):
     print(f"  [{market}] 게시판 요약 글: {title}")
 
 
+# ---------------------------------------------------------------- 모델별 성적
+def parse_chart(text, today):
+    """가격 차트 CSV → (pred_date, {종목: {"hist": {date: 종가}, "mod": {모델: {seq: (date, 종가)}}}})"""
+    by_pred = {}
+    for r in csv.DictReader(io.StringIO(text)):
+        try:
+            pd_, sym, var = r["pred_day"].strip(), r["coin"].strip(), r["variable"].strip()
+            seq, c = int(r["SEQ"]), float(r["value_close"])
+        except (KeyError, ValueError, AttributeError, TypeError):
+            continue
+        if not pd_ or not sym or not math.isfinite(c) or c <= 0:
+            continue
+        co = by_pred.setdefault(pd_, {}).setdefault(sym, {"hist": {}, "mod": {}})
+        d = to_date(r["date"], today)
+        if seq == 0:
+            co["hist"][d] = c
+        elif var:
+            co["mod"].setdefault(var, {})[seq] = (d, c)
+    if not by_pred:
+        return None, {}
+    label = max(by_pred, key=lambda p: to_date(p, today))
+    return to_date(label, today), by_pred[label]
+
+
+def grade_snapshot(data, actual):
+    """한 예측일 CSV 의 모델별 예측을 실제 종가와 비교 → {(모델, D+n, 대상일): [n, dir_n, dir_hit, abs_err_sum]}"""
+    agg = {}
+    for sym, co in data.items():
+        if not co["hist"]:
+            continue
+        base = co["hist"][max(co["hist"])]  # 이 예측의 기준(직전) 종가
+        for model, seqs in co["mod"].items():
+            for seq, (d, pred) in seqs.items():
+                real = actual.get((sym, d))
+                if real is None or not 1 <= seq <= 6:
+                    continue
+                a = agg.setdefault((model, seq, d), [0, 0, 0, 0.0])
+                a[0] += 1
+                a[3] += abs(pred - real) / real
+                if pred != base and real != base:  # 기준가와 같으면 방향을 말할 수 없어 제외
+                    a[1] += 1
+                    a[2] += (pred > base) == (real > base)
+    return agg
+
+
+def score_models(market, text, today):
+    """최신 CSV 의 실제 종가로, 7일 백업 CSV 들의 모델별 D+1~D+6 예측을 채점해 model_scores 에 요약 저장.
+    같은 입력이면 같은 결과라 여러 번 돌려도 안전 (덮어씀)"""
+    _, latest = parse_chart(text, today)
+    actual = {(sym, d): c for sym, co in latest.items() for d, c in co["hist"].items()}
+
+    items = supa("POST", f"/storage/v1/object/list/{BUCKET}", {"prefix": f"{market}/chart/", "limit": 1000}) or []
+    snaps = sorted(it["name"] for it in items if re.fullmatch(r"\d{4}-\d{2}-\d{2}\.csv", it["name"]))
+    rows = []
+    for name in snaps:
+        snap = decode(http("GET", f"{SUPA}/storage/v1/object/{BUCKET}/{market}/chart/{name}",
+                           headers={"apikey": KEY, "Authorization": f"Bearer {KEY}"}))
+        pred_date, data = parse_chart(snap, today)
+        if not pred_date:
+            continue
+        for (model, seq, d), (n, dn, dh, err) in grade_snapshot(data, actual).items():
+            rows.append({"market": market, "model": model, "horizon": seq, "pred_date": pred_date.isoformat(),
+                         "target_date": d.isoformat(), "n": n, "dir_n": dn, "dir_hit": dh,
+                         "abs_err_sum": round(err, 6), "updated_at": datetime.now(timezone.utc).isoformat()})
+    for i in range(0, len(rows), 500):
+        supa("POST", "/rest/v1/model_scores?on_conflict=market,model,horizon,pred_date,target_date", rows[i:i + 500],
+             Prefer="resolution=merge-duplicates,return=minimal")
+    print(f"  [{market}] 모델 성적 {len(rows)}줄 갱신 (백업 {len(snaps)}개)")
+
+
+def ensure_model_scores(market, text, digest, today):
+    """이 가격 차트 내용으로 아직 모델 채점을 안 했으면 함 (새 CSV · 기능 도입 첫날 소급)"""
+    try:
+        if supa("GET", f"/rest/v1/ingest_log?select=id&market=eq.{market}&kind=eq.model_score&content_hash=eq.{digest}&limit=1"):
+            return
+        score_models(market, text, today)
+        log(market, "model_score", "ok", content_hash=digest)
+    except Exception as e:  # 성적 계산이 실패해도 수집은 계속
+        print(f"  [{market}] 모델 성적 실패: {e}")
+
+
 def ensure_summary(market, text, today):
     """이미 수집한 CSV 라도 그날 요약 글이 없으면 씀 (요약 기능 도입 첫날, 이전 실패 복구)"""
     try:
@@ -330,6 +411,7 @@ def ingest_market(market, cfg, today):
             print(f"  [{market}/{kind}] 변경 없음")
             if kind == "chart":
                 ensure_summary(market, text, today)
+                ensure_model_scores(market, text, digest, today)
             continue
 
         if kind == "chart":
@@ -363,6 +445,8 @@ def ingest_market(market, cfg, today):
         upload(f"{market}/{kind}/latest.csv", text)
         prune(f"{market}/{kind}", today)
         log(market, kind, "ok", pred_date=pred_date.isoformat(), content_hash=digest, row_count=text.count("\n"))
+        if kind == "chart":  # 백업에 오늘 파일까지 올린 뒤 채점
+            ensure_model_scores(market, text, digest, today)
 
 
 def check_missing(market, cfg, now):

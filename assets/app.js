@@ -94,7 +94,7 @@
     const link = (href, label, pages = [href]) => `<a href="${href}" ${pages.includes(here) ? 'aria-current="page"' : ""}>${label}</a>`;
     const right = me
       ? `<nav class="nav">
-           ${me.acc.isAdmin ? link("admin.html", "운영자", ["admin.html", "accuracy.html", "ai.html"]) : ""}
+           ${me.acc.isAdmin ? link("admin.html", "운영자", ["admin.html", "accuracy.html", "ai.html", "models.html"]) : ""}
            ${link("mypage.html", "마이페이지")}
            ${link("board.html", "게시판", ["board.html", "post.html", "write.html"])}
            <span class="nav-sep"></span>
