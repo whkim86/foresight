@@ -40,11 +40,24 @@ window.PORTAL_CONFIG = {
   MARKETS: {
     coin: {
       name: "코인",
-      desc: "업비트 알트코인 6일 예측과 우선순위, 해석을 한 화면에서 봐요",
+      desc: "업비트·빗썸 알트코인 6일 예측과 우선순위, 해석을 한 화면에서 봐요",
       note: "매일 오전 9시 업데이트되는 업비트 예측이에요",
       views: [
         { key: "priority", label: "우선순위", url: "boards/coin_upbit.html" },
         { key: "chart", label: "가격 차트", url: "boards/coin_upbitline.html" },
+      ],
+      // 코인 탭 안의 거래소 전환. 이용권은 코인 하나로 함께 열림. data: 수집·통계에서 쓰는 시장 이름
+      exchanges: [
+        { key: "upbit", label: "업비트", data: "coin", note: "매일 오전 9시 업데이트되는 업비트 예측이에요",
+          views: [
+            { key: "priority", label: "우선순위", url: "boards/coin_upbit.html" },
+            { key: "chart", label: "가격 차트", url: "boards/coin_upbitline.html" },
+          ] },
+        { key: "bithumb", label: "빗썸", data: "bithumb", note: "매일 0시 기준, 새벽 1시 30분쯤 업데이트되는 빗썸 예측이에요",
+          views: [
+            { key: "priority", label: "우선순위", url: "boards/coin_bithumb.html" },
+            { key: "chart", label: "가격 차트", url: "boards/coin_bithumbline.html" },
+          ] },
       ],
     },
     nasdaq: {

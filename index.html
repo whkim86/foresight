@@ -19,11 +19,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261003c">
+<link rel="stylesheet" href="assets/style.css?v=20261006a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261003c"></script>
-<script src="assets/app.js?v=20261003c"></script>
-<script src="assets/landing.js?v=20261003c"></script>
+<script src="config.js?v=20261006a"></script>
+<script src="assets/app.js?v=20261006a"></script>
+<script src="assets/landing.js?v=20261006a"></script>
 </head>
 <body class="home">
 <script>
@@ -93,7 +93,7 @@
     } else {
       const [label, cls] = VERDICT[s.lead_verdict] || ["-", "v-na"];
       lamp = s.lead_verdict || "";
-      what = `<small>${esc(s.lead_symbol)} · D+1 판정</small><b class="${cls}">${label}</b>
+      what = `<small>${m.exchanges ? esc(m.exchanges[0].label) + " " : ""}${esc(s.lead_symbol)} · D+1 판정</small><b class="${cls}">${label}</b>
         <span>${s.lead_med1 != null ? `모델 중앙값 ${pct(s.lead_med1)}` : "&nbsp;"}</span>`;
     }
 
@@ -107,6 +107,15 @@
         <div class="nums"><span class="v-up">상승 <b>${s.up_n}</b></span><span class="v-mx">혼돈 <b>${s.mx_n}</b></span><span class="v-dn">하락 <b>${s.dn_n}</b></span></div>
       </div>` : "";
 
+    // 코인 카드: 큰 신호는 업비트, 아래에 다른 거래소(빗썸) 한 줄
+    const extra = (m.exchanges || []).filter((x) => x.data !== key).map((x) => {
+      const e = sig[x.data];
+      if (!e) return "";
+      const [label, cls] = t.open ? VERDICT[e.lead_verdict] || ["-", "v-na"] : ["잠김", "v-na"];
+      return `<div class="ex-line"><span>${esc(x.label)} ${esc(e.lead_symbol)} D+1 <b class="${cls}">${label}</b></span>
+        <span class="muted">상승 ${e.up_n} · 혼돈 ${e.mx_n} · 하락 ${e.dn_n}</span></div>`;
+    }).join("");
+
     return `
       <a class="card signal-card ${t.open ? "" : "locked"}" href="${t.open ? `dashboard.html?m=${key}` : "mypage.html"}">
         <div class="top"><span class="market-head">${ICONS[key] || ""}${esc(m.name)}</span>
@@ -116,6 +125,7 @@
           <div class="what">${what}</div>
         </div>
         ${dist}
+        ${extra}
         <div class="foot">
           <span class="status" style="font-size:12px;color:var(--muted)">${note || "&nbsp;"}</span>
           <span class="open ${t.open ? "" : "v-na"}">${t.open ? "탭 열기 →" : "마이페이지에서 열기 →"}</span>

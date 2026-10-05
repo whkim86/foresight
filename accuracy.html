@@ -19,10 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261003c">
+<link rel="stylesheet" href="assets/style.css?v=20261006a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261003c"></script>
-<script src="assets/app.js?v=20261003c"></script>
+<script src="config.js?v=20261006a"></script>
+<script src="assets/app.js?v=20261006a"></script>
 </head>
 <body>
 <script>
@@ -37,7 +37,8 @@
   main.className = "page";
   document.body.appendChild(main);
 
-  const MK = Object.keys(cfg.MARKETS);
+  const MK = Portal.DATA_MARKETS.map((x) => x.key);
+  const TAB = Object.fromEntries(Portal.DATA_MARKETS.map((x) => [x.key, x.tab]));
   const pct = (hit, n) => (n ? Math.round((hit / n) * 100) + "%" : "—");
   const frac = (hit, n) => (n ? `${hit}/${n}` : "0");
   let days = 30;
@@ -58,7 +59,7 @@
     return `
       <div class="card" style="display:flex;flex-direction:column;gap:10px">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span class="market-head">${ICONS[m]}${esc(cfg.MARKETS[m].name)}</span>${badge}
+          <span class="market-head">${ICONS[TAB[m]]}${esc(Portal.marketName(m))}</span>${badge}
         </div>
         <div class="kv"><span class="k" style="font-weight:500">우선순위</span><span class="v">${when(okOf("priority"))}</span></div>
         <div class="kv"><span class="k" style="font-weight:500">가격 차트</span><span class="v">${when(okOf("chart"))}</span></div>
@@ -84,7 +85,7 @@
     const rows = MK.map((m) => {
       const s = sum[m];
       return `<tr>
-        <td><b>${esc(cfg.MARKETS[m].name)}</b><br><span class="muted">채점된 날 ${s.days}일</span></td>
+        <td><b>${esc(Portal.marketName(m))}</b><br><span class="muted">채점된 날 ${s.days}일</span></td>
         <td class="num"><b>${pct(s.up_hit, s.up_n)}</b><br><span class="muted">${frac(s.up_hit, s.up_n)}</span></td>
         <td class="num"><b>${pct(s.dn_hit, s.dn_n)}</b><br><span class="muted">${frac(s.dn_hit, s.dn_n)}</span></td>
         <td class="num"><b>${pct(s.up_hit + s.dn_hit, s.up_n + s.dn_n)}</b><br><span class="muted">${frac(s.up_hit + s.dn_hit, s.up_n + s.dn_n)}</span></td>
@@ -95,7 +96,7 @@
     }).join("");
 
     const daily = data.map((r) => `<tr>
-        <td class="muted">${r.pred_date}</td><td>${esc(cfg.MARKETS[r.market]?.name || r.market)}</td>
+        <td class="muted">${r.pred_date}</td><td>${esc(Portal.marketName(r.market))}</td>
         <td class="num">${frac(r.up_hit, r.up_n)} <span class="muted">(${pct(r.up_hit, r.up_n)})</span></td>
         <td class="num">${frac(r.dn_hit, r.dn_n)} <span class="muted">(${pct(r.dn_hit, r.dn_n)})</span></td>
         <td class="num">${frac(r.hc_hit, r.hc_n)}</td>

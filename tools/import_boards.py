@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""GitHub 의 원본 대시보드 6개(index.html)를 가져와 포털용 boards/*.html 로 변환한다.
+"""GitHub 의 원본 대시보드(index.html)를 가져와 포털용 boards/*.html 로 변환한다.
 
 원본 대시보드를 고친 뒤 포털에도 반영하려면:  python tools/import_boards.py
 (원본 저장소가 비공개면 환경변수 SOURCE_TOKEN 에 읽기 토큰을 넣고 실행)
@@ -16,13 +16,18 @@ import urllib.request
 from pathlib import Path
 
 OWNER = "whkim86"
-BOARDS = {  # 원본 저장소 → (시장, 종류)
-    "coin_upbit": ("coin", "priority"),
-    "coin_upbitline": ("coin", "chart"),
-    "coin_nasdaq": ("nasdaq", "priority"),
-    "coin_nasdaqline": ("nasdaq", "chart"),
-    "coin_kospi": ("kospi", "priority"),
-    "coin_kospiline": ("kospi", "chart"),
+# 포털 보드 파일 이름 → (원본 저장소, 시장, 종류, 바꿀 문구)
+#   시장은 Supabase 백업 경로(forecasts/<시장>/<종류>/latest.csv)와 같음. bithumb 은 코인 탭 안의 빗썸 전환
+BOARDS = {
+    "coin_upbit": ("coin_upbit", "coin", "priority", {}),
+    "coin_upbitline": ("coin_upbitline", "coin", "chart", {}),
+    "coin_bithumb": ("coin-bithumb", "bithumb", "priority", {}),
+    # 빗썸 가격 차트는 원본 화면이 없어 업비트 가격 차트 화면을 그대로 쓰고 이름만 바꿈
+    "coin_bithumbline": ("coin_upbitline", "bithumb", "chart", {"(업비트, 6일예측)": "(빗썸, 6일예측)"}),
+    "coin_nasdaq": ("coin_nasdaq", "nasdaq", "priority", {}),
+    "coin_nasdaqline": ("coin_nasdaqline", "nasdaq", "chart", {}),
+    "coin_kospi": ("coin_kospi", "kospi", "priority", {}),
+    "coin_kospiline": ("coin_kospiline", "kospi", "chart", {}),
 }
 # 보드별로 추가로 붙이는 기능 스크립트 (assets/ 아래)
 EXTRA_JS = {
@@ -32,7 +37,7 @@ OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20261003c"
+ASSET_VERSION = "20261006a"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 
@@ -53,7 +58,12 @@ def sub_once(pattern, repl, text, what, flags=0):
     return new
 
 
-def convert(html, market, kind):
+def convert(html, market, kind, texts=None):
+    for a, b in (texts or {}).items():
+        if a not in html:
+            raise RuntimeError(f"바꿀 문구 '{a}'가 원본에 없어요")
+        html = html.replace(a, b)
+
     # 1) 내장 데이터: 머리글 한 줄만 남김
     def keep_header(m):
         body = m.group(2).lstrip("\r\n")
@@ -95,11 +105,12 @@ def convert(html, market, kind):
 
 def main():
     OUT.mkdir(exist_ok=True)
-    for repo, (market, kind) in BOARDS.items():
-        src = fetch_index(repo)
-        out = convert(src, market, kind)
-        (OUT / f"{repo}.html").write_text(out, encoding="utf-8", newline="\n")
-        print(f"{repo:16s} → boards/{repo}.html  {len(src) // 1024:5d}KB → {len(out) // 1024:4d}KB")
+    cache = {}
+    for name, (repo, market, kind, texts) in BOARDS.items():
+        src = cache.get(repo) or cache.setdefault(repo, fetch_index(repo))
+        out = convert(src, market, kind, texts)
+        (OUT / f"{name}.html").write_text(out, encoding="utf-8", newline="\n")
+        print(f"{repo:16s} → boards/{name}.html  {len(src) // 1024:5d}KB → {len(out) // 1024:4d}KB")
 
 
 if __name__ == "__main__":

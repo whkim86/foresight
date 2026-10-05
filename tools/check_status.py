@@ -26,7 +26,8 @@ ROOT = Path(__file__).resolve().parent.parent
 KST = timezone(timedelta(hours=9))
 FILES = {"priority": "final_rst_dfa_web_Day_v3.csv", "chart": "final_rst_dfa_web_Day_raw_v3.csv"}
 REPOS = {
-    "코인": {"priority": "coin_upbit", "chart": "coin_upbitline", "key": "coin"},
+    "코인(업비트)": {"priority": "coin_upbit", "chart": "coin_upbitline", "key": "coin"},
+    "코인(빗썸)": {"priority": "coin-bithumb", "chart": "coin_bithumbline", "key": "bithumb"},
     "나스닥": {"priority": "coin_nasdaq", "chart": "coin_nasdaqline", "key": "nasdaq"},
     "코스피200": {"priority": "coin_kospi", "chart": "coin_kospiline", "key": "kospi"},
 }
@@ -62,6 +63,8 @@ def expected_last_close(market, at):
     """업로드 시각(KST) 기준으로 이미 마감됐어야 할 가장 최근 종가 날짜"""
     if market == "coin":   # 업비트 일봉: 오전 9시에 전날 일봉 마감
         return (at - timedelta(hours=9)).date() - timedelta(days=1)
+    if market == "bithumb":  # 빗썸 일봉: 0시에 전날 일봉 마감
+        return at.date() - timedelta(days=1)
     if market == "nasdaq":  # 미국 장 마감 = 한국 시간 새벽 5~6시 → 넉넉히 7시 기준
         return prev_trading_day((at - timedelta(hours=7)).date() - timedelta(days=1), ingest.US_HOLIDAYS)
     # 코스피: 오후 3시 30분 마감 → 넉넉히 오후 5시 기준

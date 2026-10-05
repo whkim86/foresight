@@ -33,6 +33,8 @@ FILES = {"priority": "final_rst_dfa_web_Day_v3.csv", "chart": "final_rst_dfa_web
 MARKETS = {
     # start: R 이 도는 시각(KST)
     "coin": {"start": (9, 0), "repos": {"priority": "coin_upbit", "chart": "coin_upbitline"}},
+    # 빗썸: 코인 탭 안의 거래소 전환. 0시 실행 → 우선순위 0시 20~40분, 가격 차트 1시 10분 전후
+    "bithumb": {"start": (0, 0), "repos": {"priority": "coin-bithumb", "chart": "coin_bithumbline"}},
     "nasdaq": {"start": (8, 0), "repos": {"priority": "coin_nasdaq", "chart": "coin_nasdaqline"}},
     "kospi": {"start": (23, 0), "repos": {"priority": "coin_kospi", "chart": "coin_kospiline"}},
 }
@@ -217,9 +219,10 @@ def prune(prefix, today):
 
 # ---------------------------------------------------------------- 게시판 '오늘의 신호 요약'
 # 게시판은 이용권 없는 회원도 보므로, 유료 내용(종목 순위)은 넣지 않고 분포와 기준 종목 판정만
-LEAD = {"coin": "BTC", "nasdaq": "SP500", "kospi": "SK하이닉스"}
-MARKET_NAME = {"coin": "코인", "nasdaq": "나스닥", "kospi": "코스피200"}
-NOUN = {"coin": "코인", "nasdaq": "종목", "kospi": "종목"}
+LEAD = {"coin": "BTC", "bithumb": "BTC", "nasdaq": "SP500", "kospi": "SK하이닉스"}
+MARKET_NAME = {"coin": "코인(업비트)", "bithumb": "코인(빗썸)", "nasdaq": "나스닥", "kospi": "코스피200"}
+NOUN = {"coin": "코인", "bithumb": "코인", "nasdaq": "종목", "kospi": "종목"}
+BOARD = {"bithumb": "coin"}  # 빗썸 요약 글은 코인 게시판에
 VERDICT_KO = {"up": "상승", "dn": "하락", "mx": "혼돈", "hold": "보류", "stale": "지연"}
 _admin_id = None
 
@@ -301,7 +304,7 @@ def post_summary(market, pred_date, preds):
     title, body = summary_post(market, pred_date, preds, prev)
     # 같은 예측일 요약은 한 글 — 수정본 CSV 가 다시 올라오면 내용만 갱신
     supa("POST", "/rest/v1/posts?on_conflict=auto_key",
-         {"board": market, "user_id": admin_id(), "author": "AI 신호등", "title": title, "body": body,
+         {"board": BOARD.get(market, market), "user_id": admin_id(), "author": "AI 신호등", "title": title, "body": body,
           "auto_key": f"daily-{market}-{pred_date.isoformat()}"},
          Prefer="resolution=merge-duplicates,return=minimal")
     print(f"  [{market}] 게시판 요약 글: {title}")
@@ -556,19 +559,27 @@ def main():
     # Actions 탭에서 '소급 채점 일수'를 넣고 수동 실행했을 때, 또는 채점 규칙 버전이 바뀐 뒤 처음 실행될 때
     backfill_days = int(os.environ.get("BACKFILL_DAYS") or 0)
     marker = f"v{SCORE_VERSION}"
-    if not DRY and not supa("GET", f"/rest/v1/ingest_log?select=id&kind=eq.model_rescore&status=eq.ok&content_hash=eq.{marker}&limit=1"):
-        backfill_days = max(backfill_days, SCORE_REBUILD_DAYS)
-        print(f"== 채점 규칙 {marker} 첫 실행 → 최근 {backfill_days}일 재채점")
-    if backfill_days > 0 and not DRY:
+    rescore = list(MARKETS) if backfill_days > 0 else []
+    if not DRY:
+        done = {r["market"] for r in supa("GET", "/rest/v1/ingest_log?select=market&kind=eq.model_rescore"
+                                                 f"&status=eq.ok&content_hash=eq.{marker}")}
+        # 'all' = 그 버전 첫 실행 때 있던 시장 모두. 나중에 추가된 시장(빗썸 등)은 시장 이름으로 따로 기록
+        if "all" in done:
+            done |= {"coin", "nasdaq", "kospi"}
+        new = [m for m in MARKETS if m not in done]
+        if new:
+            print(f"== 채점 규칙 {marker} 첫 실행 ({', '.join(new)}) → 최근 {SCORE_REBUILD_DAYS}일 재채점")
+            rescore = rescore or new
+            backfill_days = max(backfill_days, SCORE_REBUILD_DAYS)
+    if rescore and not DRY:
         print(f"== 모델 성적 소급 채점 (최근 {backfill_days}일)")
-        before = len(problems)
-        for market, cfg in MARKETS.items():
+        for market in rescore:
             try:
-                backfill_model_scores(market, cfg, backfill_days, today)
+                backfill_model_scores(market, MARKETS[market], backfill_days, today)
             except Exception as e:
                 problems.append(f"{market} 소급 채점 실패: {e}")
-        if len(problems) == before:  # 모두 성공했을 때만 이 채점 규칙 버전을 완료로 기록
-            log("all", "model_rescore", "ok", content_hash=marker, message=f"최근 {backfill_days}일 재채점")
+            else:  # 성공한 시장만 이 채점 규칙 버전을 완료로 기록
+                log(market, "model_rescore", "ok", content_hash=marker, message=f"최근 {backfill_days}일 재채점")
     for market, cfg in MARKETS.items():
         print(f"== {market}")
         try:

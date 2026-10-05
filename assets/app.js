@@ -140,5 +140,10 @@
     if (sb) sb.rpc("track_page", { p_page: page }).then(() => {}, () => {});
   }
 
-  window.Portal = { sb, cfg, configured, requireUser, renderHeader, esc, won, ymd, ago, daysLeft, price, access, errText, confirmClick, track, ICONS, DAY };
+  // 수집·통계 단위 시장 목록: 코인 탭은 거래소별(업비트=coin, 빗썸=bithumb)로 펼침
+  const DATA_MARKETS = Object.entries(cfg.MARKETS).flatMap(([tab, m]) =>
+    (m.exchanges || [{ data: tab }]).map((x) => ({ key: x.data, tab, name: x.label ? `${m.name}(${x.label})` : m.name })));
+  const marketName = (k) => DATA_MARKETS.find((x) => x.key === k)?.name || cfg.MARKETS[k]?.name || k;
+
+  window.Portal = { sb, cfg, DATA_MARKETS, marketName, configured, requireUser, renderHeader, esc, won, ymd, ago, daysLeft, price, access, errText, confirmClick, track, ICONS, DAY };
 })();

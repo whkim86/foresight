@@ -150,6 +150,14 @@ h2 { margin: 0 0 4px; font-size: 20px; font-weight: 700; }
 .dash-title .back { font-size: 13px; color: var(--muted); }
 .dash-title h1 { margin: 0; font-size: 20px; }
 .dash-title .note { font-size: 13px; color: var(--muted); }
+.dash-title { flex-wrap: wrap; row-gap: 8px; }
+/* 홈 코인 카드의 다른 거래소 한 줄 */
+.ex-line { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 12.5px; padding: 8px 10px; border-radius: 10px; background: var(--chip); }
+.ex-line .muted { color: var(--muted); }
+/* 코인 탭 안의 거래소 전환 [업비트 | 빗썸] */
+.ex-switch { display: inline-flex; background: var(--chip); border-radius: 10px; padding: 3px; }
+.ex-switch button { height: 30px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; font-size: 13.5px; font-weight: 600; color: var(--sub); cursor: pointer; }
+.ex-switch button[aria-selected="true"] { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(18,24,43,.12); }
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .tabs a, .tabs button {
   height: 36px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: #fff;

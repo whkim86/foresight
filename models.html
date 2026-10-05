@@ -8,10 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261003c">
+<link rel="stylesheet" href="assets/style.css?v=20261006a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261003c"></script>
-<script src="assets/app.js?v=20261003c"></script>
+<script src="config.js?v=20261006a"></script>
+<script src="assets/app.js?v=20261006a"></script>
 <style>
   .score td.cell { text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .score td.cell b { display: block; font-size: 14.5px; }
@@ -35,7 +35,7 @@
   const LABELS = cfg.MODEL_LABELS || {};
   const label = (m) => (LABELS[m] ? "모델 " + LABELS[m] : m.replace(/^Pred/, "모델 "));
   const order = (m) => (LABELS[m] ? LABELS[m].charCodeAt(0) : 1000 + (parseInt(m.replace(/\D/g, ""), 10) || 0));
-  const MK = Object.keys(cfg.MARKETS);
+  const MK = Portal.DATA_MARKETS.map((x) => x.key);
   let market = new URLSearchParams(location.search).get("m") || "coin";
   if (!MK.includes(market)) market = "coin";
   let days = 30;
@@ -60,7 +60,7 @@
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-        <nav class="board-tabs" id="mk">${MK.map((k) => `<a href="#" data-m="${k}">${esc(cfg.MARKETS[k].name)}</a>`).join("")}</nav>
+        <nav class="board-tabs" id="mk">${MK.map((k) => `<a href="#" data-m="${k}">${esc(Portal.marketName(k))}</a>`).join("")}</nav>
         <div class="seg" style="width:330px" role="tablist" aria-label="예측 방향">
           <button type="button" data-mode="all" aria-selected="true">전체</button>
           <button type="button" data-mode="up" aria-selected="false">상승 예측</button>

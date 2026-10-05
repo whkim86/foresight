@@ -19,10 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261003c">
+<link rel="stylesheet" href="assets/style.css?v=20261006a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261003c"></script>
-<script src="assets/app.js?v=20261003c"></script>
+<script src="config.js?v=20261006a"></script>
+<script src="assets/app.js?v=20261006a"></script>
 </head>
 <body>
 <script>
@@ -35,7 +35,15 @@
   const params = new URLSearchParams(location.search);
   const key = cfg.MARKETS[params.get("m")] ? params.get("m") : "coin";
   const market = cfg.MARKETS[key];
-  let viewKey = market.views.some((v) => v.key === params.get("v")) ? params.get("v") : market.views[0].key;
+  // 코인 탭: 업비트 | 빗썸 전환 (마지막에 본 거래소를 기억)
+  const exList = market.exchanges || [{ key: "", data: key, note: market.note, views: market.views }];
+  let exKey = params.get("ex");
+  if (!exList.some((x) => x.key === exKey)) {
+    try { exKey = localStorage.getItem("dash-ex-" + key); } catch (e) { exKey = null; }
+    if (!exList.some((x) => x.key === exKey)) exKey = exList[0].key;
+  }
+  let ex = exList.find((x) => x.key === exKey);
+  let viewKey = ex.views.some((v) => v.key === params.get("v")) ? params.get("v") : ex.views[0].key;
   document.title = market.name + " · AI 신호등";
 
   const marketTabs = Object.entries(cfg.MARKETS).map(([k, m]) =>
@@ -59,7 +67,7 @@
     Portal.track(`dash:${key}:locked`);
     return;
   }
-  const viewTabs = market.views.map((v) =>
+  const viewTabs = ex.views.map((v) =>
     `<button type="button" role="tab" data-view="${v.key}">${esc(v.label)}</button>`).join("");
 
   document.body.insertAdjacentHTML("beforeend", `
@@ -68,7 +76,9 @@
         <div class="dash-title">
           <a class="back" href="index.html">← 포털로</a>
           <h1>${esc(market.name)}</h1>
-          <span class="note">${esc(market.note)}</span>
+          ${market.exchanges ? `<div class="ex-switch" role="tablist" aria-label="거래소">${exList.map((x) =>
+            `<button type="button" role="tab" data-ex="${x.key}">${esc(x.label)}</button>`).join("")}</div>` : ""}
+          <span class="note" id="dash-note"></span>
         </div>
         <div class="tabs">
           <div class="tabs" role="tablist" aria-label="보기">${viewTabs}</div>
@@ -83,25 +93,34 @@
   const frames = {};
   function showView(vk) {
     viewKey = vk;
-    Portal.track(`dash:${key}:${vk}`);
+    const fk = ex.key + ":" + vk;
+    Portal.track(`dash:${ex.data}:${vk}`);
     document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === vk)));
-    if (!frames[vk]) {
-      const v = market.views.find((x) => x.key === vk);
+    document.querySelectorAll("[data-ex]").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.ex === ex.key)));
+    document.getElementById("dash-note").textContent = ex.note;
+    if (!frames[fk]) {
+      const v = ex.views.find((x) => x.key === vk);
       const f = document.createElement("iframe");
       f.src = v.url;
-      f.title = market.name + " " + v.label;
+      f.title = market.name + (ex.label ? " " + ex.label : "") + " " + v.label;
       f.loading = "eager";
       document.getElementById("loading").hidden = false;
-      f.addEventListener("load", () => { if (viewKey === vk) document.getElementById("loading").hidden = true; });
+      f.addEventListener("load", () => { if (ex.key + ":" + viewKey === fk) document.getElementById("loading").hidden = true; });
       document.getElementById("frames").appendChild(f);
-      frames[vk] = f;
+      frames[fk] = f;
     } else {
       document.getElementById("loading").hidden = true;
     }
-    Object.entries(frames).forEach(([k, f]) => (f.hidden = k !== vk));
-    history.replaceState(null, "", `dashboard.html?m=${key}&v=${vk}`);
+    Object.entries(frames).forEach(([k, f]) => (f.hidden = k !== fk));
+    history.replaceState(null, "", `dashboard.html?m=${key}${ex.key ? "&ex=" + ex.key : ""}&v=${vk}`);
+  }
+  function showEx(xk) {
+    ex = exList.find((x) => x.key === xk);
+    try { localStorage.setItem("dash-ex-" + key, xk); } catch (e) {}
+    showView(ex.views.some((v) => v.key === viewKey) ? viewKey : ex.views[0].key);
   }
   document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
+  document.querySelectorAll("[data-ex]").forEach((b) => b.addEventListener("click", () => { if (b.dataset.ex !== ex.key) showEx(b.dataset.ex); }));
   showView(viewKey);
 })();
 </script>

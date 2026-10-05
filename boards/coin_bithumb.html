@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<title>코스피200 6일 예측 보드</title>
+<title>코인 6일 예측 보드 (빗썸, 12시 예측) </title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -63,7 +63,6 @@ h1,h2,h3,p{margin:0}
 .btn:hover{border-color:var(--ink)}
 .btn input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
 .btn:focus-within{outline:2px solid var(--focus);outline-offset:2px}
-#notice{margin-top:6px;color:var(--m-high);font-size:13px;max-width:78ch;line-height:1.55}
 #msg.err{color:var(--buy-text)}
 
 /* hero */
@@ -234,7 +233,7 @@ table.det{width:100%;border-collapse:collapse;min-width:520px;font-size:14px}
   }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
-<script>window.PORTAL_BOARD={market:"kospi",kind:"priority"};</script>
+<script>window.PORTAL_BOARD={market:"bithumb",kind:"priority"};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../config.js?v=20261006a"></script>
 <script src="../assets/board-data.js?v=20261006a"></script>
@@ -243,9 +242,8 @@ table.det{width:100%;border-collapse:collapse;min-width:520px;font-size:14px}
 <div class="wrap">
   <header class="top">
     <div>
-      <h1>코스피200 6일 예측 보드</h1>
+      <h1>코인 6일 예측 보드 (빗썸, 12시 예측)</h1>
       <p class="sub" id="sub"></p>
-      <p class="notice" id="notice" hidden></p>
     </div>
     <div class="loader">
       <button class="btn" id="reload" hidden>드라이브에서 다시 불러오기</button>
@@ -258,7 +256,7 @@ table.det{width:100%;border-collapse:collapse;min-width:520px;font-size:14px}
 </div>
 
 <datalist id="coinList"></datalist>
-<script type="text/plain" id="csv">GRP,pred_day,coin,SEQ,date,close_up,high_up,low_up
+<script type="text/plain" id="csv">"GRP","pred_day","coin","SEQ","date","close_up","high_up","low_up"
 </script>
 
 <script>
@@ -307,48 +305,11 @@ function dayIndex(s){
   var m=String(s).match(/(\d{1,2})\s*-\s*(\d{1,2})/); if(!m) return null;
   return Math.round(Date.UTC(2001,+m[1]-1,+m[2])/86400000);
 }
-function wrapDelta(d){ if(d>182) d-=365; if(d<-182) d+=365; return d; }
-/* D+1 날짜가 기준일 당일 또는 다음 날이면 정상, 그 외는 데이터 지연으로 봅니다 */
-function isStale(ref,startDate){
-  var a=dayIndex(ref), b=dayIndex(startDate); if(a==null||b==null) return false;
-  var d=wrapDelta(b-a); return d<0||d>1;
-}
-function todayIdx(){
-  try{
-    var g={}; new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).forEach(function(x){g[x.type]=x.value});
-    return dayIndex(g.month+'-'+g.day);
-  }catch(e){ var n=new Date(); return dayIndex((n.getMonth()+1)+'-'+n.getDate()); }
-}
-/* SEQ가 1~6을 넘어 이어지거나 날짜가 크게 건너뛰는 경우 구간을 나눕니다 */
-function splitRuns(days){
-  var runs=[], run=[];
-  days.forEach(function(e,i){
-    if(i>0){
-      var p=days[i-1], dd=wrapDelta(dayIndex(e.date)-dayIndex(p.date));
-      if(e.seq!==p.seq+1||dd<=0||dd>7){ runs.push(run); run=[]; }
-    }
-    run.push(e);
-  });
-  if(run.length) runs.push(run);
-  return runs;
-}
-/* 기준일: 파일의 예측 수행일과 D+1 날짜가 맞으면 그 날짜, 안 맞으면 오늘(KST)에 가까운 D+1 날짜 */
-function pickRef(pd,coins){
-  var p=dayIndex(pd), near=0, cnt={}, dates=[];
-  coins.forEach(function(co){
-    var ok=false;
-    co.runs.forEach(function(r){
-      var d0=r[0].date; cnt[d0]=(cnt[d0]||0)+1; if(dates.indexOf(d0)<0) dates.push(d0);
-      if(p!=null){ var d=wrapDelta(dayIndex(d0)-p); if(d>=0&&d<=1) ok=true; }
-    });
-    if(ok) near++;
-  });
-  if(p!=null&&coins.length&&near/coins.length>=0.3) return {ref:pd,mismatch:false};
-  var t0=todayIdx(), best=null, bd=1e9;
-  dates.forEach(function(d0){ var x=Math.abs(wrapDelta(dayIndex(d0)-t0)); if(x<bd){bd=x;best=d0;} });
-  if(best&&bd<=10) return {ref:best,mismatch:true};
-  var modal=dates.slice().sort(function(a,b){return cnt[b]-cnt[a]})[0];
-  return {ref:modal||pd,mismatch:(modal||pd)!==pd};
+/* D+1 날짜가 예측 수행일 당일 또는 다음 날이면 정상, 그 외는 데이터 지연으로 봅니다 */
+function isStale(predDay,startDate){
+  var a=dayIndex(predDay), b=dayIndex(startDate); if(a==null||b==null) return false;
+  var d=b-a; if(d>182) d-=365; if(d<-182) d+=365;
+  return d<0||d>1;
 }
 function build(text){
   var rows=parseCSV(text.replace(/^\uFEFF/,''));
@@ -372,39 +333,19 @@ function build(text){
   });
   var preds=Object.keys(byDay).sort();
   if(!preds.length) throw new Error('읽을 수 있는 행이 없습니다. close_up 형식이 "47%,(Wait,20)" 인지 확인해 주세요.');
-  var out={preds:preds,days:{},groups:{},bad:bad,ref:{},mismatch:{},multi:{}};
+  var out={preds:preds,days:{},groups:{},bad:bad};
   preds.forEach(function(pd){
     out.groups[pd]=Object.keys(byDay[pd]).sort();
     out.days[pd]={};
-    var all=[];
-    out.groups[pd].forEach(function(g){
-      Object.keys(byDay[pd][g]).forEach(function(k){
-        var co=byDay[pd][g][k]; co.days.sort(function(a,b){return a.seq-b.seq}); co.runs=splitRuns(co.days); all.push(co);
-      });
-    });
-    var pr=pickRef(pd,all), multi=[];
-    out.ref[pd]=pr.ref; out.mismatch[pd]=pr.mismatch;
     out.groups[pd].forEach(function(g){
       out.days[pd][g]=Object.keys(byDay[pd][g]).sort().map(function(k){
-        var co=byDay[pd][g][k], run=co.runs[0];
-        if(co.runs.length>1){
-          multi.push(co.name);
-          var best=-1, bs=1e9;
-          co.runs.forEach(function(r,i){
-            var d=wrapDelta(dayIndex(r[0].date)-dayIndex(pr.ref));
-            var s=(d>=0&&d<=1)?-1:Math.abs(d);
-            if(s<bs||(s===bs&&i>best)){bs=s;best=i;}
-          });
-          run=co.runs[best];
-          co.days=run.map(function(e,i){return {seq:i+1,date:e.date,c:e.c,h:e.h,l:e.l}});
-        }
-        co.start=co.days[0].date; co.stale=isStale(pr.ref,co.start);
+        var co=byDay[pd][g][k]; co.days.sort(function(a,b){return a.seq-b.seq});
+        co.start=co.days[0].date; co.stale=isStale(pd,co.start);
         co.nan=co.days.some(function(e){return e.c.p==null||e.h.p==null||e.l.p==null});
         co.out=co.stale||co.nan;
         return co;
       });
     });
-    out.multi[pd]=multi;
   });
   return out;
 }
@@ -438,7 +379,7 @@ function insight(st){
   if(buys.length){
     l1=name+': '+total+'일 중 '+nDays+'일에 매수 신호가 나왔고(총 '+buys.length+'건'+(near?', D+1~D+3에 '+near+'건':'')+'), 종가 상승 확률은 평균 '+round(avg.c)+'%입니다.';
   }else{
-    l1=name+': 매수 신호는 없지만 상승 확률과 신호 강도가 다른 '+CFG.noun+'보다 상대적으로 높은 순위입니다.';
+    l1=name+': 매수 신호는 없지만 상승 확률과 신호 강도가 다른 코인보다 상대적으로 높은 순위입니다.';
   }
   var hi=avg.h>=55, lo=avg.l>=55;
   var pat=hi&&lo?'고점과 저점 모두 전일보다 올라갈 확률이 커서 가격대 전체가 올라가는 흐름에 가깝습니다.'
@@ -450,11 +391,11 @@ function insight(st){
   return [l1,l2];
 }
 
-function btcInsight(st,rg,name){
+function btcInsight(st,rg){
   var co=st.co, avg=st.avg, nb=st.buys.length, total=co.days.length*3;
-  if(!rg) return [name+' 예측이 '+(co.stale?fmtDate(co.start)+'부터 시작해 기준일과 어긋나 있거나 ':'')+'일부 값이 비어 있어 해석을 생략합니다.'];
+  if(!rg) return ['BTC 예측이 '+(co.stale?fmtDate(co.start)+'부터 시작해 예측 수행일과 어긋나 있거나 ':'')+'일부 값이 비어 있어 해석을 생략합니다.'];
   var bd0=st.best;
-  var l1=name+': 6일 평균 종가 상승 확률은 '+round(avg.c)+'%이고, 신호가 가장 강한 날은 '+fmtDate(bd0.date)+'(D+'+bd0.seq+')로 종가 상승 '+bd0.c.p+'%('+SIG[bd0.c.s]+' '+bd0.c.n+')입니다. 매수 신호는 '+total+'칸 중 '+nb+'건입니다.';
+  var l1='BTC: 6일 평균 종가 상승 확률은 '+round(avg.c)+'%이고, 신호가 가장 강한 날은 '+fmtDate(bd0.date)+'(D+'+bd0.seq+')로 종가 상승 '+bd0.c.p+'%('+SIG[bd0.c.s]+' '+bd0.c.n+')입니다. 매수 신호는 '+total+'칸 중 '+nb+'건입니다.';
   var hl='고점 돌파 평균 '+round(avg.h)+'%, 저점 돌파 평균 '+round(avg.l)+'%';
   var seen={}, bd=[];
   st.buys.forEach(function(b){ if(!seen[b.seq]){seen[b.seq]=1; var e=co.days.filter(function(x){return x.seq===b.seq})[0]; bd.push(fmtDate(e.date)+'(D+'+b.seq+')');} });
@@ -462,38 +403,31 @@ function btcInsight(st,rg,name){
     :rg==='up'?hl+'로 상승 확률과 매수 신호가 여러 날에 걸쳐 나와 상승 우세로 읽힙니다.'
     :hl+'로 날짜와 지표에 따라 신호가 엇갈려 방향성이 뚜렷하지 않은 혼조입니다.';
   var alts=cur.stats, n=alts.length, m=alts.filter(function(s){return s.co.days[0].c.s==='buy'}).length, r=n?m/n:0;
-  var NN=CFG.noun;
-  var l3='참고로 D+1 종가 매수 신호를 낸 나머지 '+NN+'은 순위 대상 '+n+'개 중 '+m+'개입니다.';
-  if(rg==='dn') l3+=r<0.15?' 기준 '+NN+'과 나머지 '+NN+' 모두 단기 매수 신호가 적은 편입니다.':' 기준 '+NN+' 흐름과 별개로 개별 '+NN+' 신호가 나와 있으니 하나씩 나눠 보세요.';
-  else if(rg==='up') l3+=r>=0.15?' 기준 '+NN+'과 나머지 '+NN+' 모두 매수 신호가 이어지는 편입니다.':' 기준 '+NN+'은 강하지만 나머지 '+NN+' 신호는 아직 적습니다.';
+  var l3='참고로 D+1 종가 매수 신호를 낸 알트코인은 순위 대상 '+n+'개 중 '+m+'개입니다.';
+  if(rg==='dn') l3+=r<0.15?' BTC와 알트코인 모두 단기 매수 신호가 적은 편입니다.':' BTC 흐름과 별개로 개별 알트코인 신호가 나와 있으니 종목별로 나눠 보세요.';
+  else if(rg==='up') l3+=r>=0.15?' BTC와 알트코인 모두 매수 신호가 이어지는 편입니다.':' BTC는 강하지만 알트코인 신호는 아직 적습니다.';
   return [l1,l2,l3];
 }
 function btcSection(){
-  if(!cur.mains||!cur.mains.length) return '';
-  var h='';
-  cur.mains.forEach(function(m,idx){
-    var st=m.st, name=m.name, co=st.co, nb=st.buys.length, total=co.days.length*3;
-    var bull=0.4*st.avg.c+0.3*st.avg.h+0.3*st.avg.l;
-    var rg=co.out?null:(bull>=55&&nb>=4?'up':(bull<=42&&nb<=2?'dn':'mx'));
-    var lab={up:'상승 우세',dn:'하락 우세',mx:'혼조'};
-    var hid='btc-h-'+idx;
-    h+='<section class="btc" aria-labelledby="'+hid+'"><div class="btc-main"><div class="pick-head"><div>';
-    h+='<p class="pick-note">기준 '+CFG.noun+' '+(idx+1)+'/'+cur.mains.length+', D+1은 '+esc(fmtDate(co.start))+'부터</p>';
-    h+='<h2 class="ticker btc-t" id="'+hid+'">'+esc(name)+''+(rg?'<span class="regime '+rg+'">'+lab[rg]+'</span>':'<span class="flag">'+(co.stale?'데이터 지연':'값 결측')+'</span>')+'</h2></div>';
-    h+='<dl class="stats"><div><dt>종가 상승 평균</dt><dd>'+round(st.avg.c)+'<small>%</small></dd></div>';
-    h+='<div><dt>매수 신호</dt><dd>'+nb+'<small>/'+total+'칸</small></dd></div></dl></div>';
-    h+=bigStrip(co)+'</div><div class="btc-note"><h3>'+esc(name)+' 해석</h3>';
-    btcInsight(st,rg,name).forEach(function(p){h+='<p>'+esc(p)+'</p>'});
-    h+='<button class="btn" data-coin="'+esc(name)+'">차트에서 자세히 보기</button></div></section>';
-  });
+  var st=cur.btc; if(!st) return '';
+  var co=st.co, nb=st.buys.length, total=co.days.length*3;
+  var bull=0.4*st.avg.c+0.3*st.avg.h+0.3*st.avg.l;
+  var rg=co.out?null:(bull>=55&&nb>=4?'up':(bull<=42&&nb<=2?'dn':'mx'));
+  var lab={up:'상승 우세',dn:'하락 우세',mx:'혼조'};
+  var h='<section class="btc" aria-labelledby="btc-h"><div class="btc-main"><div class="pick-head"><div>';
+  h+='<p class="pick-note">시장 기준 코인, D+1은 '+esc(fmtDate(co.start))+'부터</p>';
+  h+='<h2 class="ticker btc-t" id="btc-h">BTC'+(rg?'<span class="regime '+rg+'">'+lab[rg]+'</span>':'<span class="flag">'+(co.stale?'데이터 지연':'값 결측')+'</span>')+'</h2></div>';
+  h+='<dl class="stats"><div><dt>종가 상승 평균</dt><dd>'+round(st.avg.c)+'<small>%</small></dd></div>';
+  h+='<div><dt>매수 신호</dt><dd>'+nb+'<small>/'+total+'칸</small></dd></div></dl></div>';
+  h+=bigStrip(co)+'</div><div class="btc-note"><h3>BTC 해석</h3>';
+  btcInsight(st,rg).forEach(function(p){h+='<p>'+esc(p)+'</p>'});
+  h+='<button class="btn" data-coin="BTC">차트에서 자세히 보기</button></div></section>';
   return h;
 }
 
 /* ---------- state ---------- */
-var CFG={mains:["SK하이닉스", "삼성전자"],noun:'종목',hostFile:'final_rst_dfa_web_Day_v3.csv'};
 var SYNC=false;
 var HOST=true;
-function refDay(){return (DATA&&DATA.ref&&DATA.ref[state.pred])||state.pred}
 var DATA=null, state={pred:null,coin:null,days:new Set(),metrics:new Set(['c','h','l']),showAll:false,src:'내장 데이터'};
 var cur=null; // {stats:[], byName:Map}
 
@@ -502,16 +436,14 @@ function setPred(pd,grp){
   var gl=DATA.groups[pd];
   state.grp=(grp!=null&&gl.indexOf(grp)>=0)?grp:gl[0];
   var stats=DATA.days[pd][state.grp].map(stat);
-  var byNameTmp=new Map(); stats.forEach(function(s){byNameTmp.set(s.co.name,s)});
-  var mains=CFG.mains.filter(function(n){return byNameTmp.has(n)}).map(function(n){return {name:n,st:byNameTmp.get(n)}});
-  var mainSet={}; mains.forEach(function(m){mainSet[m.name]=1});
-  var alts=stats.filter(function(s){return !mainSet[s.co.name]});
+  var btc=null, alts=[];
+  stats.forEach(function(s){ if(s.co.name==='BTC') btc=s; else alts.push(s); });
   var pool=alts.length?alts:stats;
   var fresh=pool.filter(function(s){return !s.co.out});
   var stale=pool.filter(function(s){return s.co.out});
-  var byName=byNameTmp;
+  var byName=new Map(); stats.forEach(function(s){byName.set(s.co.name,s)});
   var ranked=(fresh.length?fresh:pool).slice().sort(function(a,b){return b.score-a.score||b.buys.length-a.buys.length});
-  cur={stats:ranked,stale:fresh.length?stale:[],byName:byName,total:stats.length,mains:alts.length?mains:[]};
+  cur={stats:ranked,stale:fresh.length?stale:[],byName:byName,total:stats.length,btc:alts.length?btc:null};
   state.coin=ranked[0].co.name;
   state.days=new Set(ranked[0].co.days.map(function(e){return e.seq}));
   state.showAll=false;
@@ -545,14 +477,8 @@ function renderHeader(){
   if(gl.length>1){
     gsel=', 그룹 <select id="grpSel" aria-label="그룹">'+gl.map(function(g){return '<option value="'+esc(g)+'"'+(g===state.grp?' selected':'')+'>'+esc(g)+'</option>'}).join('')+'</select>';
   }
-  var cnt=''+CFG.noun+' '+cur.total+'개'+(cur.stale.length?'(순위 대상 '+cur.stats.length+'개)':'');
-  var mm=DATA.mismatch[state.pred], rf=DATA.ref[state.pred];
-  $('#sub').innerHTML='예측 수행일 '+sel+(mm?'(파일 표기), D+1 기준일 <b>'+esc(fmtDate(rf))+'</b>':'')+gsel+', '+cnt+', '+esc(state.src);
-  var notes=[];
-  if(mm) notes.push('파일에 적힌 예측 수행일('+fmtDate(state.pred)+')과 '+CFG.noun+'별 D+1 날짜가 달라서, D+1이 '+fmtDate(rf)+'인 '+CFG.noun+'을 기준으로 삼았어요.');
-  var mu=DATA.multi[state.pred]||[];
-  if(mu.length) notes.push('SEQ가 6을 넘어 이어진 '+CFG.noun+'('+mu.slice(0,6).join(', ')+(mu.length>6?' 등':'')+')은 기준일에 맞는 구간만 사용했어요.');
-  var nt=$('#notice'); nt.hidden=!notes.length; nt.textContent=notes.join(' ');
+  var cnt='코인 '+cur.total+'개'+(cur.stale.length?'(순위 대상 '+cur.stats.length+'개)':'');
+  $('#sub').innerHTML='예측 수행일 '+sel+gsel+', '+cnt+', '+esc(state.src);
   var ps=$('#predSel'); if(ps) ps.onchange=function(){setPred(ps.value);renderAll();};
   var gs=$('#grpSel'); if(gs) gs.onchange=function(){setPred(state.pred,gs.value);renderAll();};
 }
@@ -560,9 +486,9 @@ function renderApp(){
   var top=cur.stats[0], nx=cur.stats.slice(1,4), ins=insight(top);
   var avgC=round(top.avg.c);
   var h=btcSection();
-  h+='<div class="sec-head alt-head"><h2>'+CFG.noun+'</h2><p>맨 위 기준 '+CFG.noun+'을 뺀 나머지의 우선순위 순입니다</p></div>';
+  h+='<div class="sec-head alt-head"><h2>알트코인</h2><p>BTC를 제외한 코인 중 우선순위가 높은 순입니다</p></div>';
   h+='<section class="hero" aria-labelledby="pick-name">';
-  h+='<div class="pick"><div class="pick-head"><div><p class="pick-note">D+1 '+esc(fmtDate(refDay()))+' 기준 가장 먼저 볼 '+CFG.noun+'</p>';
+  h+='<div class="pick"><div class="pick-head"><div><p class="pick-note">예측일 '+esc(fmtDate(state.pred))+' 기준 가장 먼저 볼 알트코인</p>';
   h+='<h2 class="ticker" id="pick-name">'+esc(top.co.name)+'</h2></div>';
   h+='<dl class="stats"><div><dt>우선순위 점수</dt><dd>'+round(top.score)+'<small>/100</small></dd></div>';
   h+='<div><dt>매수 신호</dt><dd>'+top.buys.length+'<small>건</small></dd></div>';
@@ -571,7 +497,7 @@ function renderApp(){
   h+='<div class="key"><span><i class="k-buy"></i>매수</span><span><i class="k-wait"></i>관망</span><span><i class="k-sell"></i>매도</span><span>칸 안의 숫자는 상승 확률과 신호 강도입니다</span></div></div>';
   h+='<aside class="insight" aria-label="해석"><h3>해석</h3><p>'+esc(ins[0])+'</p><p>'+esc(ins[1])+'</p>';
   if(nx.length){
-    h+='<div class="next"><h3>이어서 볼 '+CFG.noun+'</h3><ol>';
+    h+='<div class="next"><h3>이어서 볼 코인</h3><ol>';
     nx.forEach(function(s){h+='<li><button data-coin="'+esc(s.co.name)+'">'+esc(s.co.name)+'</button><span>매수 '+s.buys.length+'건, 종가 평균 '+round(s.avg.c)+'%</span></li>'});
     h+='</ol></div>';
   }
@@ -579,18 +505,18 @@ function renderApp(){
 
   h+='<section aria-labelledby="rank-h"><div class="sec-head"><h2 id="rank-h">우선순위 순위표</h2>';
   h+='<p>6일 신호 칸은 위부터 종가, 고점, 저점이고 왼쪽부터 D+1입니다</p></div>';
-  h+='<details class="how"><summary>점수는 어떻게 계산하나요</summary><p>날짜별로 종가 40%, 고점 30%, 저점 30%를 섞고, 각 칸은 신호 강도(괄호 안 숫자) 60%와 상승 확률 40%로 계산합니다. D+1에 1.0, D+6에 0.35까지 가까운 날에 더 큰 가중치를 줘서 평균낸 값입니다. D+1 날짜가 기준일 당일이나 다음 날이 아닌 '+CFG.noun+'(데이터 지연)과 예측값이 비어 있는 '+CFG.noun+'은 순위에서 제외합니다.</p></details>';
-  h+='<div class="rank-box"><table class="rank"><thead><tr><th>순위</th><th>'+CFG.noun+'</th><th>우선순위 점수</th><th>6일 신호</th><th>D+1 날짜</th><th>매수 신호</th><th>종가 상승 평균</th></tr></thead><tbody id="rankBody"></tbody></table></div>';
+  h+='<details class="how"><summary>점수는 어떻게 계산하나요</summary><p>날짜별로 종가 40%, 고점 30%, 저점 30%를 섞고, 각 칸은 신호 강도(괄호 안 숫자) 60%와 상승 확률 40%로 계산합니다. D+1에 1.0, D+6에 0.35까지 가까운 날에 더 큰 가중치를 줘서 평균낸 값입니다. D+1 날짜가 예측 수행일 당일이나 다음 날이 아닌 코인(데이터 지연)과 예측값이 비어 있는 코인은 순위에서 제외합니다.</p></details>';
+  h+='<div class="rank-box"><table class="rank"><thead><tr><th>순위</th><th>코인</th><th>우선순위 점수</th><th>6일 신호</th><th>D+1 날짜</th><th>매수 신호</th><th>종가 상승 평균</th></tr></thead><tbody id="rankBody"></tbody></table></div>';
   h+='<button class="btn more" id="more"></button>';
   if(cur.stale.length){
     var nS=cur.stale.filter(function(s){return s.co.stale}).length, nN=cur.stale.length-nS;
-    h+='<details class="stale"><summary>순위에서 제외한 '+CFG.noun+' '+cur.stale.length+'개</summary><p>데이터가 지연된 '+CFG.noun+' '+nS+'개(D+1 날짜가 기준일과 어긋남)와 예측값이 비어 있는 '+CFG.noun+' '+nN+'개입니다. 이름을 누르면 아래 차트에서 확인할 수 있어요. 칸 안의 날짜는 D+1 날짜입니다.</p><div class="chips">'
+    h+='<details class="stale"><summary>순위에서 제외한 코인 '+cur.stale.length+'개</summary><p>데이터가 지연된 코인 '+nS+'개(D+1 날짜가 예측 수행일과 어긋남)와 예측값이 비어 있는 코인 '+nN+'개입니다. 이름을 누르면 아래 차트에서 확인할 수 있어요. 칸 안의 날짜는 D+1 날짜입니다.</p><div class="chips">'
       +cur.stale.map(function(s){return '<button class="chip" data-coin="'+esc(s.co.name)+'">'+esc(s.co.name)+' <small>'+(s.co.stale?esc(fmtDate(s.co.start)):'값 결측')+'</small></button>'}).join('')+'</div></details>';
   }
   h+='</section>';
 
-  h+='<section class="chart-card" aria-labelledby="chart-h" id="chartSec"><div class="chart-head"><div><h2 id="chart-h">'+CFG.noun+'별 6일 예측 확률</h2><p>세로축은 각 지표 앞의 % 값입니다. '+CFG.noun+', 날짜, 지표를 골라 보세요.</p></div>';
-  h+='<label class="coinpick">'+CFG.noun+'<input id="coinInput" list="coinList" autocomplete="off" spellcheck="false" aria-label="'+CFG.noun+' 이름 검색"></label></div>';
+  h+='<section class="chart-card" aria-labelledby="chart-h" id="chartSec"><div class="chart-head"><div><h2 id="chart-h">코인별 6일 예측 확률</h2><p>세로축은 각 지표 앞의 % 값입니다. 코인, 날짜, 지표를 골라 보세요.</p></div>';
+  h+='<label class="coinpick">코인<input id="coinInput" list="coinList" autocomplete="off" spellcheck="false" aria-label="코인 이름 검색"></label></div>';
   h+='<p class="stale-note" id="staleNote" hidden></p>';
   h+='<div class="ctrl"><div class="grp" id="dayChips"></div><div class="grp" id="metChips"></div></div>';
   h+='<div class="chart-box" id="chart"></div>';
@@ -644,7 +570,7 @@ function renderChartControls(){
   if(co.out){
     sn.hidden=false;
     var why=[];
-    if(co.stale) why.push(esc(co.name)+'의 예측은 '+esc(fmtDate(co.start))+'부터 시작해 기준일('+esc(fmtDate(refDay()))+')과 어긋나 있습니다.');
+    if(co.stale) why.push(esc(co.name)+'의 예측은 '+esc(fmtDate(co.start))+'부터 시작해 예측 수행일('+esc(fmtDate(state.pred))+')과 어긋나 있습니다.');
     if(co.nan) why.push('일부 지표의 예측값이 비어 있습니다.');
     sn.innerHTML='<span class="flag">'+(co.stale?'데이터 지연':'값 결측')+'</span>'+why.join(' ')+' 그래서 순위에서 제외했습니다.';
   }else sn.hidden=true;
@@ -761,20 +687,13 @@ try{
 }catch(err){
   $('#app').innerHTML='<p class="empty">'+esc(err.message)+'</p>';
 }
-function decodeSmart(buf){
-  var u=new Uint8Array(buf);
-  var t1=new TextDecoder('utf-8').decode(u);
-  if(t1.indexOf('\ufffd')<0) return t1;
-  try{ var t2=new TextDecoder('euc-kr').decode(u); if(t2.indexOf('\ufffd')<0) return t2; }catch(e){}
-  return t1;
-}
 $('#file').addEventListener('change',function(ev){
   var f=ev.target.files[0]; if(!f) return;
   msg.className=''; msg.textContent='불러오는 중';
   var fr=new FileReader();
   fr.onload=function(){
     try{
-      var d=load(decodeSmart(fr.result),f.name);
+      var d=load(String(fr.result),f.name);
       live.manual=true;
       msg.className=''; msg.textContent='불러왔습니다'+(d.bad?' ('+d.bad+'행은 형식이 달라 건너뜀)':'')+(SYNC?'. 드라이브 최신 파일은 "다시 불러오기"로 확인하세요':'');
     }catch(err){
@@ -782,7 +701,7 @@ $('#file').addEventListener('change',function(ev){
     }
   };
   fr.onerror=function(){msg.className='err';msg.textContent='파일을 읽지 못했습니다. .csv 파일인지 확인해 주세요.'};
-  fr.readAsArrayBuffer(f);
+  fr.readAsText(f,'utf-8');
   ev.target.value='';
 });
 
@@ -793,7 +712,7 @@ function decodeB64(s){
   s=String(s).replace(/\s+/g,'').replace(/-/g,'+').replace(/_/g,'/');
   var bin=atob(s), n=bin.length, u=new Uint8Array(n);
   for(var i=0;i<n;i++) u[i]=bin.charCodeAt(i);
-  return decodeSmart(u.buffer);
+  return new TextDecoder('utf-8').decode(u);
 }
 function asObj(p){
   if(typeof p==='string'){try{p=JSON.parse(p)}catch(e){return null}}
@@ -880,7 +799,7 @@ if(HOST&&!SYNC&&/^https?:$/.test(location.protocol)){
   portalFetch()
     .then(function(r){if(!r.ok) throw new Error('HTTP '+r.status); return r.arrayBuffer();})
     .then(function(buf){
-      var d=load(decodeSmart(buf),'최신 예측 데이터',true);
+      var d=load(new TextDecoder('utf-8').decode(buf),'최신 예측 데이터',true);
       setMsg('최신 예측을 불러왔어요'+(d.bad?' ('+d.bad+'행은 형식이 달라 건너뜀)':''),'');
     })
     .catch(function(){ setMsg('데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요','err'); });

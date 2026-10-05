@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light dark">
-<title>코스피200 6일 가격 예측 보드</title>
+<title>코인 6일 가격 예측 보드(빗썸, 6일예측)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -160,7 +160,7 @@ details.rule p{margin-top:6px;font-size:13px;line-height:1.65;color:var(--muted)
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
-<script>window.PORTAL_BOARD={market:"kospi",kind:"chart"};</script>
+<script>window.PORTAL_BOARD={market:"bithumb",kind:"chart"};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../config.js?v=20261006a"></script>
 <script src="../assets/board-data.js?v=20261006a"></script>
@@ -169,7 +169,7 @@ details.rule p{margin-top:6px;font-size:13px;line-height:1.65;color:var(--muted)
 <div class="wrap">
   <header class="top">
     <div>
-      <h1>코스피200 6일 가격 예측 보드</h1>
+      <h1>코인 6일 가격 예측 보드(빗썸, 6일예측)</h1>
       <p class="sub" id="sub"></p>
     </div>
     <div class="loader">
@@ -179,7 +179,7 @@ details.rule p{margin-top:6px;font-size:13px;line-height:1.65;color:var(--muted)
   </header>
   <main id="app"></main>
 </div>
-<script type="text/plain" id="csv">GRP,pred_day,coin,SEQ,date,variable,value_close,value_high,value_low,LOW_VL,HIGH_VL,CL_VL
+<script type="text/plain" id="csv">pred_day,coin,SEQ,date,variable,value_close,value_high,value_low
 </script>
 
 <script>
@@ -187,7 +187,6 @@ details.rule p{margin-top:6px;font-size:13px;line-height:1.65;color:var(--muted)
 'use strict';
 var HOST=true;
 var HOST_FILE='final_rst_dfa_web_Day_raw_v3.csv';
-var CFG={mains:["SK하이닉스", "삼성전자"],noun:'종목',example:'카카오',unit:'원'};
 var $=function(s,r){return (r||document).querySelector(s)};
 var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var fmtDate=function(s){return String(s).replace(/\s*Day\s*$/i,'')};
@@ -380,7 +379,7 @@ function reading(a,co,pd){
   }
   if(isFinite(a.spread1)&&isFinite(a.spread6)){
     var s=a.spread6>a.spread1*1.3?'벌어져 뒤로 갈수록 예측 불확실성이 커져요':a.spread6<a.spread1*0.77?'좁혀지고 있어요':'비슷한 수준이에요';
-    out.flow.push('모델 간 편차(최고와 최저의 차이, 중앙값 대비)는 D+1 '+round(a.spread1*100)+'%에서 D+6 '+round(a.spread6*100)+'%로 '+s+'.'+(a.spread6>=0.5?' 모델별 차이가 매우 큰 '+CFG.noun+'이에요.':''));
+    out.flow.push('모델 간 편차(최고와 최저의 차이, 중앙값 대비)는 D+1 '+round(a.spread1*100)+'%에서 D+6 '+round(a.spread6*100)+'%로 '+s+'.'+(a.spread6>=0.5?' 모델별 차이가 매우 큰 코인이에요.':''));
   }
   if(isFinite(a.range1)) out.flow.push('D+1 하루 예상 변동폭(고점과 저점의 차이)은 모델 중앙값 기준 약 '+(a.range1*100).toFixed(1)+'%입니다.');
   if(a.outliers.length){
@@ -402,7 +401,7 @@ function setPred(pd){
   var list=altList();
   state.alt=list.length?list[0]:null;
 }
-function altNames(){ var ms={}; CFG.mains.forEach(function(m){ms[m]=1}); var r=[]; cur.D.coins.forEach(function(co,k){ if(!ms[k]) r.push(k); }); return r; }
+function altNames(){ var r=[]; cur.D.coins.forEach(function(co,k){ if(k!=='BTC') r.push(k); }); return r; }
 var VORDER={up:0,mx:1,dn:2,hold:3,stale:4};
 function altList(){
   var q=state.q.trim().toUpperCase();
@@ -463,7 +462,7 @@ function Panel(root){
     b.className='badge '+v;
     b.textContent=(v==='stale'||v==='hold')?VLAB[v]:'D+1 '+VLAB[v];
     var meta=[];
-    if(co.hist.length){ var lh=co.hist[co.hist.length-1]; meta.push('직전 실제 종가 '+fmtDate(lh.date)+' '+fmtNum(lh.c)+CFG.unit); }
+    if(co.hist.length){ var lh=co.hist[co.hist.length-1]; meta.push('직전 실제 종가 '+fmtDate(lh.date)+' '+fmtNum(lh.c)+'원'); }
     else meta.push('실제값이 없어 예측선만 표시합니다');
     P.el.meta.textContent=meta.join(' ');
     P.drawLegend(); P.draw(); P.drawRead();
@@ -577,7 +576,7 @@ function renderHeader(){
   if(DATA.preds.length>1){
     sel='<select id="predSel" aria-label="예측 수행일">'+DATA.preds.map(function(p){return '<option value="'+esc(p)+'"'+(p===state.pred?' selected':'')+'>'+esc(fmtDate(p))+'</option>'}).join('')+'</select>';
   }else sel='<b>'+esc(fmtDate(state.pred))+'</b>';
-  $('#sub').innerHTML='예측 수행일 '+sel+', '+CFG.noun+' '+cur.D.coins.size+'개, 모델 '+cur.D.order.length+'개, '+esc(state.src);
+  $('#sub').innerHTML='예측 수행일 '+sel+', 코인 '+cur.D.coins.size+'개, 모델 '+cur.D.order.length+'개, '+esc(state.src);
   var ps=$('#predSel'); if(ps) ps.onchange=function(){setPred(ps.value);renderAll();};
 }
 function counts(){
@@ -587,26 +586,26 @@ function counts(){
 }
 function renderAll(){
   renderHeader();
-  var mains=CFG.mains.filter(function(m){return cur.D.coins.has(m)});
+  var hasBtc=cur.D.coins.has('BTC');
   var h='';
-  mains.forEach(function(m,i){
-    h+='<section aria-labelledby="btc-h-'+i+'"><div class="sec-head"><h2 id="btc-h-'+i+'">'+esc(m)+'</h2><p>기준 '+CFG.noun+' '+(i+1)+'/'+mains.length+' · 실제값(굵은 실선)과 예측 모델 '+cur.D.order.length+'개의 선을 함께 보여줍니다</p></div><div class="panel" id="pBtc'+i+'"></div></section>';
-  });
-  h+='<section aria-labelledby="alt-h"><div class="sec-head"><h2 id="alt-h">'+CFG.noun+'</h2><p>'+CFG.noun+'을 고르면 위와 같은 차트와 D+1 해석이 나옵니다</p></div>';
-  h+='<div class="picker"><div class="pick-row"><label class="coinpick">'+CFG.noun+' 검색<input id="q" type="text" autocomplete="off" spellcheck="false" placeholder="예: '+CFG.example+'"></label><div class="seg" id="flt" role="group" aria-label="D+1 판단별 보기"></div></div>';
+  if(hasBtc){
+    h+='<section aria-labelledby="btc-h"><div class="sec-head"><h2 id="btc-h">BTC</h2><p>실제값(굵은 실선)과 예측 모델 '+cur.D.order.length+'개의 선을 함께 보여줍니다</p></div><div class="panel" id="pBtc"></div></section>';
+  }
+  h+='<section aria-labelledby="alt-h"><div class="sec-head"><h2 id="alt-h">알트코인</h2><p>코인을 고르면 BTC와 같은 차트와 D+1 해석이 나옵니다</p></div>';
+  h+='<div class="picker"><div class="pick-row"><label class="coinpick">코인 검색<input id="q" type="text" autocomplete="off" spellcheck="false" placeholder="예: ETH"></label><div class="seg" id="flt" role="group" aria-label="D+1 판단별 보기"></div></div>';
   h+='<div class="coinlist" id="coinlist"></div>';
   h+='<div class="keyrow"><span><i style="background:var(--up)"></i>상승</span><span><i style="background:#E0A020"></i>혼돈</span><span><i style="background:var(--dn)"></i>하락</span><span><i style="background:var(--hold-ink)"></i>보류(실제값 없음), 지연(D+1 날짜 어긋남)</span></div></div>';
   h+='<div class="panel" id="pAlt"></div></section>';
   $('#app').innerHTML=h;
   panels={};
-  mains.forEach(function(m,i){ panels['main'+i]=Panel($('#pBtc'+i)); panels['main'+i].setCoin(m); });
+  if(hasBtc){ panels.btc=Panel($('#pBtc')); panels.btc.setCoin('BTC'); }
   panels.alt=Panel($('#pAlt'));
   $('#q').oninput=function(){ state.q=this.value; renderPicker(); };
   $('#flt').onclick=function(ev){ var b=ev.target.closest('button'); if(!b) return; state.filter=b.dataset.f; renderPicker(); };
   $('#coinlist').onclick=function(ev){ var b=ev.target.closest('button[data-coin]'); if(!b) return; selectAlt(b.dataset.coin); };
   renderPicker();
   if(state.alt) selectAlt(state.alt);
-  else $('#pAlt').innerHTML='<p class="empty">'+CFG.noun+' 데이터가 없어요.</p>';
+  else $('#pAlt').innerHTML='<p class="empty">알트코인 데이터가 없어요.</p>';
 }
 function renderPicker(){
   var c=counts(), F=[['all','전체'],['up','상승'],['mx','혼돈'],['dn','하락'],['hold','보류'],['stale','지연']];
@@ -615,7 +614,7 @@ function renderPicker(){
   $('#coinlist').innerHTML=list.length?list.map(function(k){
     var v=cur.an.get(k).verdict;
     return '<button class="cc '+v+'" data-coin="'+esc(k)+'" aria-pressed="'+(k===state.alt)+'">'+esc(k)+'</button>';
-  }).join(''):'<span class="fine">조건에 맞는 '+CFG.noun+'이 없어요.</span>';
+  }).join(''):'<span class="fine">조건에 맞는 코인이 없어요.</span>';
 }
 function selectAlt(name){
   state.alt=name;
@@ -635,29 +634,22 @@ function load(text,src){
 }
 try{ void 0; }
 catch(err){ $('#app').innerHTML='<p class="empty">'+esc(err.message)+'</p>'; }
-function decodeSmart(buf){
-  var u=new Uint8Array(buf);
-  var t1=new TextDecoder('utf-8').decode(u);
-  if(t1.indexOf('\ufffd')<0) return t1;
-  try{ var t2=new TextDecoder('euc-kr').decode(u); if(t2.indexOf('\ufffd')<0) return t2; }catch(e){}
-  return t1;
-}
 $('#file').addEventListener('change',function(ev){
   var f=ev.target.files[0]; if(!f) return;
   setMsg('불러오는 중','');
   var fr=new FileReader();
   fr.onload=function(){
-    try{ var d=load(decodeSmart(fr.result),f.name); setMsg('불러왔습니다'+(d.bad?' ('+d.bad+'행은 형식이 달라 건너뜀)':''),''); }
+    try{ var d=load(String(fr.result),f.name); setMsg('불러왔습니다'+(d.bad?' ('+d.bad+'행은 형식이 달라 건너뜀)':''),''); }
     catch(err){ setMsg(err.message,'err'); }
   };
   fr.onerror=function(){setMsg('파일을 읽지 못했습니다. .csv 파일인지 확인해 주세요.','err')};
-  fr.readAsArrayBuffer(f);
+  fr.readAsText(f,'utf-8');
   ev.target.value='';
 });
 if(HOST&&/^https?:$/.test(location.protocol)){
   portalFetch()
     .then(function(r){if(!r.ok) throw new Error('HTTP '+r.status); return r.arrayBuffer();})
-    .then(function(buf){ var d=load(decodeSmart(buf),'최신 예측 데이터'); setMsg('최신 예측을 불러왔어요'+(d.bad?' ('+d.bad+'행은 형식이 달라 건너뜀)':''),''); })
+    .then(function(buf){ var d=load(new TextDecoder('utf-8').decode(buf),'최신 예측 데이터'); setMsg('최신 예측을 불러왔어요'+(d.bad?' ('+d.bad+'행은 형식이 달라 건너뜀)':''),''); })
     .catch(function(){ setMsg('데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요','err'); });
 }
 if(window.ResizeObserver){
