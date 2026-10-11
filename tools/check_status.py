@@ -25,6 +25,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 KST = timezone(timedelta(hours=9))
 FILES = {"priority": "final_rst_dfa_web_Day_v3.csv", "chart": "final_rst_dfa_web_Day_raw_v3.csv"}
+REPO_WARN_MB = 700  # 이 크기를 넘으면 경고 (GitHub 권장 1GB 이하)
 REPOS = {
     "코인(업비트)": {"priority": "coin_upbit", "chart": "coin_upbitline", "key": "coin"},
     "코인(빗썸)": {"priority": "coin-bithumb", "chart": "coin_bithumbline", "key": "bithumb"},
@@ -151,6 +152,16 @@ def main():
         if preds.get("priority") and preds.get("chart") and preds["priority"] != preds["chart"]:
             warnings.append(f"{name}: 우선순위({preds['priority']:%m-%d})와 가격 차트({preds['chart']:%m-%d})의 예측일이 달라요 → 둘 중 하나가 덜 올라왔을 수 있어요.")
         print()
+
+    # 저장소 크기: CSV 를 덮어써도 GitHub 은 이전 버전을 기록으로 남겨서 조금씩 커짐 (권장 1GB 이하)
+    sizes = []
+    for name, m in REPOS.items():
+        for kind in ("priority", "chart"):
+            mb = json.loads(get(f"https://api.github.com/repos/whkim86/{m[kind]}", gh))["size"] / 1024
+            sizes.append(f"{m[kind]} {mb:.0f}MB")
+            if mb >= REPO_WARN_MB:
+                warnings.append(f"{m[kind]} 저장소가 {mb:.0f}MB예요 (권장 1GB 이하) → 이전 기록 정리를 고려해 주세요.")
+    print("저장소 크기: " + " · ".join(sizes) + "\n")
 
     if warnings:
         print("⚠️ 확인이 필요해요")
