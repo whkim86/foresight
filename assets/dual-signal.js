@@ -129,7 +129,8 @@
         + `중앙값은 직전 종가 대비 ${pc(a.med1)}예요. → <b>${VL}</b>`
         + `<br><span class="dv-r">기준: 한쪽이 60% 이상이고 중앙값 변화가 ±${(a.thr * 100).toFixed(1)}%보다 커야 상승·하락, 아니면 혼돈</span>`;
     }
-    const prio = `모델 ${s.n}개(${s.p}%)가 D+1 종가 상승을 예상했어요. → <b>${SL}</b>`;
+    const prio = `모델 ${s.n}개(${s.p}%)가 D+1 종가 상승을 예상했어요. → <b>${SL}</b>`
+      + `<br><span class="dv-r">기준: 우선순위 화면의 D+1 종가 칸과 같은 신호예요</span>`;
     const kind = agree(v, s.s);
     const ie = (w) => (/[수도]$/.test(w) ? w + "예요" : w + "이에요");  // 매수예요 / 관망이에요
     let why = "";
