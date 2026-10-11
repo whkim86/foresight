@@ -33,6 +33,7 @@ BOARDS = {
 EXTRA_JS = {
     ("coin", "priority"): ["ask-ai.js"],  # BTC 아래 'AI에게 물어보기' (프리미엄)
 }
+ALL_JS = ["dual-signal.js"]  # 모든 보드에 붙임
 # 가격 차트: 모델이 많을 때(15개 초과, 예: 52개) 기본은 '중앙값 선 + 25~75% 범위'만 보이고 개별 모델 선은 골라서 켜기.
 # 중앙값·범위는 판정과 같게 항상 전체 모델 기준. 원본 코드 조각이 바뀌면 오류로 알려줌
 CHART_PATCHES = [
@@ -121,11 +122,25 @@ CHART_PATCHES = [
      "</style>"),
 ]
 
+# 두 신호 나란히 보기 (assets/dual-signal.js 가 채움)
+#  · 우선순위 순위표: '가격 차트 판정' 칸 추가 — D+1 종가 신호(매수·관망·매도)와 가격 차트 판정(상승·혼돈·하락) 비교
+#  · 가격 차트: 코인 이름 옆에 우선순위 D+1 종가 신호
+PRIORITY_PATCHES = [
+    ("<th>종가 상승 평균</th></tr></thead>", "<th>종가 상승 평균</th><th>가격 차트 판정</th></tr></thead>"),
+    ("+round(s.avg.c)+'%</td></tr>';",
+     "+round(s.avg.c)+'%</td><td class=\"pv\" data-coin=\"'+esc(s.co.name)+'\" data-sig=\"'+((s.co.days[0]||{}).c||{}).s+'\"></td></tr>';"),
+    ("$('#rankBody').innerHTML=h;",
+     "$('#rankBody').innerHTML=h; if(window.portalDualRank) window.portalDualRank($('#rankBody'),state.pred);"),
+]
+DUAL_CHART_PATCH = ("b.textContent=(v==='stale'||v==='hold')?VLAB[v]:'D+1 '+VLAB[v];",
+                    "b.textContent=(v==='stale'||v==='hold')?VLAB[v]:'D+1 '+VLAB[v];\n"
+                    "    if(window.portalDual) window.portalDual(root,name,v,cur.pd);")
+
 OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20261011a"
+ASSET_VERSION = "20261012a"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 
@@ -174,11 +189,14 @@ def convert(html, market, kind, texts=None):
         # 이름표가 A~Z 다음 AA, AB… 로 이어지므로 글자 이름은 26진수로 정렬
         numkey = (r"function numKey(n){var s=String(n),m=s.match(/\d+/);if(m)return parseInt(m[0],10);"
                   r"var l=s.match(/([A-Z]+)$/);if(!l)return 1e9;var v=0;for(var i=0;i<l[1].length;i++)v=v*26+l[1].charCodeAt(i)-64;return 1000+v}")
-        for a, b in CHART_PATCHES:
-            if html.count(a) != 1:
-                raise RuntimeError(f"가격 차트 수정 위치를 못 찾음 ({html.count(a)}곳): {a[:40]!r}")
-            html = html.replace(a, b)
         html = sub_once(r"function numKey\(n\)\{[^}]*\}", lambda _m: numkey, html, "모델 정렬")
+
+    # 3-2) 모델 52개 대비(CHART_PATCHES), 두 신호 나란히 보기(DUAL_CHART_PATCH, PRIORITY_PATCHES)
+    patches = (CHART_PATCHES + [DUAL_CHART_PATCH]) if kind == "chart" else PRIORITY_PATCHES
+    for a, b in patches:
+        if html.count(a) != 1:
+            raise RuntimeError(f"{kind} 화면 수정 위치를 못 찾음 ({html.count(a)}곳): {a[:40]!r}")
+        html = html.replace(a, b)
 
     # 4) 포털 도우미 스크립트 삽입 (대시보드 스크립트보다 먼저 실행되도록 <head> 안)
     inject = (
@@ -190,7 +208,8 @@ def convert(html, market, kind, texts=None):
     html = sub_once(r"</head>", inject + "</head>", html, "<head> 삽입")
 
     # 5) 보드별 추가 기능 (대시보드 스크립트가 #app 을 만든 뒤 실행되도록 </body> 앞)
-    extra = "".join(f'<script src="../assets/{js}?v={ASSET_VERSION}"></script>\n' for js in EXTRA_JS.get((market, kind), []))
+    extra = "".join(f'<script src="../assets/{js}?v={ASSET_VERSION}"></script>\n'
+                    for js in ALL_JS + EXTRA_JS.get((market, kind), []))
     if extra:
         html = sub_once(r"</body>", extra + "</body>", html, "</body> 삽입")
     return html

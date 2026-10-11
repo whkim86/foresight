@@ -235,8 +235,8 @@ table.det{width:100%;border-collapse:collapse;min-width:520px;font-size:14px}
 </style>
 <script>window.PORTAL_BOARD={market:"bithumb",kind:"priority"};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../config.js?v=20261011a"></script>
-<script src="../assets/board-data.js?v=20261011a"></script>
+<script src="../config.js?v=20261012a"></script>
+<script src="../assets/board-data.js?v=20261012a"></script>
 </head>
 <body>
 <div class="wrap">
@@ -506,7 +506,7 @@ function renderApp(){
   h+='<section aria-labelledby="rank-h"><div class="sec-head"><h2 id="rank-h">우선순위 순위표</h2>';
   h+='<p>6일 신호 칸은 위부터 종가, 고점, 저점이고 왼쪽부터 D+1입니다</p></div>';
   h+='<details class="how"><summary>점수는 어떻게 계산하나요</summary><p>날짜별로 종가 40%, 고점 30%, 저점 30%를 섞고, 각 칸은 신호 강도(괄호 안 숫자) 60%와 상승 확률 40%로 계산합니다. D+1에 1.0, D+6에 0.35까지 가까운 날에 더 큰 가중치를 줘서 평균낸 값입니다. D+1 날짜가 예측 수행일 당일이나 다음 날이 아닌 코인(데이터 지연)과 예측값이 비어 있는 코인은 순위에서 제외합니다.</p></details>';
-  h+='<div class="rank-box"><table class="rank"><thead><tr><th>순위</th><th>코인</th><th>우선순위 점수</th><th>6일 신호</th><th>D+1 날짜</th><th>매수 신호</th><th>종가 상승 평균</th></tr></thead><tbody id="rankBody"></tbody></table></div>';
+  h+='<div class="rank-box"><table class="rank"><thead><tr><th>순위</th><th>코인</th><th>우선순위 점수</th><th>6일 신호</th><th>D+1 날짜</th><th>매수 신호</th><th>종가 상승 평균</th><th>가격 차트 판정</th></tr></thead><tbody id="rankBody"></tbody></table></div>';
   h+='<button class="btn more" id="more"></button>';
   if(cur.stale.length){
     var nS=cur.stale.filter(function(s){return s.co.stale}).length, nN=cur.stale.length-nS;
@@ -557,9 +557,9 @@ function renderRank(){
   list.forEach(function(s,i){
     h+='<tr><td class="no">'+(i+1)+'</td><td class="nm"><button data-coin="'+esc(s.co.name)+'">'+esc(s.co.name)+'</button></td>';
     h+='<td><div class="bar"><span>'+round(s.score)+'</span><div class="track"><i style="width:'+Math.max(2,Math.min(100,s.score))+'%"></i></div></div></td>';
-    h+='<td>'+miniStrip(s.co)+'</td><td class="d1">'+esc(fmtDate(s.co.start))+'</td><td>'+s.buys.length+'건</td><td>'+round(s.avg.c)+'%</td></tr>';
+    h+='<td>'+miniStrip(s.co)+'</td><td class="d1">'+esc(fmtDate(s.co.start))+'</td><td>'+s.buys.length+'건</td><td>'+round(s.avg.c)+'%</td><td class="pv" data-coin="'+esc(s.co.name)+'" data-sig="'+((s.co.days[0]||{}).c||{}).s+'"></td></tr>';
   });
-  $('#rankBody').innerHTML=h;
+  $('#rankBody').innerHTML=h; if(window.portalDualRank) window.portalDualRank($('#rankBody'),state.pred);
   var m=$('#more'); m.textContent=state.showAll?'상위 10개만 보기':'전체 '+cur.stats.length+'개 보기';
   m.style.display=cur.stats.length>10?'block':'none';
 }
@@ -814,5 +814,6 @@ if(window.ResizeObserver){
 }
 })();
 </script>
+<script src="../assets/dual-signal.js?v=20261012a"></script>
 </body>
 </html>
