@@ -24,7 +24,7 @@ window.renderLanding = async function () {
       ? `<div class="t-row first">
            <span class="rank">1</span>
            <span class="sym"><b>${esc(t.top_symbol.replace(/_/g, " "))}</b><small title="D+1 모델 중앙값 ${signed(t.top_med1)}">모델 ${t.top_up_n}/${t.top_models} 상승</small></span>
-           <span class="badge red" title="15개 모델 × 6일 예측 중 기준가보다 높은 비율">합의 ${pct(t.top_cons_up)}</span>
+           <span class="badge red" title="전체 모델 × 6일 예측 중 기준가보다 높은 비율">합의 ${pct(t.top_cons_up)}</span>
          </div>`
       : `<div class="t-row first"><span class="sym"><b style="color:var(--muted)">오늘은 상승 신호가 뚜렷한 ${NOUN[key]}이 없어요</b></span></div>`;
     const ghost = [2, 3].map((n) => `
@@ -66,7 +66,7 @@ window.renderLanding = async function () {
   const FEATURES = [
     ["우선순위 순위표", "매일 아침 전체 종목을 신호 강도순으로 줄 세워, 가장 먼저 볼 종목을 알려줘요",
       '<path d="M4 6h16M4 12h10M4 18h6"/>'],
-    ["6일 가격 예측 차트", "15개 예측 모델이 그린 앞으로 6일의 종가·고점·저점 흐름을 한 차트로 비교해요",
+    ["6일 가격 예측 차트", "여러 예측 모델이 그린 앞으로 6일의 종가·고점·저점 흐름을 한 차트로 비교해요",
       '<path d="M4 17l5-6 4 3 7-9"/><path d="M15 5h5v5"/>'],
     ["D+1 신호등과 해석", "모델들이 얼마나 한 방향으로 모였는지로 상승·혼돈·하락을 판정하고, 이유를 풀어서 설명해요",
       '<circle cx="12" cy="6" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="18" r="2.2"/>'],
@@ -93,7 +93,7 @@ window.renderLanding = async function () {
         <div class="l-copy">
           <span class="badge l-badge">가입 후 ${cfg.TRIAL_DAYS}일 무료</span>
           <h1>코인·나스닥·코스피<br>내일의 방향을 <span class="hl">신호등</span>으로</h1>
-          <p class="lead">15개 AI 모델이 매일 그리는 6일 예측을 상승·혼돈·하락 세 가지 불빛으로 정리해 드려요. 복잡한 차트 전에 신호부터 확인하세요.</p>
+          <p class="lead">수십 개 AI 모델이 매일 그리는 6일 예측을 상승·혼돈·하락 세 가지 불빛으로 정리해 드려요. 복잡한 차트 전에 신호부터 확인하세요.</p>
           <div class="l-cta">
             <a class="btn big" href="${SIGNUP}">${cfg.TRIAL_DAYS}일 무료로 시작하기</a>
             <a class="btn big ghost-night" href="login.html">로그인</a>

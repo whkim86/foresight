@@ -159,11 +159,15 @@ details.rule p{margin-top:6px;font-size:13px;line-height:1.65;color:var(--muted)
   .coinpick input{width:130px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.band{fill:var(--ink);opacity:.09}
+.lg-more{width:100%;font-size:12.5px;color:var(--muted)}
+.lg-more summary{cursor:pointer;padding:4px 2px}
+.lg-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 </style>
 <script>window.PORTAL_BOARD={market:"coin",kind:"chart"};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../config.js?v=20261006a"></script>
-<script src="../assets/board-data.js?v=20261006a"></script>
+<script src="../config.js?v=20261011a"></script>
+<script src="../assets/board-data.js?v=20261011a"></script>
 </head>
 <body>
 <div class="wrap">
@@ -246,7 +250,7 @@ function build(text){
   preds.forEach(function(pd){ out.days[pd]=finalize(byPred[pd],pd); });
   return out;
 }
-function numKey(n){var s=String(n),m=s.match(/\d+/);if(m)return parseInt(m[0],10);var l=s.match(/([A-Z])$/);return l?1000+l[1].charCodeAt(0):1e9}
+function numKey(n){var s=String(n),m=s.match(/\d+/);if(m)return parseInt(m[0],10);var l=s.match(/([A-Z]+)$/);if(!l)return 1e9;var v=0;for(var i=0;i<l[1].length;i++)v=v*26+l[1].charCodeAt(i)-64;return 1000+v}
 function finalize(P,pd){
   var coins=new Map(), modelSet={};
   Object.keys(P).sort().forEach(function(k){
@@ -420,6 +424,8 @@ function altList(){
 }
 
 /* ---------- panel ---------- */
+var MANY=15;
+function qtl(s,p){var i=(s.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return s[lo]+(s[hi]-s[lo])*(i-lo);}
 function legendSample(i){
   var dash=i>=8?' stroke-dasharray="5 3"':'';
   return '<svg width="22" height="8" aria-hidden="true"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--mc'+(i%15)+')" stroke-width="2.4" stroke-linecap="round"'+dash+'/></svg>';
@@ -443,12 +449,14 @@ function Panel(root){
     if(b.dataset.model){
       var m=b.dataset.model; if(P.hidden.has(m)) P.hidden.delete(m); else P.hidden.add(m);
     }else if(b.dataset.act==='all'){ P.hidden.clear(); }
+    else if(b.dataset.act==='none'){ co.modelNames.forEach(function(m){P.hidden.add(m)}); }
     else if(b.dataset.act==='out'){ P.a.outliers.forEach(function(m){P.hidden.add(m)}); }
     else if(b.dataset.act==='med'){ P.median=!P.median; }
     P.drawLegend(); P.draw();
   });
   P.el.legend.addEventListener('pointerover',function(ev){ var b=ev.target.closest('button[data-model]'); P.setHi(b?b.dataset.model:null); });
   P.el.legend.addEventListener('pointerleave',function(){P.setHi(null)});
+  P.el.legend.addEventListener('toggle',function(ev){ if(ev.target.classList.contains('lg-more')) P.moreOpen=ev.target.open; },true);
   P.setHi=function(m){
     P.hi=m;
     P.el.chart.querySelectorAll('.mline').forEach(function(p){ p.classList.toggle('dim',!!m&&p.dataset.model!==m); });
@@ -456,6 +464,7 @@ function Panel(root){
   P.setCoin=function(name){
     var co=cur.D.coins.get(name); if(!co) return;
     P.coin=name; P.hidden=new Set(); P.hi=null;
+    if(co.modelNames.length>MANY){ P.hidden=new Set(co.modelNames); P.median=true; }
     P.a=cur.an.get(name);
     P.el.name.textContent=name;
     var b=P.el.badge, v=P.a.verdict;
@@ -469,13 +478,22 @@ function Panel(root){
   };
   P.drawLegend=function(){
     var co=cur.D.coins.get(P.coin), h='';
+    var mb='';
     co.modelNames.forEach(function(m){
       var i=cur.D.idx[m];
-      h+='<button class="lg" data-model="'+esc(m)+'" aria-pressed="'+(!P.hidden.has(m))+'">'+legendSample(i)+esc(m)+'</button>';
+      mb+='<button class="lg" data-model="'+esc(m)+'" aria-pressed="'+(!P.hidden.has(m))+'">'+legendSample(i)+esc(m)+'</button>';
     });
-    h+='<button class="lg tool" data-act="all">전체 켜기</button>';
-    if(P.a.outliers.length) h+='<button class="lg tool" data-act="out">튀는 모델 끄기</button>';
-    h+='<button class="lg tool" data-act="med" aria-pressed="'+P.median+'">중앙값 선</button>';
+    if(co.modelNames.length>MANY){
+      h+='<button class="lg tool" data-act="med" aria-pressed="'+P.median+'">중앙값·25~75% 범위</button>';
+      h+='<button class="lg tool" data-act="all">모델 선 모두 켜기</button><button class="lg tool" data-act="none">모델 선 모두 끄기</button>';
+      if(P.a.outliers.length) h+='<button class="lg tool" data-act="out">튀는 모델 끄기</button>';
+      h+='<details class="lg-more"'+(P.moreOpen?' open':'')+'><summary>개별 모델 '+co.modelNames.length+'개 골라 보기 (켜진 선 '+(co.modelNames.length-P.hidden.size)+'개)</summary><div class="lg-list">'+mb+'</div></details>';
+    }else{
+      h+=mb;
+      h+='<button class="lg tool" data-act="all">전체 켜기</button>';
+      if(P.a.outliers.length) h+='<button class="lg tool" data-act="out">튀는 모델 끄기</button>';
+      h+='<button class="lg tool" data-act="med" aria-pressed="'+P.median+'">중앙값 선</button>';
+    }
     P.el.legend.innerHTML=h;
     var note='';
     if(P.metric!=='c'&&P.a.inverted.length) note=P.a.inverted.slice(0,3).join(', ')+(P.a.inverted.length>3?' 등 ':' ')+P.a.inverted.length+'개 모델은 고점이 저점보다 낮게 나온 날이 있어요. 값은 그대로 표시합니다.';
@@ -485,7 +503,7 @@ function Panel(root){
     var co=cur.D.coins.get(P.coin), t=reading(P.a,co,cur.pd), v=P.a.verdict;
     var h='<div class="read-sec"><h4>'+esc(t.head)+'</h4><p class="vword '+v+'">'+VLAB[v]+'</p><ul class="why">'+t.why.map(function(x){return '<li>'+esc(x)+'</li>'}).join('')+'</ul></div>';
     if(t.flow.length) h+='<div class="read-sec"><h4>6일 흐름 해석</h4>'+t.flow.map(function(x){return '<p>'+esc(x)+'</p>'}).join('')+'</div>';
-    h+='<details class="rule"><summary>판단 기준</summary><p>모델 예측값을 규칙으로 요약한 자동 해석입니다. 15개 모델의 D+1 종가를 직전 실제 종가와 비교해서, 60% 이상이 같은 방향이고 중앙값 변화가 최근 일간 변동의 25%(최소 0.2%) 이상이면 상승 또는 하락, 그렇지 않으면 혼돈입니다. 직전 실제값이 없으면 보류, D+1 날짜가 예측수행일과 어긋나면 지연으로 표시합니다.</p></details>';
+    h+='<details class="rule"><summary>판단 기준</summary><p>모델 예측값을 규칙으로 요약한 자동 해석입니다. '+cur.D.order.length+'개 모델의 D+1 종가를 직전 실제 종가와 비교해서, 60% 이상이 같은 방향이고 중앙값 변화가 최근 일간 변동의 25%(최소 0.2%) 이상이면 상승 또는 하락, 그렇지 않으면 혼돈입니다. 직전 실제값이 없으면 보류, D+1 날짜가 예측수행일과 어긋나면 지연으로 표시합니다.</p></details>';
     P.el.read.innerHTML=h;
   };
   P.draw=function(){
@@ -494,8 +512,16 @@ function Panel(root){
     var series=[];
     co.modelNames.forEach(function(m){ if(P.hidden.has(m)) return; series.push({name:m,idx:cur.D.idx[m],pts:co.models[m]}); });
     var actual=co.hist;
-    var vals=[]; series.forEach(function(s){s.pts.forEach(function(p){vals.push(p[k])})}); actual.forEach(function(p){vals.push(p[k])});
-    if(!vals.length){ box.innerHTML='<p class="empty">표시할 모델이 없어요. 범례에서 모델을 켜 주세요.</p>'; return; }
+    var band=[];
+    if(P.median){
+      var byAll={}; co.modelNames.forEach(function(m){co.models[m].forEach(function(p){ if(isFinite(p[k])) (byAll[p.n]||(byAll[p.n]=[])).push(p[k]); })});
+      Object.keys(byAll).map(Number).sort(function(a,b){return a-b}).forEach(function(n){
+        var s=byAll[n].slice().sort(function(a,b){return a-b});
+        band.push({n:n,v:median(s),q1:qtl(s,.25),q3:qtl(s,.75),cnt:s.length});
+      });
+    }
+    var vals=[]; band.forEach(function(b){vals.push(b.q1,b.q3,b.v)}); series.forEach(function(s){s.pts.forEach(function(p){vals.push(p[k])})}); actual.forEach(function(p){vals.push(p[k])});
+    if(!vals.length){ box.innerHTML='<p class="empty">표시할 모델이 없어요. 범례에서 모델이나 중앙값을 켜 주세요.</p>'; return; }
     var lo=Math.min.apply(null,vals), hi=Math.max.apply(null,vals), padv=(hi-lo)*0.06||Math.abs(hi)*0.05||1;
     var nt=niceTicks(lo-padv,hi+padv,5), ticks=nt.ticks, y0=ticks[0], y1=ticks[ticks.length-1];
     var W=Math.max(300,Math.floor(box.clientWidth)||720), H=W<520?320:400;
@@ -522,14 +548,16 @@ function Panel(root){
       g+='<path class="act" d="'+actual.map(function(p,i){return (i?'L':'M')+X(p.n).toFixed(1)+' '+Y(p[k]).toFixed(1)}).join('')+'"/>';
       var lp=actual[actual.length-1]; g+='<circle cx="'+X(lp.n).toFixed(1)+'" cy="'+Y(lp[k]).toFixed(1)+'" r="4.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>';
     }
+    if(band.length>1){
+      g+='<path class="band" d="'+band.map(function(b,i){return (i?'L':'M')+X(b.n).toFixed(1)+' '+Y(b.q3).toFixed(1)}).join('')
+        +band.slice().reverse().map(function(b){return 'L'+X(b.n).toFixed(1)+' '+Y(b.q1).toFixed(1)}).join('')+'Z"/>';
+    }
     series.forEach(function(s){
       var d=s.pts.map(function(p,i){return (i?'L':'M')+X(p.n).toFixed(1)+' '+Y(p[k]).toFixed(1)}).join('');
       g+='<path class="mline'+(P.hi&&P.hi!==s.name?' dim':'')+'" data-model="'+esc(s.name)+'" d="'+d+'" style="stroke:var(--mc'+(s.idx%15)+')"'+(s.idx>=8?' stroke-dasharray="6 4"':'')+'/>';
     });
-    var medPts=[];
+    var medPts=band;
     if(P.median){
-      var byN={}; series.forEach(function(s){s.pts.forEach(function(p){(byN[p.n]||(byN[p.n]=[])).push(p[k])})});
-      Object.keys(byN).map(Number).sort(function(a,b){return a-b}).forEach(function(n){medPts.push({n:n,v:median(byN[n])})});
       if(medPts.length) g+='<path class="medl" d="'+medPts.map(function(p,i){return (i?'L':'M')+X(p.n).toFixed(1)+' '+Y(p.v).toFixed(1)}).join('')+'"/>';
     }
     g+='<line class="guide" id="gd" y1="'+mt+'" y2="'+(mt+ih)+'" x1="0" x2="0" style="display:none"/><circle class="hdot" id="hd" r="5" style="display:none"/>';
@@ -556,6 +584,16 @@ function Panel(root){
         if(base) html+='<div class="tr"><span>직전 종가 대비</span><b>'+pct(near.p[k]/base.c-1)+'</b></div>';
         html+='<div class="tm">표시 모델 중앙값 '+fmtNum(md)+'<br>범위 '+fmtNum(Math.min.apply(null,vs))+' ~ '+fmtNum(Math.max.apply(null,vs))+'</div>';
         dotV=near.p[k]; dotColor='var(--mc'+(near.s.idx%15)+')';
+      }
+      if(!html){
+        var bp=band.filter(function(b){return b.n===n})[0];
+        if(bp){
+          html='<div class="th"><i style="background:var(--ink)"></i>모델 '+bp.cnt+'개 중앙값 · '+esc(fmtDate(dateOf[n]))+'</div>';
+          html+='<div class="tr"><span>'+METRIC[P.metric]+' 중앙값</span><b>'+fmtNum(bp.v)+'</b></div>';
+          if(base) html+='<div class="tr"><span>직전 종가 대비</span><b>'+pct(bp.v/base.c-1)+'</b></div>';
+          html+='<div class="tm">25~75% 범위 '+fmtNum(bp.q1)+' ~ '+fmtNum(bp.q3)+'</div>';
+          dotV=bp.v;
+        }
       }
       if(!html) return;
       gd.setAttribute('x1',cx);gd.setAttribute('x2',cx);gd.style.display='';

@@ -33,11 +33,99 @@ BOARDS = {
 EXTRA_JS = {
     ("coin", "priority"): ["ask-ai.js"],  # BTC 아래 'AI에게 물어보기' (프리미엄)
 }
+# 가격 차트: 모델이 많을 때(15개 초과, 예: 52개) 기본은 '중앙값 선 + 25~75% 범위'만 보이고 개별 모델 선은 골라서 켜기.
+# 중앙값·범위는 판정과 같게 항상 전체 모델 기준. 원본 코드 조각이 바뀌면 오류로 알려줌
+CHART_PATCHES = [
+    ("function legendSample(i){",
+     "var MANY=15;\n"
+     "function qtl(s,p){var i=(s.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return s[lo]+(s[hi]-s[lo])*(i-lo);}\n"
+     "function legendSample(i){"),
+    ("else if(b.dataset.act==='all'){ P.hidden.clear(); }",
+     "else if(b.dataset.act==='all'){ P.hidden.clear(); }\n"
+     "    else if(b.dataset.act==='none'){ co.modelNames.forEach(function(m){P.hidden.add(m)}); }"),
+    ("P.el.legend.addEventListener('pointerleave',function(){P.setHi(null)});",
+     "P.el.legend.addEventListener('pointerleave',function(){P.setHi(null)});\n"
+     "  P.el.legend.addEventListener('toggle',function(ev){ if(ev.target.classList.contains('lg-more')) P.moreOpen=ev.target.open; },true);"),
+    ("P.coin=name; P.hidden=new Set(); P.hi=null;",
+     "P.coin=name; P.hidden=new Set(); P.hi=null;\n"
+     "    if(co.modelNames.length>MANY){ P.hidden=new Set(co.modelNames); P.median=true; }"),
+    ("""    co.modelNames.forEach(function(m){
+      var i=cur.D.idx[m];
+      h+='<button class="lg" data-model="'+esc(m)+'" aria-pressed="'+(!P.hidden.has(m))+'">'+legendSample(i)+esc(m)+'</button>';
+    });
+    h+='<button class="lg tool" data-act="all">전체 켜기</button>';
+    if(P.a.outliers.length) h+='<button class="lg tool" data-act="out">튀는 모델 끄기</button>';
+    h+='<button class="lg tool" data-act="med" aria-pressed="'+P.median+'">중앙값 선</button>';""",
+     """    var mb='';
+    co.modelNames.forEach(function(m){
+      var i=cur.D.idx[m];
+      mb+='<button class="lg" data-model="'+esc(m)+'" aria-pressed="'+(!P.hidden.has(m))+'">'+legendSample(i)+esc(m)+'</button>';
+    });
+    if(co.modelNames.length>MANY){
+      h+='<button class="lg tool" data-act="med" aria-pressed="'+P.median+'">중앙값·25~75% 범위</button>';
+      h+='<button class="lg tool" data-act="all">모델 선 모두 켜기</button><button class="lg tool" data-act="none">모델 선 모두 끄기</button>';
+      if(P.a.outliers.length) h+='<button class="lg tool" data-act="out">튀는 모델 끄기</button>';
+      h+='<details class="lg-more"'+(P.moreOpen?' open':'')+'><summary>개별 모델 '+co.modelNames.length+'개 골라 보기 (켜진 선 '+(co.modelNames.length-P.hidden.size)+'개)</summary><div class="lg-list">'+mb+'</div></details>';
+    }else{
+      h+=mb;
+      h+='<button class="lg tool" data-act="all">전체 켜기</button>';
+      if(P.a.outliers.length) h+='<button class="lg tool" data-act="out">튀는 모델 끄기</button>';
+      h+='<button class="lg tool" data-act="med" aria-pressed="'+P.median+'">중앙값 선</button>';
+    }"""),
+    ("    var actual=co.hist;\n    var vals=[];",
+     """    var actual=co.hist;
+    var band=[];
+    if(P.median){
+      var byAll={}; co.modelNames.forEach(function(m){co.models[m].forEach(function(p){ if(isFinite(p[k])) (byAll[p.n]||(byAll[p.n]=[])).push(p[k]); })});
+      Object.keys(byAll).map(Number).sort(function(a,b){return a-b}).forEach(function(n){
+        var s=byAll[n].slice().sort(function(a,b){return a-b});
+        band.push({n:n,v:median(s),q1:qtl(s,.25),q3:qtl(s,.75),cnt:s.length});
+      });
+    }
+    var vals=[]; band.forEach(function(b){vals.push(b.q1,b.q3,b.v)});"""),
+    ("if(!vals.length){ box.innerHTML='<p class=\"empty\">표시할 모델이 없어요. 범례에서 모델을 켜 주세요.</p>'; return; }",
+     "if(!vals.length){ box.innerHTML='<p class=\"empty\">표시할 모델이 없어요. 범례에서 모델이나 중앙값을 켜 주세요.</p>'; return; }"),
+    ("    series.forEach(function(s){\n      var d=s.pts.map(",
+     """    if(band.length>1){
+      g+='<path class="band" d="'+band.map(function(b,i){return (i?'L':'M')+X(b.n).toFixed(1)+' '+Y(b.q3).toFixed(1)}).join('')
+        +band.slice().reverse().map(function(b){return 'L'+X(b.n).toFixed(1)+' '+Y(b.q1).toFixed(1)}).join('')+'Z"/>';
+    }
+    series.forEach(function(s){
+      var d=s.pts.map("""),
+    ("""    var medPts=[];
+    if(P.median){
+      var byN={}; series.forEach(function(s){s.pts.forEach(function(p){(byN[p.n]||(byN[p.n]=[])).push(p[k])})});
+      Object.keys(byN).map(Number).sort(function(a,b){return a-b}).forEach(function(n){medPts.push({n:n,v:median(byN[n])})});
+      if(medPts.length) g+=""",
+     """    var medPts=band;
+    if(P.median){
+      if(medPts.length) g+="""),
+    ("      if(!html) return;",
+     """      if(!html){
+        var bp=band.filter(function(b){return b.n===n})[0];
+        if(bp){
+          html='<div class="th"><i style="background:var(--ink)"></i>모델 '+bp.cnt+'개 중앙값 · '+esc(fmtDate(dateOf[n]))+'</div>';
+          html+='<div class="tr"><span>'+METRIC[P.metric]+' 중앙값</span><b>'+fmtNum(bp.v)+'</b></div>';
+          if(base) html+='<div class="tr"><span>직전 종가 대비</span><b>'+pct(bp.v/base.c-1)+'</b></div>';
+          html+='<div class="tm">25~75% 범위 '+fmtNum(bp.q1)+' ~ '+fmtNum(bp.q3)+'</div>';
+          dotV=bp.v;
+        }
+      }
+      if(!html) return;"""),
+    ("15개 모델의 D+1 종가를", "'+cur.D.order.length+'개 모델의 D+1 종가를"),
+    ("</style>",
+     ".band{fill:var(--ink);opacity:.09}\n"
+     ".lg-more{width:100%;font-size:12.5px;color:var(--muted)}\n"
+     ".lg-more summary{cursor:pointer;padding:4px 2px}\n"
+     ".lg-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}\n"
+     "</style>"),
+]
+
 OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20261006a"
+ASSET_VERSION = "20261011a"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 
@@ -83,8 +171,13 @@ def convert(html, market, kind, texts=None):
     if kind == "chart":
         html = sub_once(r"va=\(r\[ix\.variable\]\|\|''\)\.trim\(\);",
                         "va=portalModelName((r[ix.variable]||'').trim());", html, "모델 이름")
+        # 이름표가 A~Z 다음 AA, AB… 로 이어지므로 글자 이름은 26진수로 정렬
         numkey = (r"function numKey(n){var s=String(n),m=s.match(/\d+/);if(m)return parseInt(m[0],10);"
-                  r"var l=s.match(/([A-Z])$/);return l?1000+l[1].charCodeAt(0):1e9}")
+                  r"var l=s.match(/([A-Z]+)$/);if(!l)return 1e9;var v=0;for(var i=0;i<l[1].length;i++)v=v*26+l[1].charCodeAt(i)-64;return 1000+v}")
+        for a, b in CHART_PATCHES:
+            if html.count(a) != 1:
+                raise RuntimeError(f"가격 차트 수정 위치를 못 찾음 ({html.count(a)}곳): {a[:40]!r}")
+            html = html.replace(a, b)
         html = sub_once(r"function numKey\(n\)\{[^}]*\}", lambda _m: numkey, html, "모델 정렬")
 
     # 4) 포털 도우미 스크립트 삽입 (대시보드 스크립트보다 먼저 실행되도록 <head> 안)

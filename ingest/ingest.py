@@ -12,6 +12,7 @@
 로컬 점검:  python ingest/ingest.py --dry-run   (Supabase 없이 판정 결과만 출력)
 """
 import csv
+import gzip
 import hashlib
 import io
 import json
@@ -199,19 +200,40 @@ def log(market, kind, status, **kw):
         supa("POST", "/rest/v1/ingest_log", {"market": market, "kind": kind, "status": status, **kw}, Prefer="return=minimal")
 
 
-def upload(path, text):
-    # latest.csv 는 매일 덮어쓰므로 브라우저가 오래 캐시하지 않게 1분으로
+def upload(path, text, gz=False):
+    """CSV 백업 올리기. gz=True 면 gzip 으로 압축해 {path}.gz 로 (가격 차트: 모델 52개면 빗썸이 20MB 넘음 → 약 1/8).
+    화면(assets/board-data.js)이 .gz 를 먼저 받아 풀어 씀. 우선순위는 작고 AI 해설(Edge Function)도 읽어서 그대로 .csv.
+    latest 파일은 매일 덮어쓰므로 브라우저 캐시는 1분"""
+    body = text.encode("utf-8")
     h = {"apikey": KEY, "Authorization": f"Bearer {KEY}", "Content-Type": "text/csv; charset=utf-8",
          "x-upsert": "true", "cache-control": "max-age=60"}
-    http("POST", f"{SUPA}/storage/v1/object/{BUCKET}/{path}", text.encode("utf-8"), h)
+    if gz:
+        path, body, h["Content-Type"] = path + ".gz", gzip.compress(body, 6, mtime=0), "application/gzip"
+    http("POST", f"{SUPA}/storage/v1/object/{BUCKET}/{path}", body, h)
+
+
+SNAP = re.compile(r"\d{4}-\d{2}-\d{2}\.csv(\.gz)?")  # 날짜별 백업 (예전 것은 압축 안 된 .csv)
+
+
+def download(path):
+    raw = http("GET", f"{SUPA}/storage/v1/object/{BUCKET}/{path}", headers={"apikey": KEY, "Authorization": f"Bearer {KEY}"})
+    return decode(gzip.decompress(raw) if path.endswith(".gz") else raw)
+
+
+def drop_plain_latest(prefix):
+    """압축본으로 바꾸기 전의 latest.csv 가 남아 있으면 지움 (화면은 .gz 를 먼저 받음)"""
+    try:
+        supa("DELETE", f"/storage/v1/object/{BUCKET}", {"prefixes": [f"{prefix}/latest.csv"]})
+    except Exception:
+        pass
 
 
 def prune(prefix, today):
-    """{prefix}/YYYY-MM-DD.csv 중 KEEP_DAYS 보다 오래된 것 삭제 (latest.csv 는 유지)"""
+    """{prefix}/YYYY-MM-DD.csv(.gz) 중 KEEP_DAYS 보다 오래된 것 삭제 (latest.csv 는 유지)"""
     items = supa("POST", f"/storage/v1/object/list/{BUCKET}", {"prefix": prefix + "/", "limit": 1000}) or []
     cutoff = today - timedelta(days=KEEP_DAYS - 1)
     old = [f"{prefix}/{it['name']}" for it in items
-           if re.fullmatch(r"\d{4}-\d{2}-\d{2}\.csv", it["name"]) and date.fromisoformat(it["name"][:10]) < cutoff]
+           if SNAP.fullmatch(it["name"]) and date.fromisoformat(it["name"][:10]) < cutoff]
     if old:
         supa("DELETE", f"/storage/v1/object/{BUCKET}", {"prefixes": old})
         print(f"  {prefix}: 오래된 백업 {len(old)}개 삭제")
@@ -397,11 +419,17 @@ def score_models(market, text, today):
     actual = {(sym, d): c for sym, co in latest.items() for d, c in co["hist"].items()}
 
     items = supa("POST", f"/storage/v1/object/list/{BUCKET}", {"prefix": f"{market}/chart/", "limit": 1000}) or []
-    snaps = sorted(it["name"] for it in items if re.fullmatch(r"\d{4}-\d{2}-\d{2}\.csv", it["name"]))
+    # 같은 날짜에 .csv 와 .csv.gz 가 함께 있으면 .gz(새 것)만
+    by_day = {}
+    for it in items:
+        if SNAP.fullmatch(it["name"]):
+            d = it["name"][:10]
+            if d not in by_day or it["name"].endswith(".gz"):
+                by_day[d] = it["name"]
+    snaps = [by_day[d] for d in sorted(by_day)]
     rows = []
     for name in snaps:
-        snap = decode(http("GET", f"{SUPA}/storage/v1/object/{BUCKET}/{market}/chart/{name}",
-                           headers={"apikey": KEY, "Authorization": f"Bearer {KEY}"}))
+        snap = download(f"{market}/chart/{name}")
         pred_date, data = parse_chart(snap, today)
         if not pred_date:
             continue
@@ -448,8 +476,8 @@ def backfill_model_scores(market, cfg, days, today):
         if not pred_date or pred_date in seen:
             continue
         seen.add(pred_date)
-        if pred_date >= keep_from and f"{pred_date.isoformat()}.csv" not in have:
-            upload(f"{market}/chart/{pred_date.isoformat()}.csv", text)
+        if pred_date >= keep_from and not {f"{pred_date.isoformat()}.csv", f"{pred_date.isoformat()}.csv.gz"} & have:
+            upload(f"{market}/chart/{pred_date.isoformat()}.csv", text, gz=True)
             restored += 1
         rows += score_rows(market, pred_date, grade_snapshot(data, actual))
     for i in range(0, len(rows), 500):
@@ -522,8 +550,11 @@ def ingest_market(market, cfg, today):
                 print(f"  [{market}/priority] {pred_date}")
                 continue
 
-        upload(f"{market}/{kind}/{pred_date.isoformat()}.csv", text)
-        upload(f"{market}/{kind}/latest.csv", text)
+        gz = kind == "chart"
+        upload(f"{market}/{kind}/{pred_date.isoformat()}.csv", text, gz)
+        upload(f"{market}/{kind}/latest.csv", text, gz)
+        if gz:
+            drop_plain_latest(f"{market}/{kind}")
         prune(f"{market}/{kind}", today)
         log(market, kind, "ok", pred_date=pred_date.isoformat(), content_hash=digest, row_count=text.count("\n"))
         if kind == "chart":  # 백업에 오늘 파일까지 올린 뒤 채점

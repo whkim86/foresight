@@ -8,10 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261006a">
+<link rel="stylesheet" href="assets/style.css?v=20261011a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261006a"></script>
-<script src="assets/app.js?v=20261006a"></script>
+<script src="config.js?v=20261011a"></script>
+<script src="assets/app.js?v=20261011a"></script>
 <style>
   .score td.cell { text-align: center; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .score td.cell b { display: block; font-size: 14.5px; }
@@ -34,7 +34,8 @@
 
   const LABELS = cfg.MODEL_LABELS || {};
   const label = (m) => (LABELS[m] ? "모델 " + LABELS[m] : m.replace(/^Pred/, "모델 "));
-  const order = (m) => (LABELS[m] ? LABELS[m].charCodeAt(0) : 1000 + (parseInt(m.replace(/\D/g, ""), 10) || 0));
+  // A~Z 다음 AA, AB… 순서
+  const order = (m) => (LABELS[m] ? [...LABELS[m]].reduce((v, c) => v * 26 + c.charCodeAt(0) - 64, 0) : 1000 + (parseInt(m.replace(/\D/g, ""), 10) || 0));
   const MK = Portal.DATA_MARKETS.map((x) => x.key);
   let market = new URLSearchParams(location.search).get("m") || "coin";
   if (!MK.includes(market)) market = "coin";
@@ -53,7 +54,7 @@
     <section class="section">
       <div class="board-head on-night">
         <div><h2>예측 모델별 성적</h2>
-          <p class="hint">15개 모델 각각의 D+1~D+6 예측을 실제 종가와 비교했어요. R 모델 개선용 자료예요</p></div>
+          <p class="hint">모델 각각의 D+1~D+6 예측을 실제 종가와 비교했어요. R 모델 개선용 자료예요</p></div>
         <div class="seg" style="width:200px" role="tablist">
           <button type="button" data-days="7" aria-selected="false">7일</button>
           <button type="button" data-days="30" aria-selected="true">30일</button>

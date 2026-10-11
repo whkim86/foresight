@@ -80,3 +80,17 @@ window.PORTAL_CONFIG = {
     },
   },
 };
+
+// 모델 이름표 늘리기: 처음 15개(A~O)는 그대로 두고, 나머지 Pred1~Pred52 는 번호 순서대로 P~Z, AA, AB… 를 붙임
+// (모델 성적 기록과 이름이 이어지도록 기존 이름표는 바꾸지 않음)
+(function (L) {
+  const used = new Set(Object.values(L));
+  const name = (i) => (i < 26 ? "" : String.fromCharCode(64 + Math.floor(i / 26))) + String.fromCharCode(65 + (i % 26));
+  let i = 0;
+  for (let n = 1; n <= 52; n++) {
+    if (L["Pred" + n]) continue;
+    while (used.has(name(i))) i++;
+    L["Pred" + n] = name(i);
+    used.add(name(i));
+  }
+})(window.PORTAL_CONFIG.MODEL_LABELS);
