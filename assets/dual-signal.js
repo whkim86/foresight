@@ -13,6 +13,17 @@
   .dv b,.pv b{font-weight:600;border-radius:999px;padding:2px 10px;line-height:1.5;white-space:nowrap;font-size:12.5px}
   .s-up{background:#FCE4E5;color:#B3222D}.s-dn{background:#E4ECFB;color:#1D4FB0}.s-mx{background:#FFF0D2;color:#8A5300}.s-na{background:#ECEEF3;color:#5A6478}
   .ag{font-size:12px;font-weight:600;white-space:nowrap}.ag.ok{color:#1E8A4C}.ag.part{color:var(--muted)}.ag.bad{color:#B86E00}
+  button.dv{background:none;border:1px dashed transparent;border-radius:999px;padding:2px 6px;margin:-2px 0;font:inherit;color:inherit;cursor:pointer}
+  button.dv:hover,button.dv[aria-expanded="true"]{border-color:var(--line-strong,#C3CBD8)}
+  .dv .ib{font-size:13px;color:var(--muted)}
+  .dv-exp{margin:10px 0 4px;padding:12px 14px;border:1px solid var(--line,#DCE1EA);border-radius:12px;font-size:13px;line-height:1.65}
+  .dv-exp .dv-h{font-weight:600;margin-bottom:6px}
+  .dv-exp dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 12px;margin:0}
+  .dv-exp dt{color:var(--muted);font-weight:500}.dv-exp dd{margin:0}
+  .dv-exp dd b{font-weight:600}.dv-exp dd b.s-up,.dv-exp dd b.s-dn{background:none;padding:0}
+  .dv-exp .dv-r{font-size:12px;color:var(--muted)}
+  .dv-exp .dv-f{margin:8px 0 0;font-size:12px;color:var(--muted)}
+  @media (max-width:520px){.dv-exp dl{grid-template-columns:1fr}.dv-exp dt{margin-top:4px}}
   .pv{white-space:nowrap}.pv .ag{margin-left:6px}.pv .wait{font-size:12px;color:var(--muted)}
   @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .s-up{background:#4A1D22;color:#FF9AA0}
    :root:not([data-theme="light"]) .s-dn{background:#1C2A4A;color:#9DBBFF}:root:not([data-theme="light"]) .s-mx{background:#45360F;color:#FFD27A}
@@ -72,20 +83,70 @@
   // ---------- 가격 차트 화면: 코인 옆 우선순위 신호 ----------
   let signals = null, signalDate = null;
   const panels = new Map(); // 패널 → [코인, 판정, 예측일]
-  window.portalDual = function (root, name, v, pd) {
-    panels.set(root, [name, v, pd]);
+  window.portalDual = function (root, name, v, pd, a) {
+    panels.set(root, [name, v, pd, a || {}]);
     if (signals) fillPanel(root);
   };
   function fillPanel(root) {
-    const [name, v, pd] = panels.get(root);
+    const [name, v, pd, a] = panels.get(root);
     const head = root.querySelector(".ptitle");
     if (!head) return;
     let box = head.querySelector(".dv");
-    if (!box) { box = document.createElement("span"); box.className = "dv"; head.appendChild(box); }
+    if (!box) {
+      box = document.createElement("button");
+      box.type = "button"; box.className = "dv";
+      box.addEventListener("click", () => {
+        root.dataset.dvOpen = root.dataset.dvOpen === "1" ? "" : "1";
+        fillPanel(root);
+      });
+      head.appendChild(box);
+    }
+    let exp = root.querySelector(".dv-exp");
+    if (!exp) { exp = document.createElement("div"); exp.className = "dv-exp"; (root.querySelector(".chart-top") || head).insertAdjacentElement("afterend", exp); }
     const s = signals.get(name);
-    if (!s || mmdd(signalDate) !== mmdd(pd)) { box.innerHTML = ""; return; }
+    if (!s || mmdd(signalDate) !== mmdd(pd)) { box.hidden = true; exp.hidden = true; return; }
+    const open = root.dataset.dvOpen === "1";
     const [label, cls] = SIGNAL[s.s] || ["-", "s-na"];
-    box.innerHTML = `<span class="k">우선순위 D+1</span><b class="${cls}" title="종가 상승 확률 ${s.p}% · 신호 강도 ${s.n}">${label} ${s.p}%</b>${agree(v, s.s)}`;
+    box.hidden = false;
+    box.setAttribute("aria-expanded", String(open));
+    box.title = open ? "설명 닫기" : "두 신호가 무엇인지 설명 보기";
+    box.innerHTML = `<span class="k">우선순위 D+1</span><b class="${cls}">${label} ${s.p}%</b>${agree(v, s.s)}<span class="ib" aria-hidden="true">${open ? "▴" : "ⓘ"}</span>`;
+    exp.hidden = !open;
+    if (open) exp.innerHTML = explain(name, v, a, s);
+  }
+
+  // 클릭하면 열리는 설명: 두 신호 각각의 근거와, 왜 일치·부분·엇갈림인지
+  function explain(name, v, a, s) {
+    const VL = (VERDICT[v] || ["-"])[0], SL = (SIGNAL[s.s] || ["-"])[0];
+    const pc = (x) => (x >= 0 ? "+" : "") + (x * 100).toFixed(1) + "%";
+    const d1 = a.d1 ? mmdd(a.d1) : "D+1";
+    let chart;
+    if (v === "stale") chart = "D+1 날짜가 예측일과 어긋나 판정하지 않았어요.";
+    else if (v === "hold") chart = "직전 실제 종가가 없어 판정하지 않았어요.";
+    else {
+      const m = (a.r && a.r.length) || a.n;
+      chart = `${m}개 모델 중 <b class="s-up">${a.up}개는 상승</b>, <b class="s-dn">${a.dn}개는 하락</b>${a.flat ? `, ${a.flat}개는 보합` : ""}으로 예상했고, `
+        + `중앙값은 직전 종가 대비 ${pc(a.med1)}예요. → <b>${VL}</b>`
+        + `<br><span class="dv-r">기준: 한쪽이 60% 이상이고 중앙값 변화가 ±${(a.thr * 100).toFixed(1)}%보다 커야 상승·하락, 아니면 혼돈</span>`;
+    }
+    const prio = `모델 ${s.n}개(${s.p}%)가 D+1 종가 상승을 예상했어요. → <b>${SL}</b>`
+      + `<br><span class="dv-r">기준: R이 상승 확률로 정한 신호 규칙</span>`;
+    const kind = agree(v, s.s);
+    const ie = (w) => (/[수도]$/.test(w) ? w + "예요" : w + "이에요");  // 매수예요 / 관망이에요
+    let why = "";
+    if (kind.includes("ok")) why = "두 신호가 같은 방향을 가리켜요. 서로 다른 계산이 같은 결론을 낸 경우라 참고 가치가 높아요.";
+    else if (kind.includes("bad")) why = `두 신호가 반대예요. 가격 차트는 ${VL}, 우선순위는 ${ie(SL)}. `
+      + "두 계산은 상승을 판단하는 기준 가격과 규칙이 달라서 이렇게 갈릴 수 있어요. 이런 코인은 방향을 단정하기 어려운 경우로 보는 게 안전해요.";
+    else if (kind.includes("part")) {
+      why = v === "mx"
+        ? `우선순위는 ${SL} 쪽이지만, 가격 차트에서는 상승·하락 어느 쪽도 60%를 넘지 못했거나 변화폭이 작아 혼돈으로 봤어요. 한쪽만 방향이 보이는 경우예요.`
+        : `가격 차트는 ${VL}으로 봤지만, 우선순위 신호는 ${ie(SL)}. 한쪽만 방향이 보이는 경우예요.`;
+    }
+    return `<div class="dv-h">${esc(name)} · D+1(${esc(d1)}) 두 신호 비교</div>
+      <dl><dt>가격 차트 판정</dt><dd>${chart}</dd>
+      <dt>우선순위 신호</dt><dd>${prio}</dd>
+      ${why ? `<dt>비교</dt><dd>${why}</dd>` : ""}</dl>
+      <p class="dv-f">우선순위는 R이 계산한 상승 확률과 신호, 가격 차트 판정은 포털이 모델별 D+1 종가를 직전 종가와 비교한 결과예요. 투자 권유가 아닌 참고 정보예요.</p>`;
   }
 
   // 따옴표 안 쉼표('39%,(Wait,20)')까지 처리하는 작은 CSV 읽기
