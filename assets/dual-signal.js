@@ -174,7 +174,7 @@
       if (!data || !data.length) return;
       window.portalTop = {
         days: 7,
-        list: data.map((r) => ({ name: window.portalModelName(r.model), rate: Math.round(r.hit_rate * 100), up_n: r.up_n, up_hit: r.up_hit })),
+        list: data.map((r) => ({ name: window.portalModelName(r.model) })),  // 순서만 씀 (적중률 숫자는 회원 화면에 표시하지 않음)
       };
       if (window.portalApplyTop) window.portalApplyTop();
     });

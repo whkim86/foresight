@@ -72,11 +72,11 @@ CHART_PATCHES = [
     if(co.modelNames.length>MANY){
       var TL=topList().filter(function(t){return co.models[t.name]});
       h+='<button class="lg tool" data-act="med" aria-pressed="'+P.median+'">중앙값·25~75% 범위</button>';
-      if(TL.length) h+='<button class="lg tool" data-act="top" aria-pressed="'+!!P.top+'">상승 적중 TOP'+TL.length+'</button>';
+      if(TL.length) h+='<button class="lg tool" data-act="top" aria-pressed="'+!!P.top+'">상승 예측 상위 '+TL.length+'개</button>';
       h+='<button class="lg tool" data-act="all">모델 선 모두 켜기</button><button class="lg tool" data-act="none">모델 선 모두 끄기</button>';
       if(TL.length&&P.top){
-        h+='<div class="lg-top"><span class="lg-cap" title="최근 '+window.portalTop.days+'일 동안 각 모델이 상승을 예측한 경우 중 실제로 오른 비율(D+1~D+6 합산). 예측 수가 너무 적은 모델은 제외">최근 '+window.portalTop.days+'일 상승 예측 적중률 상위</span>';
-        TL.forEach(function(t){ h+='<button class="lg" data-model="'+esc(t.name)+'" aria-pressed="'+(!P.hidden.has(t.name))+'" title="상승 예측 '+t.up_n+'번 중 '+t.up_hit+'번 적중">'+legendSample(cur.D.idx[t.name])+esc(t.name)+' <b>'+t.rate+'%</b></button>'; });
+        h+='<div class="lg-top"><span class="lg-cap" title="최근 '+window.portalTop.days+'일 동안 상승 예측이 잘 맞은 순서로 고른 모델이에요">최근 '+window.portalTop.days+'일 상승 예측 상위 모델</span>';
+        TL.forEach(function(t){ h+='<button class="lg" data-model="'+esc(t.name)+'" aria-pressed="'+(!P.hidden.has(t.name))+'">'+legendSample(cur.D.idx[t.name])+esc(t.name)+'</button>'; });
         h+='</div>';
       }
       if(P.a.outliers.length) h+='<button class="lg tool" data-act="out">튀는 모델 끄기</button>';
@@ -156,7 +156,7 @@ OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20261012d"
+ASSET_VERSION = "20261012e"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 
