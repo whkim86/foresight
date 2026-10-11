@@ -167,6 +167,18 @@
     if (f || row.length) { row.push(f); rows.push(row); }
     return rows;
   }
+  // 가격 차트: 최근 7일 상승 예측 적중률 상위 5개 모델 (supabase/stage16.sql top_up_models) → 차트에 그 모델 선만 켬
+  if (board.kind === "chart") {
+    sb.rpc("top_up_models", { p_market: board.market, p_days: 7, p_n: 5 }).then(({ data, error }) => {
+      if (error) { console.warn("상승 적중 상위 모델 불러오기 실패", error.message); return; }
+      if (!data || !data.length) return;
+      window.portalTop = {
+        days: 7,
+        list: data.map((r) => ({ name: window.portalModelName(r.model), rate: Math.round(r.hit_rate * 100), up_n: r.up_n, up_hit: r.up_hit })),
+      };
+      if (window.portalApplyTop) window.portalApplyTop();
+    });
+  }
   if (board.kind === "chart") {
     sb.storage.from("forecasts").download(`${board.market}/priority/latest.csv`).then(async ({ data, error }) => {
       if (error || !data) return;

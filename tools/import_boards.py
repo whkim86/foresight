@@ -40,16 +40,23 @@ CHART_PATCHES = [
     ("function legendSample(i){",
      "var MANY=15;\n"
      "function qtl(s,p){var i=(s.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return s[lo]+(s[hi]-s[lo])*(i-lo);}\n"
+     "function topList(){return (window.portalTop&&window.portalTop.list)||[];}\n"
+     "function topSet(){return new Set(topList().map(function(t){return t.name}));}\n"
+     "function topHidden(P,co){var T=topSet();return new Set(co.modelNames.filter(function(m){return !(P.top&&T.has(m))}));}\n"
+     "window.portalApplyTop=function(){(window.portalPanels||[]).forEach(function(P){ if(P.coin) P.setCoin(P.coin); });};\n"
      "function legendSample(i){"),
     ("else if(b.dataset.act==='all'){ P.hidden.clear(); }",
      "else if(b.dataset.act==='all'){ P.hidden.clear(); }\n"
-     "    else if(b.dataset.act==='none'){ co.modelNames.forEach(function(m){P.hidden.add(m)}); }"),
+     "    else if(b.dataset.act==='none'){ co.modelNames.forEach(function(m){P.hidden.add(m)}); }\n"
+     "    else if(b.dataset.act==='top'){ P.topUser=!P.top; P.top=P.topUser&&topList().length>0; P.hidden=topHidden(P,co); }\n"
+     "    if(b.dataset.act==='all'||b.dataset.act==='none'){ P.top=false; P.topUser=false; }"),
     ("P.el.legend.addEventListener('pointerleave',function(){P.setHi(null)});",
      "P.el.legend.addEventListener('pointerleave',function(){P.setHi(null)});\n"
-     "  P.el.legend.addEventListener('toggle',function(ev){ if(ev.target.classList.contains('lg-more')) P.moreOpen=ev.target.open; },true);"),
+     "  P.el.legend.addEventListener('toggle',function(ev){ if(ev.target.classList.contains('lg-more')) P.moreOpen=ev.target.open; },true);\n"
+     "  (window.portalPanels=window.portalPanels||[]).push(P);"),
     ("P.coin=name; P.hidden=new Set(); P.hi=null;",
      "P.coin=name; P.hidden=new Set(); P.hi=null;\n"
-     "    if(co.modelNames.length>MANY){ P.hidden=new Set(co.modelNames); P.median=true; }"),
+     "    if(co.modelNames.length>MANY){ P.median=true; P.top=(P.topUser==null||P.topUser)&&topList().length>0; P.hidden=topHidden(P,co); }"),
     ("""    co.modelNames.forEach(function(m){
       var i=cur.D.idx[m];
       h+='<button class="lg" data-model="'+esc(m)+'" aria-pressed="'+(!P.hidden.has(m))+'">'+legendSample(i)+esc(m)+'</button>';
@@ -63,8 +70,15 @@ CHART_PATCHES = [
       mb+='<button class="lg" data-model="'+esc(m)+'" aria-pressed="'+(!P.hidden.has(m))+'">'+legendSample(i)+esc(m)+'</button>';
     });
     if(co.modelNames.length>MANY){
+      var TL=topList().filter(function(t){return co.models[t.name]});
       h+='<button class="lg tool" data-act="med" aria-pressed="'+P.median+'">중앙값·25~75% 범위</button>';
+      if(TL.length) h+='<button class="lg tool" data-act="top" aria-pressed="'+!!P.top+'">상승 적중 TOP'+TL.length+'</button>';
       h+='<button class="lg tool" data-act="all">모델 선 모두 켜기</button><button class="lg tool" data-act="none">모델 선 모두 끄기</button>';
+      if(TL.length&&P.top){
+        h+='<div class="lg-top"><span class="lg-cap" title="최근 '+window.portalTop.days+'일 동안 각 모델이 상승을 예측한 경우 중 실제로 오른 비율(D+1~D+6 합산). 예측 수가 너무 적은 모델은 제외">최근 '+window.portalTop.days+'일 상승 예측 적중률 상위</span>';
+        TL.forEach(function(t){ h+='<button class="lg" data-model="'+esc(t.name)+'" aria-pressed="'+(!P.hidden.has(t.name))+'" title="상승 예측 '+t.up_n+'번 중 '+t.up_hit+'번 적중">'+legendSample(cur.D.idx[t.name])+esc(t.name)+' <b>'+t.rate+'%</b></button>'; });
+        h+='</div>';
+      }
       if(P.a.outliers.length) h+='<button class="lg tool" data-act="out">튀는 모델 끄기</button>';
       h+='<details class="lg-more"'+(P.moreOpen?' open':'')+'><summary>개별 모델 '+co.modelNames.length+'개 골라 보기 (켜진 선 '+(co.modelNames.length-P.hidden.size)+'개)</summary><div class="lg-list">'+mb+'</div></details>';
     }else{
@@ -119,6 +133,8 @@ CHART_PATCHES = [
      ".lg-more{width:100%;font-size:12.5px;color:var(--muted)}\n"
      ".lg-more summary{cursor:pointer;padding:4px 2px}\n"
      ".lg-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}\n"
+     ".lg-top{width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 0 2px}\n"
+     ".lg-cap{font-size:12px;color:var(--muted);margin-right:4px}.lg-top .lg b{font-weight:600}\n"
      "</style>"),
 ]
 
@@ -140,7 +156,7 @@ OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20261012c"
+ASSET_VERSION = "20261012d"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 

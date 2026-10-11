@@ -163,11 +163,13 @@ details.rule p{margin-top:6px;font-size:13px;line-height:1.65;color:var(--muted)
 .lg-more{width:100%;font-size:12.5px;color:var(--muted)}
 .lg-more summary{cursor:pointer;padding:4px 2px}
 .lg-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.lg-top{width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 0 2px}
+.lg-cap{font-size:12px;color:var(--muted);margin-right:4px}.lg-top .lg b{font-weight:600}
 </style>
 <script>window.PORTAL_BOARD={market:"nasdaq",kind:"chart"};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../config.js?v=20261012c"></script>
-<script src="../assets/board-data.js?v=20261012c"></script>
+<script src="../config.js?v=20261012d"></script>
+<script src="../assets/board-data.js?v=20261012d"></script>
 </head>
 <body>
 <div class="wrap">
@@ -427,6 +429,10 @@ function altList(){
 /* ---------- panel ---------- */
 var MANY=15;
 function qtl(s,p){var i=(s.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return s[lo]+(s[hi]-s[lo])*(i-lo);}
+function topList(){return (window.portalTop&&window.portalTop.list)||[];}
+function topSet(){return new Set(topList().map(function(t){return t.name}));}
+function topHidden(P,co){var T=topSet();return new Set(co.modelNames.filter(function(m){return !(P.top&&T.has(m))}));}
+window.portalApplyTop=function(){(window.portalPanels||[]).forEach(function(P){ if(P.coin) P.setCoin(P.coin); });};
 function legendSample(i){
   var dash=i>=8?' stroke-dasharray="5 3"':'';
   return '<svg width="22" height="8" aria-hidden="true"><line x1="1" y1="4" x2="21" y2="4" stroke="var(--mc'+(i%15)+')" stroke-width="2.4" stroke-linecap="round"'+dash+'/></svg>';
@@ -451,6 +457,8 @@ function Panel(root){
       var m=b.dataset.model; if(P.hidden.has(m)) P.hidden.delete(m); else P.hidden.add(m);
     }else if(b.dataset.act==='all'){ P.hidden.clear(); }
     else if(b.dataset.act==='none'){ co.modelNames.forEach(function(m){P.hidden.add(m)}); }
+    else if(b.dataset.act==='top'){ P.topUser=!P.top; P.top=P.topUser&&topList().length>0; P.hidden=topHidden(P,co); }
+    if(b.dataset.act==='all'||b.dataset.act==='none'){ P.top=false; P.topUser=false; }
     else if(b.dataset.act==='out'){ P.a.outliers.forEach(function(m){P.hidden.add(m)}); }
     else if(b.dataset.act==='med'){ P.median=!P.median; }
     P.drawLegend(); P.draw();
@@ -458,6 +466,7 @@ function Panel(root){
   P.el.legend.addEventListener('pointerover',function(ev){ var b=ev.target.closest('button[data-model]'); P.setHi(b?b.dataset.model:null); });
   P.el.legend.addEventListener('pointerleave',function(){P.setHi(null)});
   P.el.legend.addEventListener('toggle',function(ev){ if(ev.target.classList.contains('lg-more')) P.moreOpen=ev.target.open; },true);
+  (window.portalPanels=window.portalPanels||[]).push(P);
   P.setHi=function(m){
     P.hi=m;
     P.el.chart.querySelectorAll('.mline').forEach(function(p){ p.classList.toggle('dim',!!m&&p.dataset.model!==m); });
@@ -465,7 +474,7 @@ function Panel(root){
   P.setCoin=function(name){
     var co=cur.D.coins.get(name); if(!co) return;
     P.coin=name; P.hidden=new Set(); P.hi=null;
-    if(co.modelNames.length>MANY){ P.hidden=new Set(co.modelNames); P.median=true; }
+    if(co.modelNames.length>MANY){ P.median=true; P.top=(P.topUser==null||P.topUser)&&topList().length>0; P.hidden=topHidden(P,co); }
     P.a=cur.an.get(name);
     P.el.name.textContent=name;
     var b=P.el.badge, v=P.a.verdict;
@@ -486,8 +495,15 @@ function Panel(root){
       mb+='<button class="lg" data-model="'+esc(m)+'" aria-pressed="'+(!P.hidden.has(m))+'">'+legendSample(i)+esc(m)+'</button>';
     });
     if(co.modelNames.length>MANY){
+      var TL=topList().filter(function(t){return co.models[t.name]});
       h+='<button class="lg tool" data-act="med" aria-pressed="'+P.median+'">중앙값·25~75% 범위</button>';
+      if(TL.length) h+='<button class="lg tool" data-act="top" aria-pressed="'+!!P.top+'">상승 적중 TOP'+TL.length+'</button>';
       h+='<button class="lg tool" data-act="all">모델 선 모두 켜기</button><button class="lg tool" data-act="none">모델 선 모두 끄기</button>';
+      if(TL.length&&P.top){
+        h+='<div class="lg-top"><span class="lg-cap" title="최근 '+window.portalTop.days+'일 동안 각 모델이 상승을 예측한 경우 중 실제로 오른 비율(D+1~D+6 합산). 예측 수가 너무 적은 모델은 제외">최근 '+window.portalTop.days+'일 상승 예측 적중률 상위</span>';
+        TL.forEach(function(t){ h+='<button class="lg" data-model="'+esc(t.name)+'" aria-pressed="'+(!P.hidden.has(t.name))+'" title="상승 예측 '+t.up_n+'번 중 '+t.up_hit+'번 적중">'+legendSample(cur.D.idx[t.name])+esc(t.name)+' <b>'+t.rate+'%</b></button>'; });
+        h+='</div>';
+      }
       if(P.a.outliers.length) h+='<button class="lg tool" data-act="out">튀는 모델 끄기</button>';
       h+='<details class="lg-more"'+(P.moreOpen?' open':'')+'><summary>개별 모델 '+co.modelNames.length+'개 골라 보기 (켜진 선 '+(co.modelNames.length-P.hidden.size)+'개)</summary><div class="lg-list">'+mb+'</div></details>';
     }else{
@@ -701,6 +717,6 @@ if(window.ResizeObserver){
 }
 })();
 </script>
-<script src="../assets/dual-signal.js?v=20261012c"></script>
+<script src="../assets/dual-signal.js?v=20261012d"></script>
 </body>
 </html>
