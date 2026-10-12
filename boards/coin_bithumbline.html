@@ -165,11 +165,14 @@ details.rule p{margin-top:6px;font-size:13px;line-height:1.65;color:var(--muted)
 .lg-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .lg-top{width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 0 2px}
 .lg-cap{font-size:12px;color:var(--muted);margin-right:4px}.lg-top .lg b{font-weight:600}
+.endlab{font-size:12px;font-weight:700}.endlab.u{fill:var(--up-text)}.endlab.d{fill:var(--dn-ink)}
+.medl{stroke-width:3.4;stroke-dasharray:none}
+.today{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 4;opacity:.7}
 </style>
 <script>window.PORTAL_BOARD={market:"bithumb",kind:"chart"};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../config.js?v=20261013c"></script>
-<script src="../assets/board-data.js?v=20261013c"></script>
+<script src="../config.js?v=20261013d"></script>
+<script src="../assets/board-data.js?v=20261013d"></script>
 </head>
 <body>
 <div class="wrap">
@@ -426,7 +429,8 @@ function altList(){
 }
 
 /* ---------- panel ---------- */
-var MANY=15;
+var MANY=15, HIST_DAYS=14;
+function dayLab(d){var m=String(d).match(/(\d{1,2})\s*-\s*(\d{1,2})/);if(!m)return fmtDate(d);var y=new Date().getFullYear(),t=Date.UTC(y,+m[1]-1,+m[2]);if(t-Date.now()>60*864e5)t=Date.UTC(y-1,+m[1]-1,+m[2]);return fmtDate(d)+' ('+'일월화수목금토'[new Date(t).getUTCDay()]+')';}
 function qtl(s,p){var i=(s.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return s[lo]+(s[hi]-s[lo])*(i-lo);}
 function topList(){return (window.portalTop&&window.portalTop.list)||[];}
 function topSet(){return new Set(topList().map(function(t){return t.name}));}
@@ -528,7 +532,7 @@ function Panel(root){
     P.syncSeg(); P.drawLegend();
     var series=[];
     co.modelNames.forEach(function(m){ if(P.hidden.has(m)) return; series.push({name:m,idx:cur.D.idx[m],pts:co.models[m]}); });
-    var actual=co.hist;
+    var actual=co.hist.filter(function(p,i,a){return p.n>a[a.length-1].n-HIST_DAYS});  // 실제값은 최근 2주만 (예측선이 잘 보이게)
     var band=[];
     if(P.median){
       var byAll={}; co.modelNames.forEach(function(m){co.models[m].forEach(function(p){ if(isFinite(p[k])) (byAll[p.n]||(byAll[p.n]=[])).push(p[k]); })});
@@ -543,7 +547,7 @@ function Panel(root){
     var nt=niceTicks(lo-padv,hi+padv,5), ticks=nt.ticks, y0=ticks[0], y1=ticks[ticks.length-1];
     var W=Math.max(300,Math.floor(box.clientWidth)||720), H=W<520?320:400;
     var sample=fmtAxis(ticks[ticks.length-1],nt.step);
-    var ml=Math.max(54,Math.min(92,sample.length*7.4+16)), mr=14, mt=16, mb=36, iw=W-ml-mr, ih=H-mt-mb;
+    var ml=Math.max(54,Math.min(92,sample.length*7.4+16)), mr=14, mt=16, mb=66, iw=W-ml-mr, ih=H-mt-mb;
     var ns=[]; actual.forEach(function(p){ns.push(p.n)}); series.forEach(function(s){s.pts.forEach(function(p){ns.push(p.n)})});
     co.modelNames.forEach(function(m){co.models[m].forEach(function(p){ns.push(p.n)})});
     var nMin=Math.min.apply(null,ns), nMax=Math.max.apply(null,ns), span=nMax-nMin+1;
@@ -559,8 +563,8 @@ function Panel(root){
     ticks.forEach(function(v){ g+='<line class="gl" x1="'+bx.toFixed(1)+'" x2="'+(W-mr)+'" y1="'+Y(v).toFixed(1)+'" y2="'+Y(v).toFixed(1)+'"/>'; });
     g+='<text class="rg" x="'+(bx+8).toFixed(1)+'" y="'+(mt+13)+'">예측</text>';
     if(actual.length) g+='<text class="rg" x="'+(bx-8).toFixed(1)+'" y="'+(mt+13)+'" text-anchor="end">실제</text>';
-    var step=Math.max(1,Math.ceil(uniq.length/(W<520?5:8)));
-    uniq.forEach(function(n,i){ if((uniq.length-1-i)%step===0) g+='<text class="xl" x="'+X(n).toFixed(1)+'" y="'+(H-12)+'" text-anchor="middle">'+esc(fmtDate(dateOf[n]))+'</text>'; });
+    var step=Math.max(1,Math.ceil(uniq.length/Math.max(4,Math.floor(iw/20))));
+    uniq.forEach(function(n,i){ if((uniq.length-1-i)%step===0){ var lx=X(n).toFixed(1), ly=mt+ih+14; g+='<text class="xl" x="'+lx+'" y="'+ly+'" text-anchor="end" transform="rotate(-45 '+lx+' '+ly+')">'+esc(dayLab(dateOf[n]))+'</text>'; } });
     if(actual.length){
       g+='<path class="act" d="'+actual.map(function(p,i){return (i?'L':'M')+X(p.n).toFixed(1)+' '+Y(p[k]).toFixed(1)}).join('')+'"/>';
       var lp=actual[actual.length-1]; g+='<circle cx="'+X(lp.n).toFixed(1)+'" cy="'+Y(lp[k]).toFixed(1)+'" r="4.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>';
@@ -577,6 +581,18 @@ function Panel(root){
     if(P.median){
       if(medPts.length) g+='<path class="medl" d="'+medPts.map(function(p,i){return (i?'L':'M')+X(p.n).toFixed(1)+' '+Y(p.v).toFixed(1)}).join('')+'"/>';
     }
+    (function(){
+      var d='';
+      function dot(x,y,r,f,s,w){return '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+r+'" fill="'+f+'" stroke="'+s+'" stroke-width="'+w+'"/>';}
+      g+='<line class="today" x1="'+bx.toFixed(1)+'" x2="'+bx.toFixed(1)+'" y1="'+mt+'" y2="'+(mt+ih)+'"/>';
+      series.forEach(function(s){ var c='var(--mc'+(s.idx%15)+')'; d+='<g class="mline mdot'+(P.hi&&P.hi!==s.name?' dim':'')+'" data-model="'+esc(s.name)+'">'; s.pts.forEach(function(p){ d+=dot(X(p.n),Y(p[k]),3.2,c,'var(--surface)',1.4); }); d+='</g>'; });
+      actual.forEach(function(p,i){ if(i<actual.length-1) d+=dot(X(p.n),Y(p[k]),3.4,'var(--ink)','var(--surface)',1); });
+      if(P.median){
+        medPts.forEach(function(p){ d+=dot(X(p.n),Y(p.v),4,'var(--surface)','var(--ink)',2.2); });
+        if(medPts.length&&P.a.base){ var e=medPts[medPts.length-1], ch=e.v/P.a.base.c-1; d+='<text x="'+(X(e.n)-6).toFixed(1)+'" y="'+(Y(e.v)-10).toFixed(1)+'" text-anchor="end" class="endlab '+(ch>=0?'u':'d')+'">'+pct(ch)+'</text>'; }
+      }
+      g+='<g class="dots" pointer-events="none">'+d+'</g>';
+    })();
     g+='<line class="guide" id="gd" y1="'+mt+'" y2="'+(mt+ih)+'" x1="0" x2="0" style="display:none"/><circle class="hdot" id="hd" r="5" style="display:none"/>';
     box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="'+esc(P.coin)+' 실제값과 예측 모델별 '+METRIC[P.metric]+' 선 그래프">'+g+'</svg><div class="tip" style="display:none"></div>';
     var svg=box.querySelector('svg'), tip=box.querySelector('.tip'), gd=box.querySelector('#gd'), hd=box.querySelector('#hd');
@@ -716,6 +732,6 @@ if(window.ResizeObserver){
 }
 })();
 </script>
-<script src="../assets/dual-signal.js?v=20261013c"></script>
+<script src="../assets/dual-signal.js?v=20261013d"></script>
 </body>
 </html>

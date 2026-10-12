@@ -38,7 +38,8 @@ ALL_JS = ["dual-signal.js"]  # 모든 보드에 붙임
 # 중앙값·범위는 판정과 같게 항상 전체 모델 기준. 원본 코드 조각이 바뀌면 오류로 알려줌
 CHART_PATCHES = [
     ("function legendSample(i){",
-     "var MANY=15;\n"
+     "var MANY=15, HIST_DAYS=14;\n"
+     "function dayLab(d){var m=String(d).match(/(\\d{1,2})\\s*-\\s*(\\d{1,2})/);if(!m)return fmtDate(d);var y=new Date().getFullYear(),t=Date.UTC(y,+m[1]-1,+m[2]);if(t-Date.now()>60*864e5)t=Date.UTC(y-1,+m[1]-1,+m[2]);return fmtDate(d)+' ('+'일월화수목금토'[new Date(t).getUTCDay()]+')';}\n"
      "function qtl(s,p){var i=(s.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return s[lo]+(s[hi]-s[lo])*(i-lo);}\n"
      "function topList(){return (window.portalTop&&window.portalTop.list)||[];}\n"
      "function topSet(){return new Set(topList().map(function(t){return t.name}));}\n"
@@ -88,7 +89,7 @@ CHART_PATCHES = [
       h+='<button class="lg tool" data-act="med" aria-pressed="'+P.median+'">중앙값 선</button>';
     }"""),
     ("    var actual=co.hist;\n    var vals=[];",
-     """    var actual=co.hist;
+     """    var actual=co.hist.filter(function(p,i,a){return p.n>a[a.length-1].n-HIST_DAYS});  // 실제값은 최근 2주만 (예측선이 잘 보이게)
     var band=[];
     if(P.median){
       var byAll={}; co.modelNames.forEach(function(m){co.models[m].forEach(function(p){ if(isFinite(p[k])) (byAll[p.n]||(byAll[p.n]=[])).push(p[k]); })});
@@ -127,6 +128,28 @@ CHART_PATCHES = [
         }
       }
       if(!html) return;"""),
+    # x축 날짜: 45도 기울여 '10-12 (월)' 형태로, 공간이 되는 만큼 촘촘히
+    ("mt=16, mb=36,", "mt=16, mb=66,"),
+    ("    var step=Math.max(1,Math.ceil(uniq.length/(W<520?5:8)));\n"
+     "    uniq.forEach(function(n,i){ if((uniq.length-1-i)%step===0) g+='<text class=\"xl\" x=\"'+X(n).toFixed(1)+'\" y=\"'+(H-12)+'\" text-anchor=\"middle\">'+esc(fmtDate(dateOf[n]))+'</text>'; });",
+     "    var step=Math.max(1,Math.ceil(uniq.length/Math.max(4,Math.floor(iw/20))));\n"
+     "    uniq.forEach(function(n,i){ if((uniq.length-1-i)%step===0){ var lx=X(n).toFixed(1), ly=mt+ih+14; g+='<text class=\"xl\" x=\"'+lx+'\" y=\"'+ly+'\" text-anchor=\"end\" transform=\"rotate(-45 '+lx+' '+ly+')\">'+esc(dayLab(dateOf[n]))+'</text>'; } });"),
+    # 점 표시 디자인 (2026-10-12 사용자 확정): 실제값은 작은 점, 예측 모델 선은 색을 채운 점,
+    # 중앙값은 굵은 실선 + 큰 흰 점 + 6일 뒤 끝값(직전 종가 대비 %), 실제·예측 경계에 세로 점선
+    ("    g+='<line class=\"guide\" id=\"gd\"",
+     "    (function(){\n"
+     "      var d='';\n"
+     "      function dot(x,y,r,f,s,w){return '<circle cx=\"'+x.toFixed(1)+'\" cy=\"'+y.toFixed(1)+'\" r=\"'+r+'\" fill=\"'+f+'\" stroke=\"'+s+'\" stroke-width=\"'+w+'\"/>';}\n"
+     "      g+='<line class=\"today\" x1=\"'+bx.toFixed(1)+'\" x2=\"'+bx.toFixed(1)+'\" y1=\"'+mt+'\" y2=\"'+(mt+ih)+'\"/>';\n"
+     "      series.forEach(function(s){ var c='var(--mc'+(s.idx%15)+')'; d+='<g class=\"mline mdot'+(P.hi&&P.hi!==s.name?' dim':'')+'\" data-model=\"'+esc(s.name)+'\">'; s.pts.forEach(function(p){ d+=dot(X(p.n),Y(p[k]),3.2,c,'var(--surface)',1.4); }); d+='</g>'; });\n"
+     "      actual.forEach(function(p,i){ if(i<actual.length-1) d+=dot(X(p.n),Y(p[k]),3.4,'var(--ink)','var(--surface)',1); });\n"
+     "      if(P.median){\n"
+     "        medPts.forEach(function(p){ d+=dot(X(p.n),Y(p.v),4,'var(--surface)','var(--ink)',2.2); });\n"
+     "        if(medPts.length&&P.a.base){ var e=medPts[medPts.length-1], ch=e.v/P.a.base.c-1; d+='<text x=\"'+(X(e.n)-6).toFixed(1)+'\" y=\"'+(Y(e.v)-10).toFixed(1)+'\" text-anchor=\"end\" class=\"endlab '+(ch>=0?'u':'d')+'\">'+pct(ch)+'</text>'; }\n"
+     "      }\n"
+     "      g+='<g class=\"dots\" pointer-events=\"none\">'+d+'</g>';\n"
+     "    })();\n"
+     "    g+='<line class=\"guide\" id=\"gd\""),
     ("15개 모델의 D+1 종가를", "'+cur.D.order.length+'개 모델의 D+1 종가를"),
     ("</style>",
      ".band{fill:var(--ink);opacity:.09}\n"
@@ -135,6 +158,9 @@ CHART_PATCHES = [
      ".lg-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}\n"
      ".lg-top{width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 0 2px}\n"
      ".lg-cap{font-size:12px;color:var(--muted);margin-right:4px}.lg-top .lg b{font-weight:600}\n"
+     ".endlab{font-size:12px;font-weight:700}.endlab.u{fill:var(--up-text)}.endlab.d{fill:var(--dn-ink)}\n"
+     ".medl{stroke-width:3.4;stroke-dasharray:none}\n"
+     ".today{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 4;opacity:.7}\n"
      "</style>"),
 ]
 
@@ -156,7 +182,7 @@ OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20261013c"
+ASSET_VERSION = "20261013d"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 
