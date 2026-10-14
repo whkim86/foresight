@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>방문 흐름 · AI 신호등</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=20261014a">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261014a"></script>
+<script src="assets/app.js?v=20261014a"></script>
+<style>
+.fn-row{display:grid;grid-template-columns:150px minmax(0,1fr) 120px;gap:12px;align-items:center;font-size:13.5px;margin:6px 0}
+.fn-bar{height:22px;border-radius:5px;background:var(--dn);min-width:2px}
+.fn-bar.gray{background:#9AA3B5}.fn-bar.red{background:var(--up)}
+.fn-drop{font-size:12px;color:var(--up);margin:-2px 0 4px 162px;font-weight:600}
+.hm{display:grid;grid-template-columns:30px repeat(24,minmax(0,1fr));gap:2px;font-size:11px;color:var(--muted)}
+.hm .c{height:18px;border-radius:3px}
+.kpi{display:flex;flex-direction:column;gap:4px}.kpi b{font-size:24px}.kpi small{font-size:12px;color:var(--muted)}
+#period{grid-template-columns:repeat(3,1fr)}
+.defs{font-size:13px;line-height:1.75;color:var(--sub)}.defs dt{font-weight:700;color:var(--ink);margin-top:8px}.defs dd{margin:0}
+.tag-hi{font-size:11px;font-weight:700;color:var(--up);margin-left:6px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.grid2>*{min-width:0}
+#body .card:not(.table-wrap) table.list{min-width:0}
+#body .card:not(.table-wrap) table.list td{padding:8px 6px}
+@media (max-width:560px){.fn-row{grid-template-columns:96px minmax(0,1fr) 96px}.fn-drop{margin-left:108px}}
+</style>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, cfg, requireUser, renderHeader, esc, errText } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  if (!me.acc.isAdmin) { location.replace("index.html"); return; }  // 운영자 전용 (데이터도 서버에서 운영자만 조회 가능)
+  renderHeader(me);
+
+  const main = document.createElement("main");
+  main.className = "page";
+  document.body.appendChild(main);
+
+  const VIEW = { priority: "우선순위", chart: "가격 차트", locked: "잠금 화면" };
+  function pageName(key) {
+    if (!key) return "-";
+    if (key === "exit") return "바로 나감";
+    if (key === "landing") return "소개 화면 (비회원)";
+    if (key === "login") return "로그인 · 가입";
+    if (key === "home") return "포털 홈";
+    if (key === "mypage") return "마이페이지";
+    if (key === "board") return "게시판";
+    const [kind, a, b] = key.split(":");
+    if (kind === "dash") return `대시보드 · ${Portal.marketName(a)}${b ? " · " + (VIEW[b] || b) : ""}`;
+    if (kind === "board") return `게시판 · ${cfg.BOARDS[a]?.name || a}`;
+    return key;
+  }
+  const n = (x) => Number(x || 0).toLocaleString("ko-KR");
+  const pct = (a, b) => (b ? Math.round((a / b) * 100) + "%" : "—");
+  function dur(ms) {
+    if (ms == null) return "—";
+    const s = Math.round(ms / 1000);
+    if (s < 60) return s + "초";
+    const m = Math.floor(s / 60);
+    return m < 60 ? `${m}분 ${s % 60}초` : `${Math.floor(m / 60)}시간 ${m % 60}분`;
+  }
+
+  let days = 7;
+  main.innerHTML = `
+    <section class="on-night">
+      <h1>운영자</h1>
+      <nav class="board-tabs" style="margin-top:14px">
+        <a href="admin.html">입금 · 회원</a><a href="accuracy.html">수집 · 적중률</a><a href="models.html">모델 성적</a><a href="views.html">조회수</a><a href="analytics.html" aria-current="page">방문 흐름</a><a href="ai.html">AI 해설</a>
+      </nav>
+    </section>
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+      <p class="hint" style="margin:0">회원 행동을 합계로만 보여줘요 · 운영자 계정은 기록하지 않아요 · 기록은 90일 보관</p>
+      <div class="seg" role="tablist" id="period" style="width:240px">
+        <button type="button" data-d="1">오늘</button><button type="button" data-d="7">최근 7일</button><button type="button" data-d="30">30일</button>
+      </div>
+    </div>
+    <div id="body"><div class="empty">불러오는 중…</div></div>`;
+  main.querySelector("#period").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    days = Number(b.dataset.d); render();
+  });
+
+  function bars(rows, total, opts = {}) {
+    // rows: [{label, n, cls}] — 막대 길이는 total 기준
+    const max = Math.max(1, total ?? Math.max(...rows.map((r) => r.n)));
+    return rows.map((r) => `
+      <div class="fn-row"><span>${esc(r.label)}</span>
+        <div><div class="fn-bar ${r.cls || ""}" style="width:${(r.n / max) * 100}%"></div></div>
+        <span class="num"><b>${n(r.n)}</b> <span class="muted">${r.note ?? ""}</span></span></div>
+      ${r.drop ? `<div class="fn-drop">↓ ${r.drop}% 이탈${r.worst ? " · 가장 큰 이탈 지점" : ""}</div>` : ""}`).join("");
+  }
+  function funnel(labels, counts) {
+    const steps = labels.map((l, i) => ({ label: l, n: counts[i] || 0 }));
+    let worst = -1, worstDrop = -1;
+    steps.forEach((s, i) => {
+      if (i === 0) { s.note = "100%"; return; }
+      const prev = steps[i - 1].n;
+      s.note = pct(s.n, prev);
+      if (prev) { const d = Math.round((1 - s.n / prev) * 100); steps[i - 1].dropAfter = d; if (d > worstDrop) { worstDrop = d; worst = i - 1; } }
+    });
+    // 이탈 표시는 그 단계 막대 바로 아래 (= 다음 단계로 못 간 비율)
+    steps.forEach((s, i) => { if (s.dropAfter != null && s.dropAfter > 0) { s.drop = s.dropAfter; s.worst = i === worst; } });
+    return steps[0].n ? bars(steps, steps[0].n) : `<div class="empty">아직 기록이 없어요</div>`;
+  }
+
+  async function render() {
+    main.querySelectorAll("#period button").forEach((b) => b.setAttribute("aria-selected", String(Number(b.dataset.d) === days)));
+    const box = main.querySelector("#body");
+    box.innerHTML = `<div class="empty">불러오는 중…</div>`;
+    const { data: d, error } = await sb.rpc("funnel_stats", { p_days: days });
+    if (error) { box.innerHTML = `<div class="msg error">${esc(errText(error))}</div>`; return; }
+    const k = d.kpi || {};
+
+    // ---------- 홈 다음 경로 ----------
+    const hn = d.home_next || [];
+    const hnTotal = hn.reduce((a, r) => a + r.n, 0);
+    const hnRows = hn.map((r) => ({ label: pageName(r.to), n: r.n, note: pct(r.n, hnTotal), cls: r.to === "exit" ? "red" : r.to.startsWith("dash") ? "" : "gray" }));
+
+    // ---------- 시간대 ----------
+    const grid = {}; let hmMax = 1;
+    (d.heatmap || []).forEach((r) => { grid[r.dow + "-" + r.hour] = r.n; hmMax = Math.max(hmMax, r.n); });
+    const DOW = ["월", "화", "수", "목", "금", "토", "일"];
+    let hm = `<div></div>` + Array.from({ length: 24 }, (_, h) => `<div style="text-align:center">${h % 3 === 0 ? h : ""}</div>`).join("");
+    DOW.forEach((w, i) => {
+      hm += `<div>${w}</div>`;
+      for (let h = 0; h < 24; h++) {
+        const v = grid[(i + 1) + "-" + h] || 0;
+        hm += `<div class="c" title="${w}요일 ${h}시 · 방문 ${v}" style="background:${v ? `rgba(37,99,217,${(0.15 + 0.85 * v / hmMax).toFixed(2)})` : "var(--line-soft)"}"></div>`;
+      }
+    });
+
+    // ---------- 화면별 ----------
+    const pageRows = (d.pages || []).map((r) => {
+      const exitRate = r.sess ? r.exits / r.sess : 0;
+      return `<tr><td><b>${esc(pageName(r.page))}</b><br><span class="muted">${esc(r.page)}</span></td>
+        <td class="num">${n(r.views)}</td><td class="num">${dur(r.med_ms)}</td><td class="num muted">${dur(r.avg_ms)}</td>
+        <td class="num">${pct(r.exits, r.sess)}${exitRate >= 0.5 && r.sess >= 5 ? '<span class="tag-hi">높음</span>' : ""}</td></tr>`;
+    }).join("");
+
+    // ---------- 종목 ----------
+    const byMarket = {};
+    (d.coins || []).forEach((r) => { (byMarket[r.market] = byMarket[r.market] || []).push(r); });
+    const coinCards = Portal.DATA_MARKETS.map((m) => {
+      const list = (byMarket[m.key] || []).slice(0, 10);
+      return `<div class="card"><b>${esc(m.name)}</b>
+        ${list.length ? `<table class="list" style="margin-top:6px"><tbody>${list.map((r, i) => `<tr><td class="muted" style="width:28px">${i + 1}</td><td><b>${esc(r.symbol)}</b></td><td class="num">${n(r.n)}회</td><td class="num muted">${n(r.sess)}방문</td></tr>`).join("")}</tbody></table>`
+          : `<div class="empty" style="padding:18px 0">아직 없어요</div>`}</div>`;
+    }).join("");
+    const found = (d.searches || []).filter((r) => r.kind === "search").slice(0, 15);
+    const miss = (d.searches || []).filter((r) => r.kind === "search_miss").slice(0, 15);
+    const sRows = (list) => list.length
+      ? `<table class="list"><tbody>${list.map((r) => `<tr><td><b>${esc(r.term)}</b></td><td class="muted">${esc(Portal.marketName(r.market))}</td><td class="num">${n(r.n)}회</td></tr>`).join("")}</tbody></table>`
+      : `<div class="empty" style="padding:18px 0">아직 없어요</div>`;
+    const ex = (d.explains || []).slice(0, 10);
+
+    box.innerHTML = `
+      <div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+        <div class="card kpi"><span class="hint">방문(세션)</span><b>${n(k.sessions)}</b><small>비회원 포함</small></div>
+        <div class="card kpi"><span class="hint">방문한 회원</span><b>${n(k.members)}명</b><small>2일 이상 방문 ${n(k.returning)}명</small></div>
+        <div class="card kpi"><span class="hint">방문 시간 (중간값)</span><b>${dur(k.med_active_ms)}</b><small>평균 ${dur(k.avg_active_ms)}</small></div>
+        <div class="card kpi"><span class="hint">소개 화면 → 홈 도착</span><b>${pct(k.landing_to_home, k.landing)}</b><small>${n(k.landing_to_home)} / ${n(k.landing)} 방문</small></div>
+      </div>
+
+      <div class="grid2" style="margin-top:16px">
+        <section class="card">
+          <h2 style="font-size:16px">신규 방문 퍼널</h2><p class="hint">소개 화면으로 들어온 방문이 어디까지 갔는지 · 옆 %는 바로 앞 단계 대비</p>
+          ${funnel(["소개 화면", "로그인·가입", "포털 홈", "대시보드", "가격 차트"], d.funnel_new || [])}
+        </section>
+        <section class="card">
+          <h2 style="font-size:16px">회원 이용 퍼널</h2><p class="hint">홈에 들어온 방문이 차트 해석까지 보는지</p>
+          ${funnel(["포털 홈", "대시보드", "가격 차트", "두 신호 설명 열기"], d.funnel_member || [])}
+        </section>
+      </div>
+
+      <section class="card" style="margin-top:16px">
+        <h2 style="font-size:16px">홈 다음에 간 곳</h2><p class="hint">포털 홈 다음에 연 화면 · 홈 조회 ${n(hnTotal)}회 기준</p>
+        ${hnRows.length ? bars(hnRows) : `<div class="empty">아직 기록이 없어요</div>`}
+      </section>
+
+      <section class="card" style="margin-top:16px">
+        <h2 style="font-size:16px">시간대별 방문</h2><p class="hint">방문이 시작된 요일·시각 (한국 시간) · 진할수록 많음</p>
+        <div class="hm">${hm}</div>
+      </section>
+
+      <section class="card table-wrap" style="margin-top:16px">
+        <h2 style="font-size:16px">화면별 머문 시간 · 이탈률</h2>
+        ${pageRows ? `<table class="list" style="min-width:600px"><thead><tr><th>화면</th><th class="num">조회</th><th class="num">머문 시간(중간값)</th><th class="num">평균</th><th class="num">이탈률</th></tr></thead><tbody>${pageRows}</tbody></table>`
+          : `<div class="empty">아직 기록이 없어요</div>`}
+      </section>
+
+      <section class="section">
+        <div><h2>많이 본 코인·종목 TOP 10</h2><p class="hint">대시보드 목록·순위표에서 누르거나 검색해서 고른 횟수 · 방문 = 그 종목을 본 방문 수</p></div>
+        <div class="grid2">${coinCards}</div>
+      </section>
+
+      <div class="grid2" style="margin-top:16px">
+        <section class="card"><h2 style="font-size:16px">많이 찾은 검색어</h2><p class="hint">검색해서 종목을 찾은 경우</p>${sRows(found)}</section>
+        <section class="card"><h2 style="font-size:16px">결과가 없던 검색어</h2><p class="hint">우리 사이트에 없는 종목을 찾았다는 신호 · 20자까지만 저장</p>${sRows(miss)}</section>
+      </div>
+
+      <section class="card" style="margin-top:16px">
+        <h2 style="font-size:16px">'두 신호 설명'을 많이 연 종목</h2><p class="hint">가격 차트에서 우선순위·판정 비교 설명을 연 횟수</p>
+        ${ex.length ? `<table class="list"><tbody>${ex.map((r) => `<tr><td><b>${esc(r.symbol)}</b></td><td class="muted">${esc(Portal.marketName(r.market))}</td><td class="num">${n(r.n)}회</td></tr>`).join("")}</tbody></table>` : `<div class="empty" style="padding:18px 0">아직 없어요</div>`}
+      </section>
+
+      <section class="card" style="margin-top:16px">
+        <h2 style="font-size:16px">지표 설명</h2>
+        <dl class="defs">
+          <dt>방문(세션)</dt>
+          <dd>같은 브라우저 탭에서 이어진 한 번의 이용이에요. 30분 넘게 아무 화면도 열지 않으면 다음 이용은 새 방문으로 셉니다. 로그인 전 소개 화면 방문도 포함돼요.</dd>
+          <dt>방문 시간</dt>
+          <dd>한 방문 동안 각 화면에 머문 시간을 모두 더한 값이에요. 시계 시간이 아니라 실제로 보고 있던 시간만 셉니다.</dd>
+          <dt>머문 시간 (화면별)</dt>
+          <dd>그 화면을 연 순간부터 다른 화면으로 가거나 창을 닫을 때까지의 시간이에요. 다만 ① 다른 탭으로 가 있거나 창을 내린 동안은 빼고, ② 마지막 조작(클릭·스크롤·키보드·터치) 후 5분이 지나면 그 뒤는 자리를 비운 것으로 보고 빼요. 한 방문에서 같은 화면을 여러 번 봤으면 합쳐서 계산해요.</dd>
+          <dt>중간값과 평균</dt>
+          <dd>중간값은 줄 세웠을 때 가운데 값이라 몇 명의 아주 긴 시간에 흔들리지 않아요. 평균은 참고용이에요.</dd>
+          <dt>이탈률</dt>
+          <dd>그 화면을 본 방문 중, 그 화면을 마지막으로 사이트를 떠난 방문의 비율이에요. 5번 이상 본 화면 중 50% 이상이면 '높음'으로 표시해요.</dd>
+          <dt>퍼널</dt>
+          <dd>각 단계는 앞 단계까지 모두 거친 방문 수예요(순서는 상관없음). 옆의 %는 바로 앞 단계 대비 비율, 빨간 글씨는 다음 단계로 못 간 비율이에요.</dd>
+          <dt>제외·보관</dt>
+          <dd>운영자 계정의 활동은 기록하지 않아요. 기록은 90일 지나면 자동으로 지워져요.</dd>
+        </dl>
+      </section>`;
+  }
+  render();
+})();
+</script>
+</body>
+</html>

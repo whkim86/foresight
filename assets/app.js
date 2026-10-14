@@ -94,7 +94,7 @@
     const link = (href, label, pages = [href]) => `<a href="${href}" ${pages.includes(here) ? 'aria-current="page"' : ""}>${label}</a>`;
     const right = me
       ? `<nav class="nav">
-           ${me.acc.isAdmin ? link("admin.html", "운영자", ["admin.html", "accuracy.html", "ai.html", "models.html", "views.html"]) : ""}
+           ${me.acc.isAdmin ? link("admin.html", "운영자", ["admin.html", "accuracy.html", "ai.html", "models.html", "views.html", "analytics.html"]) : ""}
            ${link("mypage.html", "마이페이지")}
            ${link("board.html", "게시판", ["board.html", "post.html", "write.html"])}
            <span class="nav-sep"></span>
@@ -135,9 +135,75 @@
     return false;
   }
 
-  // 화면 조회수 +1 (운영자는 서버에서 제외). 실패해도 화면에는 영향 없음
+  // ---------- 방문 흐름 기록 (supabase/stage17.sql log_event, 운영자 화면 analytics.html) ----------
+  // 방문(세션): 같은 브라우저 탭에서 30분 넘게 쉬지 않고 이어진 이용. 30분 쉬면 새 방문
+  // 머문 시간: 그 화면이 실제로 보이는 동안(다른 탭·최소화 제외), 마지막 조작(클릭·스크롤·키·터치) 후 5분까지만 셈
+  const PortalEvents = (function () {
+    if (!sb) return { view() {}, leave() {}, log() {}, act() {} };
+    const IDLE = 5 * 60 * 1000, GAP = 30 * 60 * 1000;
+    let sid = null;
+    try {
+      const s = JSON.parse(sessionStorage.getItem("ai_sid") || "null");
+      if (s && Date.now() - s.t < GAP) sid = s.id;
+    } catch (e) {}
+    if (!sid) sid = Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+    const touch = () => { try { sessionStorage.setItem("ai_sid", JSON.stringify({ id: sid, t: Date.now() })); } catch (e) {} };
+    touch();
+
+    let token = cfg.SUPABASE_ANON_KEY;  // 로그인했으면 회원 토큰으로 (운영자 제외·회원 구분은 서버에서)
+    sb.auth.getSession().then(({ data }) => { if (data.session) token = data.session.access_token; });
+    sb.auth.onAuthStateChange((_e, s) => { token = s ? s.access_token : cfg.SUPABASE_ANON_KEY; });
+
+    // 페이지를 닫는 순간에도 전송되도록 keepalive
+    function send(body) {
+      touch();
+      try {
+        fetch(cfg.SUPABASE_URL + "/rest/v1/rpc/log_event", {
+          method: "POST", keepalive: true,
+          headers: { apikey: cfg.SUPABASE_ANON_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+          body: JSON.stringify(Object.assign({ p_session: sid }, body)),
+        }).catch(() => {});
+      } catch (e) {}
+    }
+
+    let page = null, acc = 0, since = 0, lastAct = Date.now();
+    const visible = () => document.visibilityState === "visible";
+    function pause() {  // 지금까지의 시간을 더하고 멈춤 (마지막 조작 후 5분 넘은 부분은 빼고)
+      if (since) { acc += Math.max(0, Math.min(Date.now(), lastAct + IDLE) - since); since = 0; }
+    }
+    function resume() { if (page && !since && visible()) since = Date.now(); }
+    function act() {
+      const now = Date.now();
+      if (since && now - lastAct > IDLE) { acc += Math.max(0, lastAct + IDLE - since); since = now; }
+      lastAct = now;
+      resume();
+    }
+    function flush(force) {  // 머문 시간 보내기 (화면을 떠날 때, 탭을 숨길 때)
+      pause();
+      if (page && (force || acc >= 500)) send({ p_kind: "leave", p_page: page, p_dur_ms: Math.round(acc) });
+      acc = 0;
+    }
+    function leave() { flush(true); page = null; }
+    function view(p) {
+      if (page) leave();
+      page = p; acc = 0; lastAct = Date.now();
+      resume();
+      send({ p_kind: "view", p_page: p });
+    }
+    ["pointerdown", "keydown", "touchstart", "mousemove", "wheel"].forEach((t) => addEventListener(t, act, { passive: true, capture: true }));
+    addEventListener("scroll", act, { passive: true, capture: true });
+    document.addEventListener("visibilitychange", () => {
+      if (visible()) { lastAct = Date.now(); resume(); } else flush(false);
+    });
+    addEventListener("pagehide", () => flush(false));
+    return { view, leave, act, log: (body) => send(body) };
+  })();
+  window.PortalEvents = PortalEvents;  // 대시보드 안 보드(iframe)가 종목 선택·검색을 여기로 보냄
+
+  // 화면 조회수 +1 (운영자는 서버에서 제외) + 방문 흐름 기록. 실패해도 화면에는 영향 없음
   function track(page) {
     if (sb) sb.rpc("track_page", { p_page: page }).then(() => {}, () => {});
+    PortalEvents.view(page);
   }
 
   // 수집·통계 단위 시장 목록: 코인 탭은 거래소별(업비트=coin, 빗썸=bithumb)로 펼침

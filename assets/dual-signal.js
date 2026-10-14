@@ -32,6 +32,50 @@
   :root[data-theme="dark"] .s-mx{background:#45360F;color:#FFD27A}:root[data-theme="dark"] .s-na{background:#262F47;color:#AEB7CC}`;
   document.head.appendChild(css);
 
+  // ---------- 방문 흐름 기록: 종목 선택·검색·설명 열기 (포털 화면의 PortalEvents 로 보냄) ----------
+  const PE = (() => { try { return window.parent !== window ? window.parent.PortalEvents : null; } catch (e) { return null; } })();
+  const LOG = (o) => { if (PE) PE.log(Object.assign({ p_market: board.market, p_page: `dash:${board.market}:${board.kind}` }, o)); };
+  // 보드 안에서의 조작도 '머문 시간'의 활동으로 셈 (iframe 안 이벤트는 바깥 화면에 전달되지 않아서)
+  ["pointerdown", "keydown", "touchstart", "mousemove", "wheel", "scroll"].forEach((t) =>
+    addEventListener(t, () => PE && PE.act(), { passive: true, capture: true }));
+  let typed = { term: "", t: 0 };
+  const missed = new Set();
+  // 목록·순위표에서 종목을 누름 (직전 60초 안에 검색어를 입력했으면 검색으로도 기록)
+  document.addEventListener("click", (ev) => {
+    const b = ev.target.closest && ev.target.closest("button[data-coin]");
+    if (!b) return;
+    const sym = b.getAttribute("data-coin");
+    if (typed.term && Date.now() - typed.t < 60000) LOG({ p_kind: "search", p_symbol: sym, p_term: typed.term });
+    typed = { term: "", t: 0 };
+    LOG({ p_kind: "coin", p_symbol: sym });
+  }, true);
+  document.addEventListener("input", (ev) => {
+    const el = ev.target;
+    if (!el || (el.id !== "q" && el.id !== "coinInput")) return;
+    typed = { term: el.value.trim(), t: Date.now() };
+    if (el.id === "q") {  // 가격 차트: 입력을 멈추고 1.5초 뒤 목록이 비어 있으면 '결과 없음'
+      clearTimeout(el._missT);
+      el._missT = setTimeout(() => {
+        const term = el.value.trim();
+        if (term && !document.querySelector("#coinlist button[data-coin]") && !missed.has(term.toUpperCase())) {
+          missed.add(term.toUpperCase());
+          LOG({ p_kind: "search_miss", p_term: term });
+        }
+      }, 1500);
+    }
+  }, true);
+  document.addEventListener("change", (ev) => {  // 우선순위: 검색칸에서 종목을 고르고 확정
+    const el = ev.target;
+    if (!el || el.id !== "coinInput") return;
+    const term = typed.term || el.value.trim();
+    if (!term) return;
+    const names = [...document.querySelectorAll("#coinList option")].map((o) => o.value);
+    const hit = names.find((n) => n.toUpperCase() === term.toUpperCase());
+    if (hit) { LOG({ p_kind: "search", p_symbol: hit, p_term: term }); LOG({ p_kind: "coin", p_symbol: hit }); }
+    else if (!missed.has(term.toUpperCase())) { missed.add(term.toUpperCase()); LOG({ p_kind: "search_miss", p_term: term }); }
+    typed = { term: "", t: 0 };
+  }, true);
+
   const VERDICT = { up: ["상승", "s-up"], dn: ["하락", "s-dn"], mx: ["혼돈", "s-mx"], hold: ["보류", "s-na"], stale: ["지연", "s-na"] };
   const SIGNAL = { buy: ["매수", "s-up"], wait: ["관망", "s-na"], sell: ["매도", "s-dn"] };
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -97,6 +141,7 @@
       box.type = "button"; box.className = "dv";
       box.addEventListener("click", () => {
         root.dataset.dvOpen = root.dataset.dvOpen === "1" ? "" : "1";
+        if (root.dataset.dvOpen) LOG({ p_kind: "explain", p_symbol: panels.get(root)[0] });
         fillPanel(root);
       });
       head.appendChild(box);
