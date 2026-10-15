@@ -8,10 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261014a">
+<link rel="stylesheet" href="assets/style.css?v=20261015a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261014a"></script>
-<script src="assets/app.js?v=20261014a"></script>
+<script src="config.js?v=20261015a"></script>
+<script src="assets/app.js?v=20261015a"></script>
 <style>
 .fn-row{display:grid;grid-template-columns:150px minmax(0,1fr) 120px;gap:12px;align-items:center;font-size:13.5px;margin:6px 0}
 .fn-bar{height:22px;border-radius:5px;background:var(--dn);min-width:2px}
@@ -114,8 +114,27 @@
     main.querySelectorAll("#period button").forEach((b) => b.setAttribute("aria-selected", String(Number(b.dataset.d) === days)));
     const box = main.querySelector("#body");
     box.innerHTML = `<div class="empty">불러오는 중…</div>`;
-    const { data: d, error } = await sb.rpc("funnel_stats", { p_days: days });
+    const [{ data: d, error }, wdRes] = await Promise.all([
+      sb.rpc("funnel_stats", { p_days: days }),
+      sb.from("withdrawals").select("*").order("created_at", { ascending: false }).limit(100),
+    ]);
     if (error) { box.innerHTML = `<div class="msg error">${esc(errText(error))}</div>`; return; }
+    // 탈퇴 사유 (stage18.sql) — 표가 아직 없으면 조용히 생략
+    const WD = { accuracy: "예측이 기대와 달랐어요", hard: "보는 방법이 어렵거나 복잡해요", missing: "원하는 종목·시장이 없어요",
+                 price: "이용료가 부담돼요", rarely: "자주 들어오지 않게 됐어요", other_service: "다른 서비스를 이용할 거예요",
+                 privacy: "개인정보가 걱정돼요", etc: "기타" };
+    const wds = wdRes.error ? null : wdRes.data || [];
+    const wdCount = {};
+    (wds || []).forEach((w) => (w.reasons || []).forEach((r) => (wdCount[r] = (wdCount[r] || 0) + 1)));
+    const wdHtml = wds === null ? "" : `
+      <section class="card" style="margin-top:16px">
+        <h2 style="font-size:16px">회원 탈퇴 사유</h2><p class="hint">전체 기간 · 탈퇴 ${n(wds.length)}명 · 사유는 여러 개 고를 수 있어요 (누가 탈퇴했는지는 남기지 않아요)</p>
+        ${wds.length ? bars(Object.entries(wdCount).sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ label: WD[k] || k, n: v, note: pct(v, wds.length), cls: "red" })), wds.length)
+          + `<table class="list" style="margin-top:10px"><tbody>${wds.slice(0, 20).map((w) => `<tr><td class="muted" style="width:90px">${esc(String(w.created_at).slice(0, 10))}</td>
+              <td>${esc((w.reasons || []).map((r) => WD[r] || r).join(", ") || "사유 선택 안 함")}${w.memo ? `<br><span class="muted">“${esc(w.memo)}”</span>` : ""}</td>
+              <td class="num muted">가입 ${n(w.member_days)}일${w.was_paid ? " · 유료 이용" : ""}</td></tr>`).join("")}</tbody></table>`
+          : `<div class="empty" style="padding:18px 0">아직 탈퇴한 회원이 없어요</div>`}
+      </section>`;
     const k = d.kpi || {};
 
     // ---------- 홈 다음 경로 ----------
@@ -209,6 +228,8 @@
         <h2 style="font-size:16px">'두 신호 설명'을 많이 연 종목</h2><p class="hint">가격 차트에서 우선순위·판정 비교 설명을 연 횟수</p>
         ${ex.length ? `<table class="list"><tbody>${ex.map((r) => `<tr><td><b>${esc(r.symbol)}</b></td><td class="muted">${esc(Portal.marketName(r.market))}</td><td class="num">${n(r.n)}회</td></tr>`).join("")}</tbody></table>` : `<div class="empty" style="padding:18px 0">아직 없어요</div>`}
       </section>
+
+      ${wdHtml}
 
       <section class="card" style="margin-top:16px">
         <h2 style="font-size:16px">지표 설명</h2>

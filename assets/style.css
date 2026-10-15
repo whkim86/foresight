@@ -499,3 +499,11 @@ body.landing {
 
 .center-note { max-width: 560px; margin: 80px auto; }
 code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; background: var(--chip); padding: 1px 6px; border-radius: 5px; }
+
+/* 마이페이지 회원 탈퇴 */
+.wd summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--muted); list-style: none; }
+.wd summary::before { content: "▸ "; }
+.wd[open] summary { color: var(--ink); }
+.wd[open] summary::before { content: "▾ "; }
+.wd-reasons { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px 14px; margin-top: 8px; }
+.wd textarea { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14px; resize: vertical; }

@@ -19,10 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261014a">
+<link rel="stylesheet" href="assets/style.css?v=20261015a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261014a"></script>
-<script src="assets/app.js?v=20261014a"></script>
+<script src="config.js?v=20261015a"></script>
+<script src="assets/app.js?v=20261015a"></script>
 </head>
 <body>
 <script>
@@ -95,6 +95,31 @@
         ${historyRows || ""}
         ${requests && requests.length ? "" : `<p class="hint" style="font-size:12.5px;margin-top:6px">아직 연장 내역이 없어요</p>`}
       </div>
+      ${acc.isAdmin ? "" : `
+      <details class="card wd">
+        <summary>회원 탈퇴</summary>
+        <div class="form-stack" style="margin-top:14px">
+          <p class="hint">탈퇴하면 계정과 프로필, 작성한 글·댓글, 이용 기간이 모두 삭제되고 되돌릴 수 없어요.
+            ${Object.values(acc.tabs).some((t) => t.paid) ? `<br><b style="color:var(--up)">아직 남은 이용 기간이 있어요.</b> 환불이 필요하면 탈퇴 전에 게시판 '문의'에 먼저 남겨 주세요.` : ""}
+            ${pending ? `<br><b style="color:var(--up)">입금 확인을 기다리는 신청이 있어요.</b> 이미 입금했다면 탈퇴 전에 문의해 주세요.` : ""}</p>
+          <div>
+            <div class="label">떠나시는 이유를 알려주시면 서비스 개선에 쓸게요 (선택, 여러 개 가능)</div>
+            <div class="wd-reasons">
+              ${[["accuracy", "예측이 기대와 달랐어요"], ["hard", "보는 방법이 어렵거나 복잡해요"], ["missing", "원하는 종목·시장이 없어요"],
+                 ["price", "이용료가 부담돼요"], ["rarely", "자주 들어오지 않게 됐어요"], ["other_service", "다른 서비스를 이용할 거예요"],
+                 ["privacy", "개인정보가 걱정돼요"], ["etc", "기타"]]
+                .map(([k, l]) => `<label class="check"><input type="checkbox" name="wdReason" value="${k}"><span>${l}</span></label>`).join("")}
+            </div>
+            <textarea id="wdMemo" maxlength="200" rows="3" placeholder="더 하고 싶은 말이 있으면 적어주세요 (200자까지)" style="width:100%;margin-top:8px"></textarea>
+          </div>
+          <div class="field">
+            <label for="wdConfirm">확인을 위해 <b>탈퇴</b>라고 입력해 주세요</label>
+            <input id="wdConfirm" autocomplete="off" placeholder="탈퇴">
+          </div>
+          <div class="msg" id="wdMsg" hidden></div>
+          <button class="btn ghost" id="wdBtn" type="button" style="color:var(--up);border-color:var(--up)">탈퇴하기</button>
+        </div>
+      </details>`}
     </div>`;
 
   // ---------- 오른쪽: 이용 연장하기 ----------
@@ -153,6 +178,23 @@
 
   const $ = (id) => document.getElementById(id);
   const show = (kind, text) => { const m = $("msg"); m.className = "msg " + kind; m.textContent = text; m.hidden = false; };
+
+  // ---------- 회원 탈퇴 (supabase/stage18.sql delete_my_account) ----------
+  if ($("wdBtn")) {
+    const wdShow = (kind, text) => { const m = $("wdMsg"); m.className = "msg " + kind; m.textContent = text; m.hidden = false; };
+    $("wdBtn").onclick = async () => {
+      if ($("wdConfirm").value.trim() !== "탈퇴") return wdShow("error", "확인 칸에 '탈퇴'라고 입력해 주세요.");
+      if (!confirmClick($("wdBtn"), "되돌릴 수 없어요 · 한 번 더 누르면 탈퇴")) return;
+      $("wdBtn").disabled = true;
+      const reasons = [...document.querySelectorAll('input[name="wdReason"]:checked')].map((i) => i.value);
+      const { error } = await sb.rpc("delete_my_account", { p_reasons: reasons, p_memo: $("wdMemo").value });
+      if (error) { $("wdBtn").disabled = false; return wdShow("error", errText(error)); }
+      await sb.auth.signOut();
+      document.body.innerHTML = `<main class="page"><div class="card center-note" style="max-width:480px;margin:80px auto;text-align:center">
+        <h2>탈퇴가 완료됐어요</h2><p class="hint" style="margin-top:8px">그동안 AI 신호등을 이용해 주셔서 감사합니다.</p>
+        <a class="btn" href="index.html" style="margin-top:16px">처음 화면으로</a></div></main>`;
+    };
+  }
 
   if (pending) {
     $("cancelBtn").onclick = async () => {
