@@ -233,11 +233,14 @@ table.det{width:100%;border-collapse:collapse;min-width:520px;font-size:14px}
   .rank th:nth-child(5),.rank td:nth-child(5),.rank th:nth-child(7),.rank td:nth-child(7){display:none}
   }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.rank-search{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 12px}
+.rank-search input{width:240px;max-width:100%;border:1px solid var(--line-strong);border-radius:10px;background:var(--paper);color:inherit;padding:9px 12px;font-size:15px}
+#rankQn{font-size:13px;color:var(--muted)}#rankQn .chip{margin-left:4px}
 </style>
 <script>window.PORTAL_BOARD={market:"kospi",kind:"priority"};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../config.js?v=20261015a"></script>
-<script src="../assets/board-data.js?v=20261015a"></script>
+<script src="../config.js?v=20261015b"></script>
+<script src="../assets/board-data.js?v=20261015b"></script>
 </head>
 <body>
 <div class="wrap">
@@ -580,6 +583,7 @@ function renderApp(){
   h+='<section aria-labelledby="rank-h"><div class="sec-head"><h2 id="rank-h">우선순위 순위표</h2>';
   h+='<p>6일 신호 칸은 위부터 종가, 고점, 저점이고 왼쪽부터 D+1입니다</p></div>';
   h+='<details class="how"><summary>점수는 어떻게 계산하나요</summary><p>날짜별로 종가 40%, 고점 30%, 저점 30%를 섞고, 각 칸은 신호 강도(괄호 안 숫자) 60%와 상승 확률 40%로 계산합니다. D+1에 1.0, D+6에 0.35까지 가까운 날에 더 큰 가중치를 줘서 평균낸 값입니다. D+1 날짜가 기준일 당일이나 다음 날이 아닌 '+CFG.noun+'(데이터 지연)과 예측값이 비어 있는 '+CFG.noun+'은 순위에서 제외합니다.</p></details>';
+  h+='<div class="rank-search"><input id="rankQ" type="search" autocomplete="off" spellcheck="false" placeholder="'+((typeof CFG!=='undefined'&&CFG.noun)||'코인')+' 이름으로 찾기" aria-label="순위표 검색"><span id="rankQn"></span></div>';
   h+='<div class="rank-box"><table class="rank"><thead><tr><th>순위</th><th>'+CFG.noun+'</th><th>우선순위 점수</th><th>6일 신호</th><th>D+1 날짜</th><th>매수 신호</th><th>종가 상승 평균</th><th>가격 차트 판정</th></tr></thead><tbody id="rankBody"></tbody></table></div>';
   h+='<button class="btn more" id="more"></button>';
   if(cur.stale.length){
@@ -599,6 +603,7 @@ function renderApp(){
   $('#app').innerHTML=h;
 
   $('#more').onclick=function(){state.showAll=!state.showAll;renderRank();};
+  $('#rankQ').oninput=function(){state.rq=this.value.trim().toUpperCase();renderRank();};
   var dl=$('#coinList'); dl.innerHTML=Array.from(cur.byName.keys()).sort().map(function(n){return '<option value="'+esc(n)+'">'}).join('');
   var ci=$('#coinInput');
   ci.onfocus=function(){ci.select()};
@@ -626,16 +631,23 @@ function chooseCoin(name,scroll){
   }
 }
 function renderRank(){
-  var list=state.showAll?cur.stats:cur.stats.slice(0,10);
+  var rq=state.rq||'';
+  var list=rq?cur.stats.filter(function(s){return s.co.name.toUpperCase().indexOf(rq)>=0}):(state.showAll?cur.stats:cur.stats.slice(0,10));
   var h='';
   list.forEach(function(s,i){
-    h+='<tr><td class="no">'+(i+1)+'</td><td class="nm"><button data-coin="'+esc(s.co.name)+'">'+esc(s.co.name)+'</button></td>';
+    h+='<tr><td class="no">'+(cur.stats.indexOf(s)+1)+'</td><td class="nm"><button data-coin="'+esc(s.co.name)+'">'+esc(s.co.name)+'</button></td>';
     h+='<td><div class="bar"><span>'+round(s.score)+'</span><div class="track"><i style="width:'+Math.max(2,Math.min(100,s.score))+'%"></i></div></div></td>';
     h+='<td>'+miniStrip(s.co)+'</td><td class="d1">'+esc(fmtDate(s.co.start))+'</td><td>'+s.buys.length+'건</td><td>'+round(s.avg.c)+'%</td><td class="pv" data-coin="'+esc(s.co.name)+'" data-sig="'+((s.co.days[0]||{}).c||{}).s+'"></td></tr>';
   });
   $('#rankBody').innerHTML=h; if(window.portalDualRank) window.portalDualRank($('#rankBody'),state.pred);
   var m=$('#more'); m.textContent=state.showAll?'상위 10개만 보기':'전체 '+cur.stats.length+'개 보기';
-  m.style.display=cur.stats.length>10?'block':'none';
+  m.style.display=(!rq&&cur.stats.length>10)?'block':'none';
+  var qn=$('#rankQn'); if(qn){
+    if(!rq) qn.innerHTML='';
+    else if(list.length) qn.textContent=list.length+'개 찾음';
+    else { var out=Array.from(cur.byName.keys()).filter(function(k){return k.toUpperCase().indexOf(rq)>=0}).slice(0,5);
+      qn.innerHTML=out.length?'순위에서 제외된 항목 · '+out.map(function(k){return '<button class="chip" data-coin="'+esc(k)+'">'+esc(k)+'</button>'}).join(' '):'찾는 이름이 없어요'; }
+  }
 }
 function renderChartControls(){
   var co=cur.byName.get(state.coin).co;
@@ -895,6 +907,6 @@ if(window.ResizeObserver){
 }
 })();
 </script>
-<script src="../assets/dual-signal.js?v=20261015a"></script>
+<script src="../assets/dual-signal.js?v=20261015b"></script>
 </body>
 </html>

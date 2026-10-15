@@ -171,6 +171,30 @@ PRIORITY_PATCHES = [
     ("<th>종가 상승 평균</th></tr></thead>", "<th>종가 상승 평균</th><th>가격 차트 판정</th></tr></thead>"),
     ("+round(s.avg.c)+'%</td></tr>';",
      "+round(s.avg.c)+'%</td><td class=\"pv\" data-coin=\"'+esc(s.co.name)+'\" data-sig=\"'+((s.co.days[0]||{}).c||{}).s+'\"></td></tr>';"),
+    # 순위표 검색창: 이름 일부로 바로 걸러 보기 (순위 번호는 원래 순위 그대로). 차트 칸 검색은 그대로 둠
+    ("h+='<div class=\"rank-box\">",
+     "h+='<div class=\"rank-search\"><input id=\"rankQ\" type=\"search\" autocomplete=\"off\" spellcheck=\"false\" placeholder=\"'+((typeof CFG!=='undefined'&&CFG.noun)||'코인')+' 이름으로 찾기\" aria-label=\"순위표 검색\"><span id=\"rankQn\"></span></div>';\n  h+='<div class=\"rank-box\">"),
+    ("$('#more').onclick=function(){state.showAll=!state.showAll;renderRank();};",
+     "$('#more').onclick=function(){state.showAll=!state.showAll;renderRank();};\n"
+     "  $('#rankQ').oninput=function(){state.rq=this.value.trim().toUpperCase();renderRank();};"),
+    ("var list=state.showAll?cur.stats:cur.stats.slice(0,10);",
+     "var rq=state.rq||'';\n"
+     "  var list=rq?cur.stats.filter(function(s){return s.co.name.toUpperCase().indexOf(rq)>=0}):(state.showAll?cur.stats:cur.stats.slice(0,10));"),
+    ("h+='<tr><td class=\"no\">'+(i+1)+'</td>",
+     "h+='<tr><td class=\"no\">'+(cur.stats.indexOf(s)+1)+'</td>"),
+    ("m.style.display=cur.stats.length>10?'block':'none';",
+     "m.style.display=(!rq&&cur.stats.length>10)?'block':'none';\n"
+     "  var qn=$('#rankQn'); if(qn){\n"
+     "    if(!rq) qn.innerHTML='';\n"
+     "    else if(list.length) qn.textContent=list.length+'개 찾음';\n"
+     "    else { var out=Array.from(cur.byName.keys()).filter(function(k){return k.toUpperCase().indexOf(rq)>=0}).slice(0,5);\n"
+     "      qn.innerHTML=out.length?'순위에서 제외된 항목 · '+out.map(function(k){return '<button class=\"chip\" data-coin=\"'+esc(k)+'\">'+esc(k)+'</button>'}).join(' '):'찾는 이름이 없어요'; }\n"
+     "  }"),
+    ("</style>",
+     ".rank-search{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 12px}\n"
+     ".rank-search input{width:240px;max-width:100%;border:1px solid var(--line-strong);border-radius:10px;background:var(--paper);color:inherit;padding:9px 12px;font-size:15px}\n"
+     "#rankQn{font-size:13px;color:var(--muted)}#rankQn .chip{margin-left:4px}\n"
+     "</style>"),
     ("$('#rankBody').innerHTML=h;",
      "$('#rankBody').innerHTML=h; if(window.portalDualRank) window.portalDualRank($('#rankBody'),state.pred);"),
 ]
@@ -182,7 +206,7 @@ OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20261015a"
+ASSET_VERSION = "20261015b"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 

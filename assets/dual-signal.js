@@ -51,13 +51,14 @@
   }, true);
   document.addEventListener("input", (ev) => {
     const el = ev.target;
-    if (!el || (el.id !== "q" && el.id !== "coinInput")) return;
+    if (!el || (el.id !== "q" && el.id !== "coinInput" && el.id !== "rankQ")) return;
     typed = { term: el.value.trim(), t: Date.now() };
-    if (el.id === "q") {  // 가격 차트: 입력을 멈추고 1.5초 뒤 목록이 비어 있으면 '결과 없음'
+    if (el.id === "q" || el.id === "rankQ") {  // 입력을 멈추고 1.5초 뒤 목록이 비어 있으면 '결과 없음'
       clearTimeout(el._missT);
       el._missT = setTimeout(() => {
         const term = el.value.trim();
-        if (term && !document.querySelector("#coinlist button[data-coin]") && !missed.has(term.toUpperCase())) {
+        const list = el.id === "q" ? "#coinlist button[data-coin]" : "#rankBody button[data-coin], #rankQn button[data-coin]";
+        if (term && !document.querySelector(list) && !missed.has(term.toUpperCase())) {
           missed.add(term.toUpperCase());
           LOG({ p_kind: "search_miss", p_term: term });
         }
