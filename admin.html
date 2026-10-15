@@ -19,10 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261015b">
+<link rel="stylesheet" href="assets/style.css?v=20261015c">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261015b"></script>
-<script src="assets/app.js?v=20261015b"></script>
+<script src="config.js?v=20261015c"></script>
+<script src="assets/app.js?v=20261015c"></script>
 </head>
 <body>
 <script>
@@ -46,11 +46,20 @@
   const STATUS = { approved: ["승인", "teal"], rejected: ["거절", "red"], cancelled: ["회원 취소", "gray"] };
 
   async function load() {
-    const [{ data: reqs, error: e1 }, { data: members, error: e2 }] = await Promise.all([
+    const [{ data: reqs, error: e1 }, { data: members, error: e2 }, actRes] = await Promise.all([
       sb.from("payment_requests").select("*, profiles(nickname, email)").order("created_at", { ascending: false }).limit(200),
       sb.from("profiles").select("*").order("joined_at", { ascending: false }),
+      sb.rpc("member_activity"),
     ]);
     if (e1 || e2) { main.innerHTML = `<div class="msg error">${esc(errText(e1 || e2))}</div>`; return; }
+    // 회원별 이용 현황 (stage19.sql). 함수가 아직 없으면 칸만 비워 둠
+    const act = Object.fromEntries((actRes.error ? [] : actRes.data || []).map((r) => [r.user_id, r]));
+    function lastVisit(ts) {
+      if (!ts) return `<span class="muted">기록 없음</span>`;
+      const days = Math.floor((Date.now() - new Date(ts)) / 86400000);
+      const txt = days <= 0 ? "오늘" : days === 1 ? "어제" : days + "일 전";
+      return days >= 7 ? `<span style="color:var(--warn);font-weight:600">${txt}</span>` : txt;
+    }
 
     const pending = reqs.filter((r) => r.status === "pending");
     const done = reqs.filter((r) => r.status !== "pending").slice(0, 30);
@@ -92,6 +101,9 @@
           <td><b>${esc(p.nickname)}</b><br><span class="muted">${esc(p.email)}</span></td>
           <td class="muted">${ymd(p.joined_at)}</td>
           <td>${state}</td>
+          <td>${lastVisit(act[p.id]?.last_visit)}</td>
+          <td class="num">${act[p.id] ? act[p.id].days_30 + "일" : "-"}<br><span class="muted">${act[p.id] ? act[p.id].visits_30 + "번" : ""}</span></td>
+          <td>${act[p.id]?.top_market ? esc(Portal.marketName(act[p.id].top_market)) : `<span class="muted">-</span>`}</td>
           ${cells}
           <td><button class="btn sm ghost" data-save="${p.id}">저장</button></td>
         </tr>`;
@@ -116,10 +128,11 @@
       <section class="section">
         <div>
           <h2>회원 목록</h2>
-          <p class="hint">탭별 만료일을 직접 고칠 수 있어요(환불·보상 등). 날짜를 지우고 저장하면 그 탭 이용권이 없어져요</p>
+          <p class="hint">탭별 만료일을 직접 고칠 수 있어요(환불·보상 등). 날짜를 지우고 저장하면 그 탭 이용권이 없어져요<br>
+            최근 방문 = 마지막으로 사이트를 이용한 때(7일 넘으면 주황색) · 30일 방문 = 최근 30일 중 들어온 날 수와 방문 횟수 · 주로 본 시장 = 대시보드에서 가장 많이 연 시장 (방문 흐름 기록 시작 이후)</p>
         </div>
         <div class="card table-wrap" style="padding:8px 12px">
-          <table class="list"><thead><tr><th>회원</th><th>가입일</th><th>상태</th>${COLS.map((t) => `<th>${colName(t)} 만료</th>`).join("")}<th></th></tr></thead>
+          <table class="list"><thead><tr><th>회원</th><th>가입일</th><th>상태</th><th>최근 방문</th><th class="num">30일 방문</th><th>주로 본 시장</th>${COLS.map((t) => `<th>${colName(t)} 만료</th>`).join("")}<th></th></tr></thead>
           <tbody>${memberRows}</tbody></table>
         </div>
       </section>
