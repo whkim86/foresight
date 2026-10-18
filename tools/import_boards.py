@@ -199,6 +199,21 @@ PRIORITY_PATCHES = [
     ("$('#rankBody').innerHTML=h;",
      "$('#rankBody').innerHTML=h; if(window.portalDualRank) window.portalDualRank($('#rankBody'),state.pred);"),
 ]
+# 한글명으로도 검색 (assets/names.js 의 portalNameHit / portalNameIs)
+NAME_SEARCH_PATCHES = {
+    "chart": [
+        ("return !q||k.toUpperCase().indexOf(q)>=0;",
+         "return !q||k.toUpperCase().indexOf(q)>=0||(window.portalNameHit&&window.portalNameHit(k,q));"),
+    ],
+    "priority": [
+        ("s.co.name.toUpperCase().indexOf(rq)>=0",
+         "(s.co.name.toUpperCase().indexOf(rq)>=0||(window.portalNameHit&&window.portalNameHit(s.co.name,rq)))"),
+        ("return k.toUpperCase().indexOf(rq)>=0",
+         "return k.toUpperCase().indexOf(rq)>=0||(window.portalNameHit&&window.portalNameHit(k,rq))"),
+        ("if(k.toUpperCase()===v) hit=k",
+         "if(k.toUpperCase()===v||(window.portalNameIs&&window.portalNameIs(k,v))) hit=k"),
+    ],
+}
 DUAL_CHART_PATCH = ("b.textContent=(v==='stale'||v==='hold')?VLAB[v]:'D+1 '+VLAB[v];",
                     "b.textContent=(v==='stale'||v==='hold')?VLAB[v]:'D+1 '+VLAB[v];\n"
                     "    if(window.portalDual) window.portalDual(root,name,v,cur.pd,P.a);\n"
@@ -208,7 +223,7 @@ OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20261018c"
+ASSET_VERSION = "20261018d"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 
@@ -260,7 +275,7 @@ def convert(html, market, kind, texts=None):
         html = sub_once(r"function numKey\(n\)\{[^}]*\}", lambda _m: numkey, html, "모델 정렬")
 
     # 3-2) 모델 52개 대비(CHART_PATCHES), 두 신호 나란히 보기(DUAL_CHART_PATCH, PRIORITY_PATCHES)
-    patches = (CHART_PATCHES + [DUAL_CHART_PATCH]) if kind == "chart" else PRIORITY_PATCHES
+    patches = ((CHART_PATCHES + [DUAL_CHART_PATCH]) if kind == "chart" else PRIORITY_PATCHES) + NAME_SEARCH_PATCHES[kind]
     for a, b in patches:
         if html.count(a) != 1:
             raise RuntimeError(f"{kind} 화면 수정 위치를 못 찾음 ({html.count(a)}곳): {a[:40]!r}")

@@ -238,8 +238,8 @@ table.det{width:100%;border-collapse:collapse;min-width:520px;font-size:14px}
 </style>
 <script>window.PORTAL_BOARD={market:"coin",kind:"priority"};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../config.js?v=20261018c"></script>
-<script src="../assets/board-data.js?v=20261018c"></script>
+<script src="../config.js?v=20261018d"></script>
+<script src="../assets/board-data.js?v=20261018d"></script>
 </head>
 <body>
 <div class="wrap">
@@ -535,7 +535,7 @@ function renderApp(){
   ci.onfocus=function(){ci.select()};
   var apply=function(){
     var v=ci.value.trim().toUpperCase();
-    var hit=null; cur.byName.forEach(function(s,k){if(k.toUpperCase()===v) hit=k});
+    var hit=null; cur.byName.forEach(function(s,k){if(k.toUpperCase()===v||(window.portalNameIs&&window.portalNameIs(k,v))) hit=k});
     if(hit&&hit!==state.coin) chooseCoin(hit,false);
   };
   ci.oninput=apply; ci.onchange=function(){apply(); ci.value=state.coin;};
@@ -558,7 +558,7 @@ function chooseCoin(name,scroll){
 }
 function renderRank(){
   var rq=state.rq||'';
-  var list=rq?cur.stats.filter(function(s){return s.co.name.toUpperCase().indexOf(rq)>=0}):(state.showAll?cur.stats:cur.stats.slice(0,10));
+  var list=rq?cur.stats.filter(function(s){return (s.co.name.toUpperCase().indexOf(rq)>=0||(window.portalNameHit&&window.portalNameHit(s.co.name,rq)))}):(state.showAll?cur.stats:cur.stats.slice(0,10));
   var h='';
   list.forEach(function(s,i){
     h+='<tr><td class="no">'+(cur.stats.indexOf(s)+1)+'</td><td class="nm"><button data-coin="'+esc(s.co.name)+'">'+esc(s.co.name)+'</button></td>';
@@ -571,7 +571,7 @@ function renderRank(){
   var qn=$('#rankQn'); if(qn){
     if(!rq) qn.innerHTML='';
     else if(list.length) qn.textContent=list.length+'개 찾음';
-    else { var out=Array.from(cur.byName.keys()).filter(function(k){return k.toUpperCase().indexOf(rq)>=0}).slice(0,5);
+    else { var out=Array.from(cur.byName.keys()).filter(function(k){return k.toUpperCase().indexOf(rq)>=0||(window.portalNameHit&&window.portalNameHit(k,rq))}).slice(0,5);
       qn.innerHTML=out.length?'순위에서 제외된 항목 · '+out.map(function(k){return '<button class="chip" data-coin="'+esc(k)+'">'+esc(k)+'</button>'}).join(' '):'찾는 이름이 없어요'; }
   }
 }
@@ -826,8 +826,8 @@ if(window.ResizeObserver){
 }
 })();
 </script>
-<script src="../assets/dual-signal.js?v=20261018c"></script>
-<script src="../assets/names.js?v=20261018c"></script>
-<script src="../assets/ask-ai.js?v=20261018c"></script>
+<script src="../assets/dual-signal.js?v=20261018d"></script>
+<script src="../assets/names.js?v=20261018d"></script>
+<script src="../assets/ask-ai.js?v=20261018d"></script>
 </body>
 </html>

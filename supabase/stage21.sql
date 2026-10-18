@@ -70,7 +70,7 @@ $t$많이 찾으시던 코인 관련 미국 종목을 나스닥 예측에 곧 �
 
   -- 2) 새 종목 추가 예정 — 코스피
   insert into posts (board, user_id, author, title, body, pinned, auto_key)
-  values ('kospi', admin_id, 'AI 신호등', '[공지] 📢 인기 ETF·아시아 지수 30개가 곧 추가돼요',
+  values ('kospi', admin_id, 'AI 신호등', '[공지] 📢 인기 ETF·아시아 지수 29개가 곧 추가돼요',
 $t$많이 찾으시던 국내 ETF와 아시아 지수를 코스피 예측에 곧 추가해요.
 지금 AI 모델 학습 중이고, 준비가 끝나면 우선순위와 가격 차트 화면에 바로 나와요. 추가되면 이 게시판에 다시 알려드릴게요.
 

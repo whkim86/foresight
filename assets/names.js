@@ -96,6 +96,11 @@
       if (name && o.label !== name) o.label = name;
     });
   }
+  // 한글명 검색: 보드의 검색 필터가 부름 (tools/import_boards.py 의 NAME_SEARCH_PATCHES). q 는 대문자로 바뀐 검색어
+  const flat = (s) => String(s || "").replace(/\s/g, "").toUpperCase();
+  window.portalNameHit = (sym, q) => { const k = ko(map, sym); return !!(k && q && flat(k).indexOf(flat(q)) >= 0); };
+  window.portalNameIs = (sym, q) => { const k = ko(map, sym); return !!(k && q && flat(k) === flat(q)); };
+
   function queue() { if (map && !queued) { queued = true; setTimeout(decorate, 20); } }  // 화면이 가려져 있어도 동작하게 타이머
   load(board.market).then((m) => {
     map = m;
