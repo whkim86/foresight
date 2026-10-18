@@ -45,7 +45,11 @@
   .cat-item .nm b{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .cat-item .nm span{font-size:12px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .cat-item .sg{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:0 0 auto}
-  .mk{font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 6px;background:var(--line-soft);color:var(--sub);white-space:nowrap}
+  /* 시장 태그: 신호 배지(채운 모양 · 빨강/파랑/노랑)와 헷갈리지 않게 테두리 모양 + 다른 색 */
+  .mks{display:flex;gap:4px}
+  .mk{font-size:10.5px;font-weight:700;border-radius:6px;padding:0 6px;border:1px solid currentColor;white-space:nowrap;line-height:1.6}
+  .mk.upbit{color:#6D28D9;background:#F3EEFF}.mk.bithumb{color:#C2410C;background:#FFF1E8}
+  .mk.nasdaq{color:#0E7490;background:#E6F7FA}.mk.kospi{color:#4D7C0F;background:#F0F7E4}
   .vb{font-size:12px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap}
   .vb.up{background:#FCE4E5;color:#B3222D}.vb.dn{background:#E4ECFB;color:#1D4FB0}.vb.mx{background:#FFF0D2;color:#8A5300}.vb.na{background:#ECEEF3;color:#5A6478}
   .pt{font-size:11px;color:var(--sub);white-space:nowrap}.pt.up{color:#B3222D}.pt.dn{color:#1D4FB0}
@@ -177,7 +181,8 @@
     return `dashboard.html?m=${it.mk}${ex}&v=chart`;
   }
   function itemHtml(it) {
-    let right = `<span class="mk">${MK[it.mk]}${it.mk === "coin" && it.ex.length === 1 ? " · " + (it.ex[0] === "upbit" ? "업비트" : "빗썸") : ""}</span>`;
+    const tags = it.mk === "coin" ? it.ex.map((x) => [x, x === "upbit" ? "업비트" : "빗썸"]) : [[it.mk, MK[it.mk]]];
+    let right = `<span class="mks">${tags.map(([c, l]) => `<span class="mk ${c}">${l}</span>`).join("")}</span>`;
     if (me) {
       if (!tabOpen(it)) right += `<span class="lockic">🔒 신호 잠김</span>`;
       else {
