@@ -19,11 +19,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261018a">
+<link rel="stylesheet" href="assets/style.css?v=20261018b">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261018a"></script>
-<script src="assets/app.js?v=20261018a"></script>
-<script src="assets/landing.js?v=20261018a"></script>
+<script src="config.js?v=20261018b"></script>
+<script src="assets/app.js?v=20261018b"></script>
+<script src="assets/landing.js?v=20261018b"></script>
 </head>
 <body class="home">
 <script>
@@ -54,6 +54,22 @@
     }),
   ]);
   const sig = Object.fromEntries((sigRes.data || []).map((r) => [r.market, r]));
+
+  // ---------- 상단 공지 띠: 최근 30일 안에 '공지로 고정'한 글 (상시 안내 [필독] 글은 제외), 닫으면 그 글은 다시 안 보임 ----------
+  const { data: notices } = await sb.from("posts").select("id, board, title, created_at")
+    .eq("pinned", true).or("auto_key.is.null,auto_key.not.like.guide-*")
+    .gte("created_at", new Date(Date.now() - 30 * DAY).toISOString())
+    .order("created_at", { ascending: false }).limit(5);
+  const closed = (() => { try { return JSON.parse(localStorage.getItem("noticeClosed") || "[]"); } catch (e) { return []; } })();
+  const notice = (notices || []).filter((p) => !closed.includes(p.id));
+  const noticeBar = notice.length ? `
+      <div class="notice-bar" id="noticeBar">
+        <span class="tag notice">공지</span>
+        <a href="post.html?id=${notice[0].id}"><b>${esc(notice[0].title)}</b></a>
+        ${notice.length > 1 ? `<a class="more" href="board.html?b=${esc(notice[1].board)}">외 ${notice.length - 1}건</a>` : ""}
+        <span class="when">${ago(notice[0].created_at)}</span>
+        <button type="button" class="x" aria-label="이 공지 닫기" title="이 공지 닫기">×</button>
+      </div>` : "";
 
   const { acc } = me;
   const day = Math.floor((Date.now() - acc.joined.getTime()) / DAY) + 1;
@@ -160,6 +176,7 @@
 
   document.body.insertAdjacentHTML("beforeend", `
     <main class="page">
+      ${noticeBar}
       <section class="hero on-night">
         <div>
           <div class="title-row" style="margin-bottom:8px"><h1>안녕하세요, ${esc(me.profile.nickname)}님</h1>${expiredBadge}</div>
@@ -195,6 +212,12 @@
         투자 판단과 그 결과에 대한 책임은 이용자 본인에게 있습니다.
       </p>
     </main>`);
+
+  const bar = document.getElementById("noticeBar");
+  if (bar) bar.querySelector(".x").addEventListener("click", () => {
+    try { localStorage.setItem("noticeClosed", JSON.stringify([...closed, notice[0].id].slice(-30))); } catch (e) { /* 저장이 막혀도 이번 화면에서만 닫음 */ }
+    bar.remove();
+  });
 })();
 </script>
 </body>
