@@ -19,11 +19,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261018b">
+<link rel="stylesheet" href="assets/style.css?v=20261018c">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261018b"></script>
-<script src="assets/app.js?v=20261018b"></script>
-<script src="assets/landing.js?v=20261018b"></script>
+<script src="config.js?v=20261018c"></script>
+<script src="assets/app.js?v=20261018c"></script>
+<script src="assets/names.js?v=20261018c"></script>
+<script src="assets/landing.js?v=20261018c"></script>
 </head>
 <body class="home">
 <script>
@@ -54,6 +55,16 @@
     }),
   ]);
   const sig = Object.fromEntries((sigRes.data || []).map((r) => [r.market, r]));
+
+  // 대표 종목 한글명 (코인은 거래소에서 받아옴 — 1.5초 안에 안 오면 심볼만)
+  const KN = {};
+  if (window.PortalNames) {
+    await Promise.race([
+      Promise.all(Object.keys(sig).map(async (k) => { KN[k] = await PortalNames.load(k); })),
+      new Promise((r) => setTimeout(r, 1500)),
+    ]);
+  }
+  const symKo = (market, sym) => { const k = window.PortalNames ? PortalNames.ko(KN[market], sym) : ""; return esc(sym) + (k ? `(${esc(k)})` : ""); };
 
   // ---------- 상단 공지 띠: 최근 30일 안에 '공지로 고정'한 글 (상시 안내 [필독] 글은 제외), 닫으면 그 글은 다시 안 보임 ----------
   const { data: notices } = await sb.from("posts").select("id, board, title, created_at")
@@ -105,11 +116,11 @@
     if (!s) {
       what = `<small>오늘의 신호</small><b class="v-na" style="font-size:18px">준비 중</b><span>예측이 들어오면 표시돼요</span>`;
     } else if (!t.open) {
-      what = `<small>${esc(s.lead_symbol)} D+1 판정</small><b>결제 후 열람</b><span>${ICONS.lock} 신호가 잠겨 있어요</span>`;
+      what = `<small>${symKo(key, s.lead_symbol)} D+1 판정</small><b>결제 후 열람</b><span>${ICONS.lock} 신호가 잠겨 있어요</span>`;
     } else {
       const [label, cls] = VERDICT[s.lead_verdict] || ["-", "v-na"];
       lamp = s.lead_verdict || "";
-      what = `<small>${m.exchanges ? esc(m.exchanges[0].label) + " " : ""}${esc(s.lead_symbol)} · D+1 판정</small><b class="${cls}">${label}</b>
+      what = `<small>${m.exchanges ? esc(m.exchanges[0].label) + " " : ""}${symKo(key, s.lead_symbol)} · D+1 판정</small><b class="${cls}">${label}</b>
         <span>${s.lead_med1 != null ? `모델 중앙값 ${pct(s.lead_med1)}` : "&nbsp;"}</span>`;
     }
 
@@ -128,7 +139,7 @@
       const e = sig[x.data];
       if (!e) return "";
       const [label, cls] = t.open ? VERDICT[e.lead_verdict] || ["-", "v-na"] : ["잠김", "v-na"];
-      return `<div class="ex-line"><span>${esc(x.label)} ${esc(e.lead_symbol)} D+1 <b class="${cls}">${label}</b></span>
+      return `<div class="ex-line"><span>${esc(x.label)} ${symKo(x.data, e.lead_symbol)} D+1 <b class="${cls}">${label}</b></span>
         <span class="muted">상승 ${e.up_n} · 혼돈 ${e.mx_n} · 하락 ${e.dn_n}</span></div>`;
     }).join("");
 
