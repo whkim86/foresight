@@ -57,11 +57,16 @@ button, input { font-family: inherit; }
 .brand-mark i:nth-child(3) { background: var(--dn); box-shadow: 0 0 6px var(--dn); }
 .brand b { font-weight: 700; }
 .brand, .nav a, .nav span, .linkbtn { white-space: nowrap; }
+.nav .lbl-s { display: none; }
+@media (max-width: 400px) { .topbar .brand b { display: none; } .nav { gap: 11px; } }
 @media (max-width: 520px) {
   .brand { gap: 8px; font-size: 16px; }
   .nav { gap: 14px; }
   .nav a, .nav .soon { font-size: 13px; }
   .nav .nav-sep, .nav .avatar { display: none; }
+  .nav { gap: 12px; }
+  .nav .lbl-l { display: none; }
+  .nav .lbl-s { display: inline; }
   .hero-light i { width: 20px; height: 20px; }
 }
 .brand .ai { color: var(--up); margin-right: 3px; }

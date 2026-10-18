@@ -83,6 +83,7 @@ window.renderLanding = async function () {
     <header class="topbar">
       <a class="brand" href="index.html">${LOGO}<b><span class="ai">AI</span>신호등</b></a>
       <nav class="nav">
+        <a href="catalog.html">종목 카탈로그</a>
         <a href="login.html">로그인</a>
         <a class="btn sm cta-top" href="${SIGNUP}">무료로 시작하기</a>
       </nav>
@@ -98,7 +99,7 @@ window.renderLanding = async function () {
             <a class="btn big" href="${SIGNUP}">${cfg.TRIAL_DAYS}일 무료로 시작하기</a>
             <a class="btn big ghost-night" href="login.html">로그인</a>
           </div>
-          <p class="l-note">닉네임과 이메일만 있으면 가입돼요 · 카드 등록 없음</p>
+          <p class="l-note">닉네임과 이메일만 있으면 가입돼요 · 카드 등록 없음 · <a href="catalog.html" style="color:inherit;text-decoration:underline">예측하는 전체 종목 보기</a></p>
         </div>
         <div class="l-lamp" aria-hidden="true">
           <div class="lamp big up"><i></i><i></i><i></i></div>

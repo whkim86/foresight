@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>종목 카탈로그 · AI 신호등</title>
+<meta name="description" content="AI 신호등이 매일 예측하는 코인·나스닥·코스피 전체 종목을 테마별로 한눈에 볼 수 있어요.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AI 신호등">
+<meta property="og:title" content="종목 카탈로그 · AI 신호등">
+<meta property="og:description" content="AI 신호등이 매일 예측하는 코인·나스닥·코스피 전체 종목을 테마별로 한눈에 볼 수 있어요.">
+<meta property="og:url" content="https://www.ai-sinhodeung.co.kr/catalog.html">
+<meta property="og:image" content="https://www.ai-sinhodeung.co.kr/assets/og-image.png">
+<meta property="og:locale" content="ko_KR">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=20261018f">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261018f"></script>
+<script src="assets/app.js?v=20261018f"></script>
+<script src="assets/names.js?v=20261018f"></script>
+<script src="assets/catalog-data.js?v=20261018f"></script>
+<style>
+  .cat-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .cat-tools input{flex:1 1 220px;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:11px 14px;font-size:15px}
+  .cat-tools .seg{flex:0 0 auto;width:auto}
+  .cat-tools .seg button{padding:0 14px}
+  .theme-chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
+  .theme-chips button{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 12px;font-size:13.5px;cursor:pointer;white-space:nowrap}
+  .theme-chips button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .theme-chips small{color:var(--faint);margin-left:4px}
+  .theme-chips button[aria-pressed="true"] small{color:#C9D0DF}
+  .cat-sec{display:flex;flex-direction:column;gap:10px}
+  .cat-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+  .cat-head h2{font-size:19px;margin:0}
+  .cat-head p{margin:2px 0 0;font-size:13px;color:var(--sub)}
+  .cat-sum{font-size:12.5px;color:var(--sub);white-space:nowrap}
+  .cat-sum b{font-weight:600}
+  .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+  .cat-item{display:flex;align-items:center;gap:8px;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 11px;text-decoration:none;color:var(--ink);min-width:0}
+  a.cat-item:hover{border-color:var(--sub)}
+  .cat-item .nm{min-width:0;display:flex;flex-direction:column}
+  .cat-item .nm b{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cat-item .nm span{font-size:12px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cat-item .sg{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:0 0 auto}
+  .mk{font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 6px;background:var(--line-soft);color:var(--sub);white-space:nowrap}
+  .vb{font-size:12px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap}
+  .vb.up{background:#FCE4E5;color:#B3222D}.vb.dn{background:#E4ECFB;color:#1D4FB0}.vb.mx{background:#FFF0D2;color:#8A5300}.vb.na{background:#ECEEF3;color:#5A6478}
+  .pt{font-size:11px;color:var(--sub);white-space:nowrap}.pt.up{color:#B3222D}.pt.dn{color:#1D4FB0}
+  .lockic{font-size:12px;color:var(--faint);white-space:nowrap}
+  .cat-more{align-self:flex-start}
+  .cat-cta{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .cat-cta p{margin:0}
+</style>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, cfg, requireUser, renderHeader, esc, errText } = Portal;
+  const C = window.CATALOG;
+  const SIGNUP = "login.html#signup";
+
+  // 로그인한 회원이면 신호까지, 아니면 목록만
+  let me = null;
+  if (sb) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) me = await requireUser();
+  }
+  renderHeader(me);
+  if (!me) {  // 비회원: 머리에 로그인·가입 버튼
+    document.querySelector(".topbar").insertAdjacentHTML("beforeend",
+      `<nav class="nav"><a href="login.html">로그인</a><a class="btn sm" href="${SIGNUP}">무료로 시작하기</a></nav>`);
+  } else {
+    Portal.track("catalog");
+  }
+
+  const main = document.createElement("main");
+  main.className = "page";
+  document.body.appendChild(main);
+  main.innerHTML = `
+    <section class="on-night" style="padding:6px 0 2px">
+      <h1>종목 카탈로그</h1>
+      <p class="lead" id="lead">AI 신호등이 매일 예측하는 전체 종목을 테마별로 모았어요</p>
+    </section>
+    <div id="cta"></div>
+    <div class="cat-tools">
+      <input id="q" type="search" placeholder="종목·한글명으로 찾기 (예: 엔비디아, 비트코인, KODEX)" aria-label="종목 찾기" autocomplete="off">
+      <div class="seg" role="tablist" aria-label="시장">
+        <button type="button" data-m="all" aria-selected="true">전체</button>
+        <button type="button" data-m="coin" aria-selected="false">코인</button>
+        <button type="button" data-m="nasdaq" aria-selected="false">나스닥</button>
+        <button type="button" data-m="kospi" aria-selected="false">코스피</button>
+      </div>
+    </div>
+    <div class="theme-chips" id="chips" role="group" aria-label="테마"></div>
+    <div id="list" class="stack"><div class="empty">불러오는 중…</div></div>
+    <p class="hint" style="font-size:12px;color:var(--faint);line-height:1.6">
+      테마 분류는 참고용이에요. 신호는 예측 모델의 출력을 정리한 참고 자료이며, 투자 권유나 종목 추천이 아닙니다.
+    </p>`;
+  const list = document.getElementById("list");
+
+  // ---------- 데이터 ----------
+  const { data: rows, error } = await sb.rpc("catalog_symbols");
+  if (error) {
+    list.innerHTML = `<div class="msg error">${esc(/catalog_symbols/.test(error.message || "") ? "종목 목록을 준비 중이에요. 잠시 후 다시 들어와 주세요." : errText(error))}</div>`;
+    return;
+  }
+  const KN = {};
+  await Promise.race([
+    Promise.all(["coin", "bithumb", "nasdaq", "kospi"].map(async (k) => { KN[k] = await PortalNames.load(k); })),
+    new Promise((r) => setTimeout(r, 2000)),
+  ]);
+  const sig = new Map();
+  if (me) {
+    const { data } = await sb.rpc("catalog_signals");
+    (data || []).forEach((r) => sig.set(r.market + "|" + r.symbol, r));
+  }
+
+  // 종목: 코인은 업비트·빗썸을 하나로 (어느 거래소에 있는지 표시)
+  const items = new Map();  // "시장|심볼" → item
+  for (const r of rows) {
+    const mk = r.market === "bithumb" ? "coin" : r.market;
+    const id = mk + "|" + r.symbol;
+    const it = items.get(id) || { mk, sym: r.symbol, ex: [], themes: [] };
+    if (r.market === "coin") it.ex.unshift("upbit"); else if (r.market === "bithumb") it.ex.push("bithumb");
+    items.set(id, it);
+  }
+  const korean = (it) => {
+    const maps = it.mk === "coin" ? [KN.coin, KN.bithumb] : [KN[it.mk]];
+    for (const m of maps) { const k = PortalNames.ko(m, it.sym); if (k) return k; }
+    return "";
+  };
+  items.forEach((it) => { it.ko = korean(it); });
+
+  // 테마 붙이기
+  const themes = C.themes.map((t) => ({ ...t, items: [] }));
+  for (const t of themes) {
+    for (const mk of ["coin", "nasdaq", "kospi"]) {
+      (t[mk] || []).forEach((s) => { const it = items.get(mk + "|" + s); if (it) { t.items.push(it); it.themes.push(t.key); } });
+    }
+  }
+  const etc = { ...C.etcCoin, items: [] };
+  const unsorted = { key: "unsorted", icon: "📦", label: "기타 종목", desc: "아직 테마를 정하지 않은 종목", items: [] };
+  items.forEach((it) => { if (!it.themes.length) (it.mk === "coin" ? etc : unsorted).items.push(it); });
+  if (etc.items.length) themes.push(etc);
+  if (unsorted.items.length) themes.push(unsorted);
+  // 테마 안은 분류표에 적은 순서(대표 종목 먼저), 기타는 이름순
+  [etc, unsorted].forEach((t) => t.items.sort((a, b) => a.sym.localeCompare(b.sym, "ko")));
+
+  // 회원: 탭 열람 여부
+  const tabOpen = (it) => me && me.acc.tabs[it.mk] && me.acc.tabs[it.mk].open;
+  const sigOf = (it) => it.mk === "coin"
+    ? sig.get("coin|" + it.sym) || sig.get("bithumb|" + it.sym)
+    : sig.get(it.mk + "|" + it.sym);
+
+  const counts = { coin: 0, nasdaq: 0, kospi: 0 };
+  items.forEach((it) => counts[it.mk]++);
+  document.getElementById("lead").textContent =
+    `AI 신호등이 매일 예측하는 전체 ${items.size}개 종목을 테마별로 모았어요 · 코인 ${counts.coin} · 나스닥 ${counts.nasdaq} · 코스피 ${counts.kospi}`;
+  document.getElementById("cta").innerHTML = me
+    ? (me.acc.anyOpen ? "" : `<div class="card cat-cta"><p>무료체험이 끝나 신호가 잠겨 있어요. 마이페이지에서 보고 싶은 시장을 열 수 있어요.</p><a class="btn sm" href="mypage.html">마이페이지</a></div>`)
+    : `<div class="card cat-cta"><p><b>로그인하면 종목마다 오늘의 AI 신호가 함께 보여요.</b><br><span class="muted" style="font-size:13px">가입 후 ${cfg.TRIAL_DAYS}일은 모든 시장이 무료예요</span></p><a class="btn" href="${SIGNUP}">${cfg.TRIAL_DAYS}일 무료로 시작하기</a></div>`;
+
+  // ---------- 화면 ----------
+  const MK = { coin: "코인", nasdaq: "나스닥", kospi: "코스피" };
+  const VB = { up: ["상승", "up"], dn: ["하락", "dn"], mx: ["혼돈", "mx"], hold: ["보류", "na"], stale: ["지연", "na"] };
+  let fMarket = "all", fTheme = null, q = "";
+  const open = new Set();
+  const flat = (s) => String(s || "").replace(/\s/g, "").toUpperCase();
+
+  function href(it) {
+    if (!me) return SIGNUP;
+    if (!tabOpen(it)) return "mypage.html";
+    const ex = it.mk === "coin" && !it.ex.includes("upbit") ? "&ex=bithumb" : "";
+    return `dashboard.html?m=${it.mk}${ex}&v=chart`;
+  }
+  function itemHtml(it) {
+    let right = `<span class="mk">${MK[it.mk]}${it.mk === "coin" && it.ex.length === 1 ? " · " + (it.ex[0] === "upbit" ? "업비트" : "빗썸") : ""}</span>`;
+    if (me) {
+      if (!tabOpen(it)) right += `<span class="lockic">🔒 신호 잠김</span>`;
+      else {
+        const s = sigOf(it);
+        if (s) {
+          const [l, c] = VB[s.verdict] || ["-", "na"];
+          right += `<span class="vb ${c}" title="D+1 판정">D+1 ${l}</span>`;
+          if (s.pattern === "up" || s.pattern === "dn") right += `<span class="pt ${s.pattern}" title="AI 패턴해석 #1 · 6일 흐름">🧩 ${s.pattern === "up" ? "상승" : "하락"} 기운</span>`;
+        }
+      }
+    }
+    return `<a class="cat-item" href="${href(it)}"><span class="nm"><b>${esc(it.sym)}</b><span>${esc(it.ko || " ")}</span></span><span class="sg">${right}</span></a>`;
+  }
+  const match = (it) => (fMarket === "all" || it.mk === fMarket)
+    && (!q || flat(it.sym).includes(q) || flat(it.ko).includes(q));
+
+  function render() {
+    // 테마 칩
+    const visible = themes.map((t) => ({ t, its: t.items.filter(match) })).filter((x) => x.its.length);
+    document.getElementById("chips").innerHTML =
+      `<button type="button" data-t="" aria-pressed="${!fTheme}">전체 테마</button>` +
+      visible.map(({ t, its }) => `<button type="button" data-t="${t.key}" aria-pressed="${fTheme === t.key}">${t.icon} ${esc(t.label)}<small>${its.length}</small></button>`).join("");
+    const shown = visible.filter(({ t }) => !fTheme || t.key === fTheme);
+    if (!shown.length) { list.innerHTML = `<div class="empty">찾는 종목이 없어요${q ? " · 새 종목은 '종목 추가 요청' 게시판에 남겨주세요" : ""}</div>`; return; }
+    list.innerHTML = shown.map(({ t, its }) => {
+      const LIMIT = fTheme || q ? 1e9 : 12;
+      const full = open.has(t.key) || its.length <= LIMIT;
+      let sum = "";
+      if (me) {
+        const v = { up: 0, mx: 0, dn: 0 };
+        its.forEach((it) => { if (tabOpen(it)) { const s = sigOf(it); if (s && v[s.verdict] != null) v[s.verdict]++; } });
+        if (v.up + v.mx + v.dn) sum = `<span class="cat-sum">D+1 <b style="color:#B3222D">상승 ${v.up}</b> · <b style="color:#8A5300">혼돈 ${v.mx}</b> · <b style="color:#1D4FB0">하락 ${v.dn}</b></span>`;
+      }
+      return `<section class="cat-sec">
+        <div class="cat-head"><div><h2>${t.icon} ${esc(t.label)} <span class="muted" style="font-size:14px;font-weight:500">${its.length}</span></h2><p>${esc(t.desc)}</p></div>${sum}</div>
+        <div class="cat-grid">${(full ? its : its.slice(0, LIMIT)).map(itemHtml).join("")}</div>
+        ${full ? "" : `<button class="btn ghost sm cat-more" type="button" data-more="${t.key}">${its.length}개 모두 보기</button>`}
+      </section>`;
+    }).join("");
+  }
+
+  document.getElementById("q").addEventListener("input", (e) => { q = flat(e.target.value); fTheme = null; render(); });
+  main.querySelectorAll("[data-m]").forEach((b) => b.addEventListener("click", () => {
+    fMarket = b.dataset.m; fTheme = null;
+    main.querySelectorAll("[data-m]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+    render();
+  }));
+  document.getElementById("chips").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-t]"); if (!b) return;
+    fTheme = b.dataset.t || null; render();
+    window.scrollTo({ top: document.getElementById("chips").offsetTop - 70, behavior: "smooth" });
+  });
+  list.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-more]"); if (!b) return;
+    open.add(b.dataset.more); render();
+  });
+  render();
+})();
+</script>
+</body>
+</html>
