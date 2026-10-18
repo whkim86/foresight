@@ -124,6 +124,38 @@
     if (e.target && e.target.id === "coinInput") pickByKorean(e.target);
   }, true);
 
+  // 들어올 때 ?s=종목 이 있으면 그 종목을 바로 보여줌 (종목 카탈로그 → 대시보드 → 보드)
+  //  · 우선순위: 순위표 검색칸에 넣어 그 줄만 보이게 + 아래 '코인별 예측 확률' 차트도 그 종목으로
+  //  · 가격 차트: 종목 검색칸에 넣고 그 종목을 골라 차트를 띄움 (대표 종목 BTC 등은 맨 위 차트라 그대로)
+  const pickSym = new URLSearchParams(location.search).get("s");
+  function openPick() {
+    const sym = pickSym;
+    const fire = (el, v) => { el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); };
+    let tries = 0;
+    const t = setInterval(() => {
+      if (++tries > 60) return clearInterval(t);  // 15초 안에 화면이 안 그려지면 포기
+      if (board.kind === "priority") {
+        const ci = document.getElementById("coinInput");
+        if (!ci || ![...document.querySelectorAll("#coinList option")].some((o) => o.value === sym)) return;
+        clearInterval(t);
+        const rq = document.getElementById("rankQ");
+        if (rq) fire(rq, sym);
+        fire(ci, sym);
+      } else {
+        const q = document.getElementById("q");
+        if (!q || !document.querySelector("button[data-coin]")) return;
+        clearInterval(t);
+        if ([...document.querySelectorAll(".pname")].some((h) => h.firstChild && h.firstChild.nodeValue === sym)) return;  // 이미 맨 위에 보이는 대표 종목
+        fire(q, sym);
+        setTimeout(() => {
+          const b = [...document.querySelectorAll("button[data-coin]")].find((x) => x.getAttribute("data-coin") === sym);
+          if (b) b.click(); else fire(q, "");
+        }, 50);
+      }
+    }, 250);
+  }
+  if (pickSym) openPick();
+
   function queue() { if (map && !queued) { queued = true; setTimeout(decorate, 20); } }  // 화면이 가려져 있어도 동작하게 타이머
   load(board.market).then((m) => {
     map = m;

@@ -16,12 +16,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261018f">
+<link rel="stylesheet" href="assets/style.css?v=20261019a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261018f"></script>
-<script src="assets/app.js?v=20261018f"></script>
-<script src="assets/names.js?v=20261018f"></script>
-<script src="assets/catalog-data.js?v=20261018f"></script>
+<script src="config.js?v=20261019a"></script>
+<script src="assets/app.js?v=20261019a"></script>
+<script src="assets/names.js?v=20261019a"></script>
+<script src="assets/catalog-data.js?v=20261019a"></script>
 <style>
   .cat-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
   .cat-tools input{flex:1 1 220px;min-width:0;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:11px 14px;font-size:15px}
@@ -178,7 +178,7 @@
     if (!me) return SIGNUP;
     if (!tabOpen(it)) return "mypage.html";
     const ex = it.mk === "coin" && !it.ex.includes("upbit") ? "&ex=bithumb" : "";
-    return `dashboard.html?m=${it.mk}${ex}&v=chart`;
+    return `dashboard.html?m=${it.mk}${ex}&v=chart&s=${encodeURIComponent(it.sym)}`;  // 차트에서 그 종목을 바로 보여줌
   }
   function itemHtml(it) {
     const tags = it.mk === "coin" ? it.ex.map((x) => [x, x === "upbit" ? "업비트" : "빗썸"]) : [[it.mk, MK[it.mk]]];
