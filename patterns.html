@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>패턴해석 · AI 신호등</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=20261018a">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261018a"></script>
+<script src="assets/app.js?v=20261018a"></script>
+<style>
+  .pt td.sig{white-space:nowrap}
+  .pt .hr{font-weight:600}
+  .pt .ex{font-size:12px;font-weight:600;white-space:nowrap}
+  .pt .ex.pos{color:#1E8A4C}.pt .ex.neg{color:#B86E00}
+  .pt tr.base td{color:var(--muted);font-size:12.5px;background:var(--paper-2,transparent)}
+  .pt tr.grp td{border-top:2px solid var(--line-strong,#C3CBD8)}
+  .pt .sig b{border-radius:999px;padding:2px 10px;font-size:12.5px;white-space:nowrap}
+  .s-up{background:#FCE4E5;color:#B3222D}.s-dn{background:#E4ECFB;color:#1D4FB0}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .s-up{background:#4A1D22;color:#FF9AA0}:root:not([data-theme="light"]) .s-dn{background:#1C2A4A;color:#9DBBFF}}
+  :root[data-theme="dark"] .s-up{background:#4A1D22;color:#FF9AA0}:root[data-theme="dark"] .s-dn{background:#1C2A4A;color:#9DBBFF}
+  .pt .pname{font-weight:600}
+  .pt .pname small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pt .ex.pos{color:#5FD08F}:root:not([data-theme="light"]) .pt .ex.neg{color:#FFB547}}
+  :root[data-theme="dark"] .pt .ex.pos{color:#5FD08F}:root[data-theme="dark"] .pt .ex.neg{color:#FFB547}
+</style>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, requireUser, renderHeader, esc, errText, ICONS } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  if (!me.acc.isAdmin) { location.replace("index.html"); return; }
+  renderHeader(me);
+
+  // 패턴 목록 — ingest/ingest.py 의 PATTERNS 와 같은 이름. 새 해석을 추가하면 여기에도 한 줄
+  const PATTERNS = [
+    { key: "verdict", name: "현재 D+1 판정", note: "비교 기준 · 상승·하락 판정" },
+    { key: "p1_60", name: "#1 · 6일 흐름 (60%)", note: "모델×6일 예측값의 60% 이상이 직전 종가 아래(위)" },
+    { key: "p1_70", name: "#1 · 6일 흐름 (70%)", note: "70% 이상 · 회원 화면에 표시 중" },
+  ];
+  const H = [1, 3, 6];
+  const SIG = { dn: "하락 기운", up: "상승 기운" };
+  const SIGV = { dn: "하락 판정", up: "상승 판정" };
+  const MK = Portal.DATA_MARKETS.map((x) => x.key);
+  const TAB = Object.fromEntries(Portal.DATA_MARKETS.map((x) => [x.key, x.tab]));
+  let days = 35;
+
+  const main = document.createElement("main");
+  main.className = "page";
+  document.body.appendChild(main);
+  main.innerHTML = `
+    <section class="on-night">
+      <h1>운영자</h1>
+      <nav class="board-tabs" style="margin-top:14px"><a href="admin.html">입금 · 회원</a><a href="accuracy.html">수집 · 적중률</a><a href="models.html">모델 성적</a><a href="patterns.html" aria-current="page">패턴해석</a><a href="views.html">조회수</a><a href="analytics.html">방문 흐름</a><a href="ai.html">AI 해설</a></nav>
+    </section>
+    <section class="section">
+      <div class="board-head">
+        <div><h2>AI 패턴해석 성적 <span class="badge gray" style="vertical-align:middle">운영자만 보기</span></h2>
+          <p class="hint">패턴마다 신호를 낸 종목이 D+1·D+3·D+6에 실제로 그 방향으로 갔는지 봐요. 회원 화면에는 적중률 숫자를 보여주지 않아요</p></div>
+        <div class="seg" style="width:240px" role="tablist">
+          <button type="button" data-days="14" aria-selected="false">14일</button>
+          <button type="button" data-days="35" aria-selected="true">35일</button>
+        </div>
+      </div>
+      <div id="pt" class="stack"></div>
+      <p class="hint" style="font-size:12.5px;line-height:1.75">
+        <b>적중률</b>: 하락 기운(판정)은 실제 종가가 기준 종가(예측 때 직전 실제 종가)보다 내리면, 상승은 오르면 적중. 가격이 그대로면 빼요.<br>
+        <b>기준선 대비</b>: 같은 날 채점된 <u>전체 종목</u>보다 얼마나 더 맞았는지(%p)와, 평균 등락률이 신호 방향으로 얼마나 더 움직였는지(%p)예요.
+        시장 전체가 빠진 날엔 하락 신호가 저절로 잘 맞아 보이기 때문에, 패턴의 실력은 이 칸으로 봐요. 초록(+)이면 전체보다 나았다는 뜻이에요.<br>
+        <b>이긴 날</b>: 신호를 낸 날 중 그 신호 종목들이 전체 종목보다 신호 방향으로 더 움직인 날 수예요.<br>
+        D+3·D+6 은 그날이 지나야 채점돼요. 표본(건수·날짜)이 작을 때는 숫자가 크게 흔들려요.
+      </p>
+    </section>`;
+
+  const fmtP = (x) => (x * 100).toFixed(1) + "%";
+  const fmtPP = (x) => (x >= 0 ? "+" : "") + (x * 100).toFixed(1) + "%p";
+  const exSpan = (x, title) => `<span class="ex ${x > 0.0005 ? "pos" : x < -0.0005 ? "neg" : ""}" title="${title}">${fmtPP(x)}</span>`;
+
+  async function render() {
+    const box = document.getElementById("pt");
+    box.innerHTML = `<div class="empty">불러오는 중…</div>`;
+    const { data, error } = await sb.rpc("pattern_stats", { p_days: days });
+    if (error) {
+      const msg = /pattern_stats/.test(error.message || "") ? "supabase/stage20.sql 을 먼저 실행해 주세요." : errText(error);
+      box.innerHTML = `<div class="msg error">${esc(msg)}</div>`; return;
+    }
+    // 기준선: 시장·날짜·기간별 전체 종목 (hit = 실제로 내린 수)
+    const base = new Map();
+    for (const r of data) if (r.pattern === "_all") base.set(`${r.market}|${r.pred_date}|${r.horizon}`, r);
+
+    const cards = MK.map((m) => {
+      const rows = data.filter((r) => r.market === m && r.pattern !== "_all");
+      const allRows = data.filter((r) => r.market === m && r.pattern === "_all");
+      if (!allRows.length) return `<div class="card"><span class="market-head">${ICONS[TAB[m]]}${esc(Portal.marketName(m))}</span><div class="empty">아직 채점된 기록이 없어요</div></div>`;
+
+      // 기준선 줄: 전체 종목의 하락 비율·평균 등락
+      const baseCells = H.map((h) => {
+        const b = allRows.filter((r) => r.horizon === h);
+        const n = b.reduce((s, r) => s + r.n, 0), dn = b.reduce((s, r) => s + r.hit, 0), ret = b.reduce((s, r) => s + r.ret, 0);
+        return n ? `<td class="num">하락 ${fmtP(dn / n)}<br>평균 ${fmtPP(ret / n).replace("%p", "%")}<br><span class="muted">${n}건 · ${b.length}일</span></td>` : `<td class="num">—</td>`;
+      }).join("");
+
+      let body = "";
+      for (const P of PATTERNS) {
+        ["dn", "up"].forEach((sg, i) => {
+          const cells = H.map((h) => {
+            const rs = rows.filter((r) => r.pattern === P.key && r.signal === sg && r.horizon === h);
+            const n = rs.reduce((s, r) => s + r.n, 0);
+            if (!n) return `<td class="num muted">—</td>`;
+            const hit = rs.reduce((s, r) => s + r.hit, 0);
+            let exHit = 0, exRet = 0, won = 0, dd = 0;
+            for (const r of rs) {
+              const b = base.get(`${m}|${r.pred_date}|${h}`);
+              if (!b || !b.n) continue;
+              const bDown = b.hit / b.n, bRet = b.ret / b.n, mRet = r.ret / r.n;
+              exHit += r.hit - r.n * (sg === "dn" ? bDown : 1 - bDown);
+              const d = sg === "dn" ? bRet - mRet : mRet - bRet;  // 신호 방향으로 더 움직인 정도
+              exRet += d * r.n;
+              dd++; if (d > 0) won++;
+            }
+            return `<td class="num"><span class="hr">${fmtP(hit / n)}</span> <span class="muted">${hit}/${n}</span><br>
+              ${exSpan(exHit / n, "같은 날 전체 종목 대비 적중률 차이")} · ${exSpan(exRet / n, "같은 날 전체 종목 대비 신호 방향 등락 차이")}<br>
+              <span class="muted">이긴 날 ${won}/${dd}</span></td>`;
+          }).join("");
+          body += `<tr class="${i === 0 ? "grp" : ""}">
+            ${i === 0 ? `<td rowspan="2" class="pname">${esc(P.name)}<small>${esc(P.note)}</small></td>` : ""}
+            <td class="sig"><b class="${sg === "dn" ? "s-dn" : "s-up"}" style="font-weight:600">${P.key === "verdict" ? SIGV[sg] : SIG[sg]}</b></td>${cells}</tr>`;
+        });
+      }
+      return `<div class="card table-wrap" style="padding:10px 12px">
+        <div class="market-head" style="margin:2px 0 8px">${ICONS[TAB[m]]}${esc(Portal.marketName(m))}</div>
+        <table class="list pt">
+          <thead><tr><th>패턴</th><th>신호</th>${H.map((h) => `<th class="num">D+${h}</th>`).join("")}</tr></thead>
+          <tbody><tr class="base"><td colspan="2">기준선 · 같은 날 전체 종목</td>${baseCells}</tr>${body}</tbody>
+        </table></div>`;
+    }).join("");
+    box.innerHTML = cards;
+  }
+
+  main.querySelectorAll("[data-days]").forEach((b) => b.addEventListener("click", () => {
+    days = Number(b.dataset.days);
+    main.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+    render();
+  }));
+  render();
+})();
+</script>
+</body>
+</html>

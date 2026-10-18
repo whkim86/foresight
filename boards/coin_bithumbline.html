@@ -171,8 +171,8 @@ details.rule p{margin-top:6px;font-size:13px;line-height:1.65;color:var(--muted)
 </style>
 <script>window.PORTAL_BOARD={market:"bithumb",kind:"chart"};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../config.js?v=20261015c"></script>
-<script src="../assets/board-data.js?v=20261015c"></script>
+<script src="../config.js?v=20261018a"></script>
+<script src="../assets/board-data.js?v=20261018a"></script>
 </head>
 <body>
 <div class="wrap">
@@ -484,6 +484,7 @@ function Panel(root){
     b.className='badge '+v;
     b.textContent=(v==='stale'||v==='hold')?VLAB[v]:'D+1 '+VLAB[v];
     if(window.portalDual) window.portalDual(root,name,v,cur.pd,P.a);
+    if(window.portalPattern) window.portalPattern(root,co,P.a);
     var meta=[];
     if(co.hist.length){ var lh=co.hist[co.hist.length-1]; meta.push('직전 실제 종가 '+fmtDate(lh.date)+' '+fmtNum(lh.c)+'원'); }
     else meta.push('실제값이 없어 예측선만 표시합니다');
@@ -732,6 +733,7 @@ if(window.ResizeObserver){
 }
 })();
 </script>
-<script src="../assets/dual-signal.js?v=20261015c"></script>
+<script src="../assets/dual-signal.js?v=20261018a"></script>
+<script src="../assets/pattern-note.js?v=20261018a"></script>
 </body>
 </html>

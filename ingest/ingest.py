@@ -120,6 +120,23 @@ def day_delta(a, b):
     return d - 365 if d > 182 else d + 365 if d < -182 else d
 
 
+# ---------------------------------------------------------------- AI 패턴해석
+# 종목마다 'up'(상승 기운) / 'dn'(하락 기운) / 'none' 을 냄 → predictions.patterns 에 저장, D+1·D+3·D+6 로 채점.
+# 운영자 '패턴해석' 탭(patterns.html)에서 성적을 비교. 새 해석은 여기에 한 줄 추가하고 patterns.html 의 PATTERNS 에 이름을 적으면 됨
+# (지난 기록에도 채우려면 PATTERN_VERSION 을 올림 → 다음 수집 때 GitHub 커밋 기록으로 소급)
+def _p1(t):
+    """#1 · 6일 흐름: 모델×D+1~D+6 예측값 중 직전 종가보다 아래(위)인 비율이 t 이상"""
+    return lambda r: "dn" if r["cons_dn"] >= t else "up" if r["cons_up"] >= t else "none"
+
+
+PATTERNS = {
+    "p1_60": _p1(0.6),
+    "p1_70": _p1(0.7),  # 회원 화면 주석(assets/pattern-note.js)과 같은 기준
+}
+PATTERN_VERSION = 1
+PATTERN_BACKFILL_DAYS = 40
+
+
 # ---------------------------------------------------------------- 판정 (index.html 의 analyze() 와 동일)
 def analyze(text, today):
     """가격 차트 CSV → (pred_date, [예측 행], [실제 종가])"""
@@ -152,12 +169,14 @@ def analyze(text, today):
         names = list(co["mod"])  # CSV 에 나온 순서 = 대시보드와 같음
         if not names:
             continue
-        d1 = next((co["mod"][n][1][0] for n in names if 1 in co["mod"][n]), None)
+        d1, d3, d6 = (next((co["mod"][n][s][0] for n in names if s in co["mod"][n]), None) for s in (1, 3, 6))
         stale = d1 is not None and not (0 <= day_delta(d1, pred_label) <= 1)
         # 한 번에 upsert 하는 행은 칸 구성이 모두 같아야 해서, 지연·보류 종목도 모든 칸을 갖게 함
-        row = dict.fromkeys(("base_date", "base_close", "up_n", "dn_n", "med1", "thr", "cons_up", "cons_dn"))
+        row = dict.fromkeys(("base_date", "base_close", "up_n", "dn_n", "med1", "thr", "cons_up", "cons_dn", "patterns"))
         row.update({"market": None, "symbol": sym, "pred_date": pred_date.isoformat(),
-                    "d1_date": to_date(d1, pred_date).isoformat() if d1 else None, "n_models": len(names)})
+                    "d1_date": to_date(d1, pred_date).isoformat() if d1 else None, "n_models": len(names),
+                    "d3_date": to_date(d3, pred_date).isoformat() if d3 else None,
+                    "d6_date": to_date(d6, pred_date).isoformat() if d6 else None})
 
         if stale or not hist:
             row["verdict"] = "stale" if stale else "hold"
@@ -184,6 +203,7 @@ def analyze(text, today):
             "cons_up": round(sum(v > base for v in allv) / len(allv), 4) if allv else None,
             "cons_dn": round(sum(v < base for v in allv) / len(allv), 4) if allv else None,
         })
+        row["patterns"] = {k: f(row) for k, f in PATTERNS.items()} if allv else None
         preds.append(row)
     return pred_date, preds, actuals
 
@@ -486,6 +506,54 @@ def backfill_model_scores(market, cfg, days, today):
     print(f"  [{market}] 소급 채점: 예측일 {len(seen)}개({min(seen)}~{max(seen)}), 성적 {len(rows)}줄, 백업 복원 {restored}개")
 
 
+PATTERN_COLS = ("d3_date", "d6_date", "patterns")
+_pattern_ready = None
+
+
+def pattern_ready():
+    """stage20.sql 로 패턴 칸이 만들어졌는지 (한 번만 확인)"""
+    global _pattern_ready
+    if _pattern_ready is None:
+        try:
+            supa("GET", "/rest/v1/predictions?select=patterns,actual6&limit=1")
+            _pattern_ready = True
+        except Exception:
+            _pattern_ready = False
+            print("  (패턴해석 칸이 아직 없어요 — supabase/stage20.sql 실행 전)")
+    return _pattern_ready
+
+
+def backfill_patterns(market, cfg, days, today):
+    """GitHub 커밋 기록의 지난 가격 차트 CSV 로 예측 기록에 D+3·D+6 날짜와 패턴 신호를 채우고, 모은 실제 종가로 채점.
+    D+1 판정·채점 결과는 건드리지 않음"""
+    repo, fname = cfg["repos"]["chart"], FILES["chart"]
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    commits, page = [], 1
+    while True:
+        batch = gh_get(f"/repos/{OWNER}/{repo}/commits?path={fname}&since={since}&per_page=100&page={page}")
+        commits += batch
+        if len(batch) < 100:
+            break
+        page += 1
+    seen, actual, n = set(), {}, 0
+    for c in reversed(commits):  # 오래된 것부터 → 실제 종가는 나중 파일 값으로 덮어씀
+        try:
+            pred_date, preds, actuals = analyze(decode(gh_get(f"/repos/{OWNER}/{repo}/contents/{fname}?ref={c['sha']}", raw=True)), today)
+        except Exception as e:
+            print(f"  [{market}] 패턴 소급: {c['sha'][:7]} 건너뜀 ({e})")
+            continue
+        for a in actuals:
+            actual[(a["s"], a["d"])] = a["c"]
+        rows = [{k: p[k] for k in ("symbol", "pred_date", "d3_date", "d6_date", "patterns")} for p in preds if p.get("patterns")]
+        for i in range(0, len(rows), 500):
+            n += supa("POST", "/rest/v1/rpc/set_pattern_info", {"p_market": market, "p_rows": rows[i:i + 500]}) or 0
+        seen.add(pred_date)
+    acts = [{"s": s, "d": d, "c": c} for (s, d), c in actual.items()]
+    graded = sum(supa("POST", "/rest/v1/rpc/grade_horizons", {"p_market": market, "p_actuals": acts[i:i + 2000]}) or 0
+                 for i in range(0, len(acts), 2000))
+    print(f"  [{market}] 패턴 소급: 예측일 {len(seen)}개, 기록 {n}건 갱신, D+3·D+6 {graded}건 채점")
+
+
 def ensure_model_scores(market, text, digest, today):
     """이 가격 차트 내용으로 아직 모델 채점을 안 했으면 함 (새 CSV · 기능 도입 첫날 소급)"""
     try:
@@ -533,12 +601,19 @@ def ingest_market(market, cfg, today):
                 title, body = summary_post(market, pred_date, preds)
                 print(f"\n----- 요약 글 미리보기 -----\n{title}\n\n{body}\n---------------------------\n")
                 continue
+            if not pattern_ready():  # stage20.sql 실행 전에는 패턴 칸 없이 저장
+                for p in preds:
+                    for k in PATTERN_COLS:
+                        p.pop(k, None)
             # 같은 CSV 가 수정돼 다시 올라와도 채점 전 판정은 최신으로 덮어씀
             for i in range(0, len(preds), 500):
                 supa("POST", "/rest/v1/predictions?on_conflict=market,symbol,pred_date", preds[i:i + 500],
                      Prefer="resolution=merge-duplicates,return=minimal")
             graded = supa("POST", "/rest/v1/rpc/grade_predictions", {"p_market": market, "p_actuals": actuals})
             print(f"  [{market}/chart] 지난 예측 {graded}건 채점")
+            if pattern_ready():
+                graded = supa("POST", "/rest/v1/rpc/grade_horizons", {"p_market": market, "p_actuals": actuals})
+                print(f"  [{market}/chart] D+3·D+6 {graded}건 채점")
             try:
                 post_summary(market, pred_date, preds)
             except Exception as e:  # 요약 글이 실패해도 수집은 계속
@@ -611,6 +686,19 @@ def main():
                 problems.append(f"{market} 소급 채점 실패: {e}")
             else:  # 성공한 시장만 이 채점 규칙 버전을 완료로 기록
                 log(market, "model_rescore", "ok", content_hash=marker, message=f"최근 {backfill_days}일 재채점")
+    # 패턴해석: stage20.sql 실행 뒤 첫 수집(또는 PATTERN_VERSION 을 올린 뒤)에 지난 기록 소급
+    if not DRY and pattern_ready():
+        pmark = f"p{PATTERN_VERSION}"
+        done = {r["market"] for r in supa("GET", "/rest/v1/ingest_log?select=market&kind=eq.pattern_backfill"
+                                                 f"&status=eq.ok&content_hash=eq.{pmark}")}
+        for market in [m for m in MARKETS if m not in done]:
+            print(f"== {market} 패턴해석 소급 (최근 {PATTERN_BACKFILL_DAYS}일)")
+            try:
+                backfill_patterns(market, MARKETS[market], PATTERN_BACKFILL_DAYS, today)
+            except Exception as e:
+                problems.append(f"{market} 패턴 소급 실패: {e}")
+            else:
+                log(market, "pattern_backfill", "ok", content_hash=pmark, message=f"최근 {PATTERN_BACKFILL_DAYS}일 소급")
     for market, cfg in MARKETS.items():
         print(f"== {market}")
         try:

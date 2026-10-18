@@ -19,10 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261015c">
+<link rel="stylesheet" href="assets/style.css?v=20261018a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261015c"></script>
-<script src="assets/app.js?v=20261015c"></script>
+<script src="config.js?v=20261018a"></script>
+<script src="assets/app.js?v=20261018a"></script>
 </head>
 <body>
 <script>
@@ -101,7 +101,7 @@
     if (!frames[fk]) {
       const v = ex.views.find((x) => x.key === vk);
       const f = document.createElement("iframe");
-      f.src = v.url + "?v=20261015c";  // 보드 화면도 버전이 바뀌면 브라우저 캐시 없이 새로 받음
+      f.src = v.url + "?v=20261018a";  // 보드 화면도 버전이 바뀌면 브라우저 캐시 없이 새로 받음
       f.title = market.name + (ex.label ? " " + ex.label : "") + " " + v.label;
       f.loading = "eager";
       document.getElementById("loading").hidden = false;
