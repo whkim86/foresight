@@ -101,6 +101,29 @@
   window.portalNameHit = (sym, q) => { const k = ko(map, sym); return !!(k && q && flat(k).indexOf(flat(q)) >= 0); };
   window.portalNameIs = (sym, q) => { const k = ko(map, sym); return !!(k && q && flat(k) === flat(q)); };
 
+  // 우선순위 '종목 선택칸'(#coinInput): 한글 일부만 쳐도 후보가 하나로 좁혀지면(또는 한글명이 정확히 같으면) 그 종목으로 바꿔 넣음.
+  // 원본 화면의 선택 함수보다 먼저 실행되도록 capture 단계에서 값을 바꿈. 한글 조합 중에는 건드리지 않음
+  function pickByKorean(el) {
+    const q = el.value.trim();
+    if (!map || !/[가-힣]/.test(q)) return false;
+    const syms = [...document.querySelectorAll("#coinList option")].map((o) => o.value);
+    const exact = syms.find((s) => window.portalNameIs(s, q));
+    const hits = exact ? [exact] : syms.filter((s) => window.portalNameHit(s, q));
+    if (hits.length !== 1) return false;
+    el.value = hits[0];
+    return true;
+  }
+  document.addEventListener("input", (e) => {
+    if (e.target && e.target.id === "coinInput" && !e.isComposing) pickByKorean(e.target);
+  }, true);
+  document.addEventListener("compositionend", (e) => {
+    const el = e.target;
+    if (el && el.id === "coinInput") setTimeout(() => { if (pickByKorean(el)) el.dispatchEvent(new Event("input")); }, 0);
+  }, true);
+  document.addEventListener("change", (e) => {
+    if (e.target && e.target.id === "coinInput") pickByKorean(e.target);
+  }, true);
+
   function queue() { if (map && !queued) { queued = true; setTimeout(decorate, 20); } }  // 화면이 가려져 있어도 동작하게 타이머
   load(board.market).then((m) => {
     map = m;

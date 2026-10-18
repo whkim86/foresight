@@ -71,7 +71,9 @@
     const term = typed.term || el.value.trim();
     if (!term) return;
     const names = [...document.querySelectorAll("#coinList option")].map((o) => o.value);
-    const hit = names.find((n) => n.toUpperCase() === term.toUpperCase());
+    const hit = names.find((n) => n.toUpperCase() === term.toUpperCase())
+      || names.find((n) => window.portalNameIs && window.portalNameIs(n, term))   // 한글명 (names.js)
+      || (names.includes(el.value.trim()) ? el.value.trim() : null);             // 한글 일부로 골라진 종목
     if (hit) { LOG({ p_kind: "search", p_symbol: hit, p_term: term }); LOG({ p_kind: "coin", p_symbol: hit }); }
     else if (!missed.has(term.toUpperCase())) { missed.add(term.toUpperCase()); LOG({ p_kind: "search_miss", p_term: term }); }
     typed = { term: "", t: 0 };
