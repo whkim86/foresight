@@ -133,7 +133,7 @@
     const fire = (el, v) => { el.value = v; el.dispatchEvent(new Event("input", { bubbles: true })); };
     let tries = 0;
     const t = setInterval(() => {
-      if (++tries > 60) return clearInterval(t);  // 15초 안에 화면이 안 그려지면 포기
+      if (++tries > 240) return clearInterval(t);  // 60초 안에 화면이 안 그려지면 포기 (휴대폰에서 큰 데이터는 오래 걸림)
       if (board.kind === "priority") {
         const ci = document.getElementById("coinInput");
         if (!ci || ![...document.querySelectorAll("#coinList option")].some((o) => o.value === sym)) return;
