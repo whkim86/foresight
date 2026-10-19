@@ -54,11 +54,18 @@
     if (e1 || e2) { main.innerHTML = `<div class="msg error">${esc(errText(e1 || e2))}</div>`; return; }
     // 회원별 이용 현황 (stage19.sql). 함수가 아직 없으면 칸만 비워 둠
     const act = Object.fromEntries((actRes.error ? [] : actRes.data || []).map((r) => [r.user_id, r]));
+    // 최근 방문: 한국 달력 날짜 기준 오늘·어제·N일 전 + 한국 시각 (보는 브라우저의 시간대와 상관없이 KST)
+    const KST = 9 * 3600000;
+    const kstDay = (t) => Math.floor((new Date(t).getTime() + KST) / 86400000);  // 한국 날짜 번호
     function lastVisit(ts) {
       if (!ts) return `<span class="muted">기록 없음</span>`;
-      const days = Math.floor((Date.now() - new Date(ts)) / 86400000);
+      const days = kstDay(Date.now()) - kstDay(ts);
       const txt = days <= 0 ? "오늘" : days === 1 ? "어제" : days + "일 전";
-      return days >= 7 ? `<span style="color:var(--warn);font-weight:600">${txt}</span>` : txt;
+      const k = new Date(new Date(ts).getTime() + KST);  // UTC 칸으로 읽으면 한국 시각
+      const p2 = (n) => String(n).padStart(2, "0");
+      const at = `${p2(k.getUTCMonth() + 1)}-${p2(k.getUTCDate())} ${p2(k.getUTCHours())}:${p2(k.getUTCMinutes())}`;
+      const head = days >= 7 ? `<span style="color:var(--warn);font-weight:600">${txt}</span>` : txt;
+      return `${head}<br><span class="muted" style="font-size:12px">${at}</span>`;
     }
 
     const pending = reqs.filter((r) => r.status === "pending");
@@ -129,7 +136,7 @@
         <div>
           <h2>회원 목록</h2>
           <p class="hint">탭별 만료일을 직접 고칠 수 있어요(환불·보상 등). 날짜를 지우고 저장하면 그 탭 이용권이 없어져요<br>
-            최근 방문 = 마지막으로 사이트를 이용한 때(7일 넘으면 주황색) · 30일 방문 = 최근 30일 중 들어온 날 수와 방문 횟수 · 주로 본 시장 = 대시보드에서 가장 많이 연 시장 (방문 흐름 기록 시작 이후)</p>
+            최근 방문 = 마지막으로 사이트를 이용한 때, 한국 날짜·시각 기준(7일 넘으면 주황색) · 30일 방문 = 최근 30일 중 들어온 날 수와 방문 횟수 · 주로 본 시장 = 대시보드에서 가장 많이 연 시장 (방문 흐름 기록 시작 이후)</p>
         </div>
         <div class="card table-wrap" style="padding:8px 12px">
           <table class="list"><thead><tr><th>회원</th><th>가입일</th><th>상태</th><th>최근 방문</th><th class="num">30일 방문</th><th>주로 본 시장</th>${COLS.map((t) => `<th>${colName(t)} 만료</th>`).join("")}<th></th></tr></thead>
