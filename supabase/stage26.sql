@@ -63,6 +63,17 @@ $$;
 revoke execute on function public.redeem_coupon(text, text) from public, anon;
 grant execute on function public.redeem_coupon(text, text) to authenticated;
 
+-- ---------- 3. 쇼츠용 쿠폰 상태 (숫자는 안 알려줌): open 모집 중 / closing 마감 임박(70% 이상) / closed 마감 ----------
+-- 쇼츠 제작 스크립트(shorts_common.coupon_state)가 비로그인 키로 부름 → 마감 임박일 때만 '매진 임박' 문구, 마감되면 쿠폰 장면을 뺌
+create or replace function public.coupon_status(p_code text default 'AI신호등')
+returns text language sql stable security definer set search_path = public as $$
+  select coalesce((select case when not active or used >= max_uses then 'closed'
+                               when used >= ceil(max_uses * 0.7) then 'closing'
+                               else 'open' end
+                     from coupons where code = upper(regexp_replace(coalesce(p_code, ''), '\s', '', 'g'))), 'closed');
+$$;
+grant execute on function public.coupon_status(text) to anon, authenticated;
+
 -- 확인용 (운영자): 사용 인원과 사용한 회원
 select code, used, max_uses, months, active from public.coupons;
 select r.redeemed_at, p.nickname, r.market, r.until_after
