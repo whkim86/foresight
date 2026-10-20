@@ -169,12 +169,54 @@
       </form>`;
   }
 
+  // ---------- 쿠폰 (supabase/stage26.sql redeem_coupon): 1개 시장 선택 → 무료 기간 ----------
+  const { data: myCoupons } = await sb.from("coupon_redemptions").select("code, market, until_after").limit(5);
+  const usedCoupon = (myCoupons || [])[0];
+  const coupon = acc.isAdmin ? "" : usedCoupon ? `
+      <div class="card">
+        <div class="title-row"><h3 style="margin:0">🎁 쿠폰</h3><span class="badge teal">사용 완료</span></div>
+        <p class="hint" style="margin-top:6px">${esc(usedCoupon.code)} 쿠폰으로 <b>${esc(cfg.MARKETS[usedCoupon.market]?.name || usedCoupon.market)}</b>이(가) ${ymd(usedCoupon.until_after)}까지 열렸어요.</p>
+      </div>` : `
+      <form class="card form-stack" id="cpForm" novalidate>
+        <div>
+          <h3 style="margin-bottom:4px">🎁 쿠폰 등록</h3>
+          <p class="hint">쿠폰 코드를 입력하고 보고 싶은 시장 하나를 고르면 바로 열려요</p>
+        </div>
+        <div class="field">
+          <label for="cpCode">쿠폰 코드</label>
+          <input id="cpCode" autocomplete="off" spellcheck="false" placeholder="예: AI신호등">
+        </div>
+        <div><div class="label">무료로 열 시장 (1개)</div><div class="choice-grid">${Object.entries(cfg.MARKETS).map(([key, m]) => `
+          <label class="choice"><input type="radio" name="cpMarket" value="${key}"><b>${esc(m.name)}</b><small>${key === "coin" ? "업비트·빗썸" : "&nbsp;"}</small></label>`).join("")}</div></div>
+        <div class="msg" id="cpMsg" hidden></div>
+        <button class="btn block" id="cpBtn" type="submit">쿠폰 사용하기</button>
+      </form>`;
+
   main.innerHTML = `
     <section class="on-night">
       <h1>마이페이지</h1>
       <p class="lead">이용 상태와 결제 안내를 확인해요</p>
     </section>
-    <div class="two-col">${left}${right}</div>`;
+    <div class="two-col">${left}<div class="stack">${coupon}${right}</div></div>`;
+
+  if (document.getElementById("cpForm")) {
+    const cpShow = (kind, text) => { const m = document.getElementById("cpMsg"); m.className = "msg " + kind; m.textContent = text; m.hidden = false; };
+    document.getElementById("cpForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const code = document.getElementById("cpCode").value.trim();
+      const mk = (document.querySelector('input[name="cpMarket"]:checked') || {}).value;
+      if (!code) return cpShow("error", "쿠폰 코드를 입력해 주세요.");
+      if (!mk) return cpShow("error", "무료로 열 시장을 하나 골라주세요.");
+      const btn = document.getElementById("cpBtn");
+      btn.disabled = true;
+      const { data, error } = await sb.rpc("redeem_coupon", { p_code: code, p_market: mk });
+      btn.disabled = false;
+      if (error) return cpShow("error", errText(error));
+      Portal.track("coupon");
+      cpShow("ok", `${cfg.MARKETS[mk].name}이(가) ${ymd(data)}까지 열렸어요! 잠시 후 새로고침돼요.`);
+      setTimeout(() => location.reload(), 1800);
+    });
+  }
 
   const $ = (id) => document.getElementById(id);
   const show = (kind, text) => { const m = $("msg"); m.className = "msg " + kind; m.textContent = text; m.hidden = false; };
