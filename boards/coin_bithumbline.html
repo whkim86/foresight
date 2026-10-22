@@ -168,11 +168,13 @@ details.rule p{margin-top:6px;font-size:13px;line-height:1.65;color:var(--muted)
 .endlab{font-size:12px;font-weight:700}.endlab.u{fill:var(--up-text)}.endlab.d{fill:var(--dn-ink)}
 .medl{stroke-width:3.4;stroke-dasharray:none}
 .today{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 4;opacity:.7}
+.act-after{stroke-width:3.6}
+.actlab{font-size:12px;font-weight:700;fill:var(--ink)}
 </style>
 <script>window.PORTAL_BOARD={market:"bithumb",kind:"chart"};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../config.js?v=20261019b"></script>
-<script src="../assets/board-data.js?v=20261019b"></script>
+<script src="../config.js?v=20261022a"></script>
+<script src="../assets/board-data.js?v=20261022a"></script>
 </head>
 <body>
 <div class="wrap">
@@ -533,7 +535,8 @@ function Panel(root){
     P.syncSeg(); P.drawLegend();
     var series=[];
     co.modelNames.forEach(function(m){ if(P.hidden.has(m)) return; series.push({name:m,idx:cur.D.idx[m],pts:co.models[m]}); });
-    var actual=co.hist.filter(function(p,i,a){return p.n>a[a.length-1].n-HIST_DAYS});  // 실제값은 최근 2주만 (예측선이 잘 보이게)
+    var actual=co.hist.filter(function(p,i,a){return p.n>a[a.length-1].n-HIST_DAYS});
+    var after=co.after||[]; actual=actual.concat(after);  // 지난 예측: 그 뒤 실제값  // 실제값은 최근 2주만 (예측선이 잘 보이게)
     var band=[];
     if(P.median){
       var byAll={}; co.modelNames.forEach(function(m){co.models[m].forEach(function(p){ if(isFinite(p[k])) (byAll[p.n]||(byAll[p.n]=[])).push(p[k]); })});
@@ -592,10 +595,25 @@ function Panel(root){
         medPts.forEach(function(p){ d+=dot(X(p.n),Y(p.v),4,'var(--surface)','var(--ink)',2.2); });
         if(medPts.length&&P.a.base){ var e=medPts[medPts.length-1], ch=e.v/P.a.base.c-1; d+='<text x="'+(X(e.n)-6).toFixed(1)+'" y="'+(Y(e.v)-10).toFixed(1)+'" text-anchor="end" class="endlab '+(ch>=0?'u':'d')+'">'+pct(ch)+'</text>'; }
       }
+      if(after.length){
+        var ap=actual.filter(function(p){return p.n>=after[0].n-1});
+        g+='<path class="act act-after" d="'+ap.map(function(p,i){return (i?'L':'M')+X(p.n).toFixed(1)+' '+Y(p[k]).toFixed(1)}).join('')+'"/>';
+        after.forEach(function(p){ d+=dot(X(p.n),Y(p[k]),4.6,'var(--ink)','var(--surface)',2); });
+        var ea=after[after.length-1]; d+='<text x="'+(X(ea.n)+8).toFixed(1)+'" y="'+(Y(ea[k])+4).toFixed(1)+'" class="actlab">실제</text>';
+      }
       g+='<g class="dots" pointer-events="none">'+d+'</g>';
     })();
     g+='<line class="guide" id="gd" y1="'+mt+'" y2="'+(mt+ih)+'" x1="0" x2="0" style="display:none"/><circle class="hdot" id="hd" r="5" style="display:none"/>';
     box.innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" role="img" aria-label="'+esc(P.coin)+' 실제값과 예측 모델별 '+METRIC[P.metric]+' 선 그래프">'+g+'</svg><div class="tip" style="display:none"></div>';
+    if(after.length){
+      var best=co.modelNames.map(function(m){var s=0,c=0; co.models[m].forEach(function(p){var q=after.filter(function(a){return a.n===p.n})[0]; if(q&&q.c>0&&isFinite(p.c)){s+=Math.abs(p.c/q.c-1);c++;}}); return {m:m,e:c?s/c:Infinity,c:c};})
+        .filter(function(x){return x.c}).sort(function(a,b){return a.e-b.e}).slice(0,3).map(function(x){return x.m});
+      var a1=after[0], pn=document.createElement('div'); pn.className='past-note';
+      pn.innerHTML='📌 이 예측 뒤 실제 가격 '+after.length+'일치를 굵은 선으로 붙였어요.'+(P.a.base?' '+esc(fmtDate(a1.date))+' 실제 종가는 직전 종가 대비 <b>'+pct(a1.c/P.a.base.c-1)+'</b>였어요.':'')
+        +(best.length?'<br>실제 종가와 가장 가까웠던 모델: <b>'+best.map(esc).join(', ')+'</b><button type="button" class="lg tool">이 모델만 보기</button>':'');
+      box.appendChild(pn);
+      var pb=pn.querySelector('button'); if(pb) pb.onclick=function(){ P.top=false; P.topUser=false; P.hidden=new Set(co.modelNames.filter(function(m){return best.indexOf(m)<0})); P.draw(); };
+    }
     var svg=box.querySelector('svg'), tip=box.querySelector('.tip'), gd=box.querySelector('#gd'), hd=box.querySelector('#hd');
     var base=P.a.base;
     function show(ev){
@@ -604,7 +622,7 @@ function Panel(root){
       var n=best, cx=X(n), html='', dotV=null, dotColor='var(--ink)';
       var ah=actual.filter(function(p){return p.n===n})[0];
       var cand=series.map(function(s){var p=s.pts.filter(function(q){return q.n===n})[0]; return p?{s:s,p:p}:null}).filter(Boolean);
-      if(ah&&!cand.length){
+      if(ah&&!cand.length&&!ah.after){
         html='<div class="th">'+esc(fmtDate(ah.date))+' 실제값</div><div class="tr"><span>종가</span><b>'+fmtNum(ah.c)+'</b></div><div class="tr"><span>고점</span><b>'+fmtNum(ah.h)+'</b></div><div class="tr"><span>저점</span><b>'+fmtNum(ah.l)+'</b></div>';
         dotV=ah[k];
         P.setHi(null);
@@ -616,6 +634,7 @@ function Panel(root){
         html='<div class="th"><i style="background:var(--mc'+(near.s.idx%15)+')"></i>'+esc(near.s.name)+' · '+esc(fmtDate(near.p.date))+' (D+'+near.p.seq+')</div>';
         html+='<div class="tr"><span>'+METRIC[P.metric]+' 예측</span><b>'+fmtNum(near.p[k])+'</b></div>';
         if(base) html+='<div class="tr"><span>직전 종가 대비</span><b>'+pct(near.p[k]/base.c-1)+'</b></div>';
+        if(ah) html+='<div class="tr"><span>실제 '+METRIC[P.metric]+'</span><b>'+fmtNum(ah[k])+'</b></div>';
         html+='<div class="tm">표시 모델 중앙값 '+fmtNum(md)+'<br>범위 '+fmtNum(Math.min.apply(null,vs))+' ~ '+fmtNum(Math.max.apply(null,vs))+'</div>';
         dotV=near.p[k]; dotColor='var(--mc'+(near.s.idx%15)+')';
       }
@@ -625,6 +644,7 @@ function Panel(root){
           html='<div class="th"><i style="background:var(--ink)"></i>모델 '+bp.cnt+'개 중앙값 · '+esc(fmtDate(dateOf[n]))+'</div>';
           html+='<div class="tr"><span>'+METRIC[P.metric]+' 중앙값</span><b>'+fmtNum(bp.v)+'</b></div>';
           if(base) html+='<div class="tr"><span>직전 종가 대비</span><b>'+pct(bp.v/base.c-1)+'</b></div>';
+          if(ah) html+='<div class="tr"><span>실제 '+METRIC[P.metric]+'</span><b>'+fmtNum(ah[k])+'</b></div>';
           html+='<div class="tm">25~75% 범위 '+fmtNum(bp.q1)+' ~ '+fmtNum(bp.q3)+'</div>';
           dotV=bp.v;
         }
@@ -697,7 +717,21 @@ function selectAlt(name){
 /* ---------- boot / upload ---------- */
 var msg=$('#msg');
 function setMsg(t,cls){msg.className=cls||'';msg.textContent=t;}
-function load(text,src){
+var LATEST=null, LSRC='최신 예측 데이터';
+window.portalHist={ready:function(){return !!LATEST}, show:function(text,src){
+  if(!text){ DATA=LATEST; state.src=LSRC; setPred(DATA.preds[DATA.preds.length-1]); renderAll(); return; }
+  var d=build(text), pd=d.preds[d.preds.length-1], LD=LATEST.days[LATEST.preds[LATEST.preds.length-1]];
+  d.days[pd].coins.forEach(function(co,k){
+    co.after=[]; var lc=LD.coins.get(k); if(!lc) return;
+    var ref=co.hist[0]||(co.models[co.modelNames[0]]||[])[0]; if(!ref) return;
+    var a0=dayIndex(ref.date)-ref.n, last=co.hist.length?co.hist[co.hist.length-1].n:-1e9, maxN=-1e9;
+    co.modelNames.forEach(function(m){co.models[m].forEach(function(p){ if(p.n>maxN) maxN=p.n; })});
+    lc.hist.forEach(function(p){ var n=wrapDelta(dayIndex(p.date)-a0); if(n>last&&n<=maxN) co.after.push({n:n,date:p.date,c:p.c,h:p.h,l:p.l,after:true}); });
+  });
+  DATA=d; state.src=src||''; setPred(pd); renderAll();
+}};
+function load(text,src){ var d=loadOrig(text,src); if(src===LSRC) LATEST=d; return d; }
+function loadOrig(text,src){
   var d=build(text);
   DATA=d; state.src=src;
   setPred(d.preds[d.preds.length-1]);
@@ -733,8 +767,9 @@ if(window.ResizeObserver){
 }
 })();
 </script>
-<script src="../assets/dual-signal.js?v=20261019b"></script>
-<script src="../assets/names.js?v=20261019b"></script>
-<script src="../assets/pattern-note.js?v=20261019b"></script>
+<script src="../assets/dual-signal.js?v=20261022a"></script>
+<script src="../assets/names.js?v=20261022a"></script>
+<script src="../assets/history.js?v=20261022a"></script>
+<script src="../assets/pattern-note.js?v=20261022a"></script>
 </body>
 </html>

@@ -40,6 +40,8 @@
     return new Blob([window.fflate.gunzipSync(new Uint8Array(await blob.arrayBuffer()))]);
   }
 
+  window.portalGunzip = gunzip;  // 지난 예측 보기(assets/history.js)도 씀
+
   // 원래 대시보드의 fetch('같은 폴더 CSV') 자리에 들어감. fetch 와 같은 Response 를 돌려줌
   // 가격 차트는 압축본(latest.csv.gz)을 먼저, 없으면 예전 latest.csv
   window.portalFetch = async function () {

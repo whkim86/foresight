@@ -33,7 +33,7 @@ BOARDS = {
 EXTRA_JS = {
     ("coin", "priority"): ["ask-ai.js"],  # BTC 아래 'AI에게 물어보기' (프리미엄)
 }
-ALL_JS = ["dual-signal.js", "names.js"]  # 모든 보드에 붙임 (names.js: 심볼 옆 한글명)
+ALL_JS = ["dual-signal.js", "names.js", "history.js"]  # 모든 보드에 붙임 (names.js: 심볼 옆 한글명, history.js: 지난 예측 보기)
 CHART_JS = ["pattern-note.js"]  # 가격 차트 보드에 붙임 (AI 패턴해석 주석)
 # 가격 차트: 모델이 많을 때(15개 초과, 예: 52개) 기본은 '중앙값 선 + 25~75% 범위'만 보이고 개별 모델 선은 골라서 켜기.
 # 중앙값·범위는 판정과 같게 항상 전체 모델 기준. 원본 코드 조각이 바뀌면 오류로 알려줌
@@ -214,6 +214,66 @@ NAME_SEARCH_PATCHES = {
          "if(k.toUpperCase()===v||(window.portalNameIs&&window.portalNameIs(k,v))) hit=k"),
     ],
 }
+# 지난 예측 보기 (assets/history.js 가 날짜별 백업을 받아 window.portalHist.show(text) 로 넘김, 최신으로 돌아가면 show(null))
+#  · 가격 차트: 지난 예측이면 최신 데이터의 실제값 중 그 예측 기간에 해당하는 날(co.after)을 예측선 위에 이어 그리고,
+#    실제 종가와 가장 가까웠던 모델 이름을 차트 아래에 (오차 숫자는 보여주지 않음). CHART_PATCHES 다음에 적용
+HISTORY_PATCHES = {
+    "chart": [
+        ("function load(text,src){",
+         "var LATEST=null, LSRC='최신 예측 데이터';\n"
+         "window.portalHist={ready:function(){return !!LATEST}, show:function(text,src){\n"
+         "  if(!text){ DATA=LATEST; state.src=LSRC; setPred(DATA.preds[DATA.preds.length-1]); renderAll(); return; }\n"
+         "  var d=build(text), pd=d.preds[d.preds.length-1], LD=LATEST.days[LATEST.preds[LATEST.preds.length-1]];\n"
+         "  d.days[pd].coins.forEach(function(co,k){\n"
+         "    co.after=[]; var lc=LD.coins.get(k); if(!lc) return;\n"
+         "    var ref=co.hist[0]||(co.models[co.modelNames[0]]||[])[0]; if(!ref) return;\n"
+         "    var a0=dayIndex(ref.date)-ref.n, last=co.hist.length?co.hist[co.hist.length-1].n:-1e9, maxN=-1e9;\n"
+         "    co.modelNames.forEach(function(m){co.models[m].forEach(function(p){ if(p.n>maxN) maxN=p.n; })});\n"
+         "    lc.hist.forEach(function(p){ var n=wrapDelta(dayIndex(p.date)-a0); if(n>last&&n<=maxN) co.after.push({n:n,date:p.date,c:p.c,h:p.h,l:p.l,after:true}); });\n"
+         "  });\n"
+         "  DATA=d; state.src=src||''; setPred(pd); renderAll();\n"
+         "}};\n"
+         "function load(text,src){ var d=loadOrig(text,src); if(src===LSRC) LATEST=d; return d; }\n"
+         "function loadOrig(text,src){"),
+        ("    var actual=co.hist.filter(function(p,i,a){return p.n>a[a.length-1].n-HIST_DAYS});",
+         "    var actual=co.hist.filter(function(p,i,a){return p.n>a[a.length-1].n-HIST_DAYS});\n"
+         "    var after=co.after||[]; actual=actual.concat(after);  // 지난 예측: 그 뒤 실제값"),
+        ("      g+='<g class=\"dots\" pointer-events=\"none\">'+d+'</g>';",
+         "      if(after.length){\n"
+         "        var ap=actual.filter(function(p){return p.n>=after[0].n-1});\n"
+         "        g+='<path class=\"act act-after\" d=\"'+ap.map(function(p,i){return (i?'L':'M')+X(p.n).toFixed(1)+' '+Y(p[k]).toFixed(1)}).join('')+'\"/>';\n"
+         "        after.forEach(function(p){ d+=dot(X(p.n),Y(p[k]),4.6,'var(--ink)','var(--surface)',2); });\n"
+         "        var ea=after[after.length-1]; d+='<text x=\"'+(X(ea.n)+8).toFixed(1)+'\" y=\"'+(Y(ea[k])+4).toFixed(1)+'\" class=\"actlab\">실제</text>';\n"
+         "      }\n"
+         "      g+='<g class=\"dots\" pointer-events=\"none\">'+d+'</g>';"),
+        ("    var svg=box.querySelector('svg'), tip=",
+         "    if(after.length){\n"
+         "      var best=co.modelNames.map(function(m){var s=0,c=0; co.models[m].forEach(function(p){var q=after.filter(function(a){return a.n===p.n})[0]; if(q&&q.c>0&&isFinite(p.c)){s+=Math.abs(p.c/q.c-1);c++;}}); return {m:m,e:c?s/c:Infinity,c:c};})\n"
+         "        .filter(function(x){return x.c}).sort(function(a,b){return a.e-b.e}).slice(0,3).map(function(x){return x.m});\n"
+         "      var a1=after[0], pn=document.createElement('div'); pn.className='past-note';\n"
+         "      pn.innerHTML='📌 이 예측 뒤 실제 가격 '+after.length+'일치를 굵은 선으로 붙였어요.'+(P.a.base?' '+esc(fmtDate(a1.date))+' 실제 종가는 직전 종가 대비 <b>'+pct(a1.c/P.a.base.c-1)+'</b>였어요.':'')\n"
+         "        +(best.length?'<br>실제 종가와 가장 가까웠던 모델: <b>'+best.map(esc).join(', ')+'</b><button type=\"button\" class=\"lg tool\">이 모델만 보기</button>':'');\n"
+         "      box.appendChild(pn);\n"
+         "      var pb=pn.querySelector('button'); if(pb) pb.onclick=function(){ P.top=false; P.topUser=false; P.hidden=new Set(co.modelNames.filter(function(m){return best.indexOf(m)<0})); P.draw(); };\n"
+         "    }\n"
+         "    var svg=box.querySelector('svg'), tip="),
+        ("if(ah&&!cand.length){", "if(ah&&!cand.length&&!ah.after){"),
+        ("        html+='<div class=\"tm\">표시 모델 중앙값 '",
+         "        if(ah) html+='<div class=\"tr\"><span>실제 '+METRIC[P.metric]+'</span><b>'+fmtNum(ah[k])+'</b></div>';\n"
+         "        html+='<div class=\"tm\">표시 모델 중앙값 '"),
+        ("          html+='<div class=\"tm\">25~75% 범위 '",
+         "          if(ah) html+='<div class=\"tr\"><span>실제 '+METRIC[P.metric]+'</span><b>'+fmtNum(ah[k])+'</b></div>';\n"
+         "          html+='<div class=\"tm\">25~75% 범위 '"),
+        ("</style>",
+         ".act-after{stroke-width:3.6}\n.actlab{font-size:12px;font-weight:700;fill:var(--ink)}\n</style>"),
+    ],
+    "priority": [
+        ("function load(text,src,keep){",
+         "var LTEXT=null;\n"
+         "window.portalHist={ready:function(){return LTEXT!=null}, show:function(text,src){ load(text||LTEXT,text?(src||''):'최신 예측 데이터',true); }};\n"
+         "function load(text,src,keep){ if(src==='최신 예측 데이터') LTEXT=text;"),
+    ],
+}
 DUAL_CHART_PATCH = ("b.textContent=(v==='stale'||v==='hold')?VLAB[v]:'D+1 '+VLAB[v];",
                     "b.textContent=(v==='stale'||v==='hold')?VLAB[v]:'D+1 '+VLAB[v];\n"
                     "    if(window.portalDual) window.portalDual(root,name,v,cur.pd,P.a);\n"
@@ -223,7 +283,7 @@ OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20261019b"
+ASSET_VERSION = "20261022a"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 
@@ -275,7 +335,8 @@ def convert(html, market, kind, texts=None):
         html = sub_once(r"function numKey\(n\)\{[^}]*\}", lambda _m: numkey, html, "모델 정렬")
 
     # 3-2) 모델 52개 대비(CHART_PATCHES), 두 신호 나란히 보기(DUAL_CHART_PATCH, PRIORITY_PATCHES)
-    patches = ((CHART_PATCHES + [DUAL_CHART_PATCH]) if kind == "chart" else PRIORITY_PATCHES) + NAME_SEARCH_PATCHES[kind]
+    patches = (((CHART_PATCHES + [DUAL_CHART_PATCH]) if kind == "chart" else PRIORITY_PATCHES)
+               + NAME_SEARCH_PATCHES[kind] + HISTORY_PATCHES[kind])
     for a, b in patches:
         if html.count(a) != 1:
             raise RuntimeError(f"{kind} 화면 수정 위치를 못 찾음 ({html.count(a)}곳): {a[:40]!r}")

@@ -239,8 +239,8 @@ table.det{width:100%;border-collapse:collapse;min-width:520px;font-size:14px}
 </style>
 <script>window.PORTAL_BOARD={market:"nasdaq",kind:"priority"};</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../config.js?v=20261019b"></script>
-<script src="../assets/board-data.js?v=20261019b"></script>
+<script src="../config.js?v=20261022a"></script>
+<script src="../assets/board-data.js?v=20261022a"></script>
 </head>
 <body>
 <div class="wrap">
@@ -746,7 +746,9 @@ function renderTable(){
 function renderAll(){renderHeader();renderApp();}
 
 /* ---------- boot / upload ---------- */
-function load(text,src,keep){
+var LTEXT=null;
+window.portalHist={ready:function(){return LTEXT!=null}, show:function(text,src){ load(text||LTEXT,text?(src||''):'최신 예측 데이터',true); }};
+function load(text,src,keep){ if(src==='최신 예측 데이터') LTEXT=text;
   var d=build(text);
   var prev=(keep&&cur)?{coin:state.coin,days:Array.from(state.days),grp:state.grp}:null;
   DATA=d; state.src=src;
@@ -894,7 +896,8 @@ if(window.ResizeObserver){
 }
 })();
 </script>
-<script src="../assets/dual-signal.js?v=20261019b"></script>
-<script src="../assets/names.js?v=20261019b"></script>
+<script src="../assets/dual-signal.js?v=20261022a"></script>
+<script src="../assets/names.js?v=20261022a"></script>
+<script src="../assets/history.js?v=20261022a"></script>
 </body>
 </html>
