@@ -100,6 +100,7 @@ window.renderLanding = async function () {
             <a class="btn big ghost-night" href="login.html">로그인</a>
           </div>
           <p class="l-note">닉네임과 이메일만 있으면 가입돼요 · 카드 등록 없음 · <a href="catalog.html" style="color:inherit;text-decoration:underline">예측하는 전체 종목 보기</a></p>
+          <p class="l-note">🔒 7일 무료가 끝나도 <b>자동으로 결제되지 않아요.</b> 계속 이용하고 싶을 때만 직접 신청하면 돼요.</p>
         </div>
         <div class="l-lamp" aria-hidden="true">
           <div class="lamp big up"><i></i><i></i><i></i></div>
