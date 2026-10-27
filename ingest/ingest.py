@@ -614,6 +614,10 @@ def ingest_market(market, cfg, today):
             if pattern_ready():
                 graded = supa("POST", "/rest/v1/rpc/grade_horizons", {"p_market": market, "p_actuals": actuals})
                 print(f"  [{market}/chart] D+3·D+6 {graded}건 채점")
+            try:  # 모의투자 정산 (stage27.sql): 방금 채운 실제 종가로 '검토 중' 표시 + 검토 시간 지난 건 지급
+                print(f"  [game] 정산 지급 {supa('POST', '/rest/v1/rpc/game_settle', {})}건")
+            except Exception as e:  # stage27 실행 전이거나 실패해도 수집은 계속
+                print(f"  [game] 정산 건너뜀: {e}")
             try:
                 post_summary(market, pred_date, preds)
             except Exception as e:  # 요약 글이 실패해도 수집은 계속
