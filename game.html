@@ -79,6 +79,7 @@
   .favbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:9px 12px;font-size:14px;cursor:pointer}
   .favbtn[aria-pressed="true"]{background:#FFF4D1;border-color:#F5B400}
   .g-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.g-links a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--ink);text-decoration:none;background:var(--card)}.g-links a:hover{border-color:var(--ink)}
+  .g-cd{margin-top:6px;font-size:13.5px;color:var(--ink)}.g-cd b{font-variant-numeric:tabular-nums}[data-until].soon{color:#B3222D}
   .cancel{margin-top:4px;border:1px solid #F5C2C2;background:#FFF5F5;color:#9A1F28;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
   .vb{font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 7px;white-space:nowrap;flex:0 0 auto}
   .vb.up{background:#FCE4E5;color:#B3222D}.vb.dn{background:#E4ECFB;color:#1D4FB0}.vb.mx{background:#FFF0D2;color:#8A5300}
@@ -116,6 +117,18 @@
   const fmt = (n) => Math.round(n).toLocaleString("ko-KR") + "P";
   const pct = (x) => (x >= 0 ? "+" : "") + (x * 100).toFixed(2) + "%";
   const px = (v) => v == null ? "-" : (v >= 1000 ? Math.round(v).toLocaleString("ko-KR") : v >= 1 ? v.toLocaleString("ko-KR", { maximumFractionDigits: 2 }) : v.toLocaleString("ko-KR", { maximumSignificantDigits: 4 }));
+  // 남은 시간 카운트다운: data-until 이 붙은 곳을 1초마다 갱신, 0이 되면 data-done 문구로 바꾸고 걸기 버튼 잠금
+  const left = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), x = s % 60, p = (n) => String(n).padStart(2, "0");
+    return d ? `${d}일 ${h}시간 ${p(m)}분` : h ? `${h}시간 ${p(m)}분 ${p(x)}초` : `${m}분 ${p(x)}초`; };
+  function tick() {
+    document.querySelectorAll("[data-until]").forEach((el) => {
+      const ms = new Date(el.dataset.until) - Date.now();
+      if (ms > 0) { el.textContent = left(ms); el.classList.toggle("soon", ms < 3600e3); return; }
+      el.textContent = el.dataset.done || "마감"; el.removeAttribute("data-until");
+      const b = el.closest(".g-bet") && document.getElementById("betBtn"); if (b) { b.disabled = true; b.textContent = "마감됐어요"; }
+    });
+  }
+  setInterval(tick, 1000);
   const when = (t) => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
 
   let me = null;
@@ -323,6 +336,7 @@
     const max = Math.floor(my.points / 2 / 1000) * 1000;
     box.innerHTML = `<div class="g-bet">
       <div><b>${MKN[market]} ${esc(sel.symbol)}</b> ${ko(market, sel.symbol) ? `<small style="color:var(--sub)">${esc(ko(market, sel.symbol))}</small>` : ""} · AI 판정 <i class="vb ${sel.verdict}">${VL[sel.verdict]}</i>
+        <div class="g-cd">⏰ 투자 마감까지 <b data-until="${sel.cutoff_at}" data-done="마감됐어요">${left(new Date(sel.cutoff_at) - Date.now())}</b></div>
         <div class="m" style="font-size:12.5px;color:var(--sub);margin-top:2px">마감 ${when(sel.cutoff_at)} · 최대 ${fmt(max)} (보유의 50%)</div>
         <div class="g-links"><a href="${boardUrl("chart")}" target="_blank" rel="noopener">📈 가격 차트 보기</a><a href="${boardUrl("priority")}" target="_blank" rel="noopener">🚦 우선순위 보기</a></div></div>
       <div class="row"><input id="amt" type="number" min="1000" step="1000" max="${max}" placeholder="걸 포인트 (최소 1,000P)">
@@ -345,7 +359,7 @@
       const st = x.status === "settled" ? `<span class="st settled">정산 완료</span>` : x.status === "review" ? `<span class="st review">🔍 검토 중</span>` : `<span class="st open">진행 중</span>`;
       const right = x.status === "settled"
         ? `<div class="r ${x.ret >= 0 ? "u" : "d"}">${pct(x.ret)}<br><small style="font-weight:500;color:var(--sub)">${fmt(x.payout)} · EXP ${x.exp_delta >= 0 ? "+" : ""}${x.exp_delta}</small></div>`
-        : `<div class="r" style="color:var(--sub);font-weight:500;font-size:13px">${fmt(x.amount)}${x.cancel_until ? `<br><button type="button" class="cancel" data-cancel="${x.id}">취소 <small>${when(x.cancel_until)}까지</small></button>` : ""}</div>`;
+        : `<div class="r" style="color:var(--sub);font-weight:500;font-size:13px">${fmt(x.amount)}${x.cancel_until ? `<br><button type="button" class="cancel" data-cancel="${x.id}">취소 <small data-until="${x.cancel_until}" data-done="취소 마감">${left(new Date(x.cancel_until) - Date.now())}</small> 남음</button>` : ""}</div>`;
       const sub = x.status === "settled" ? `${fmt(x.amount)} 걸음` : x.status === "review" ? `실제 종가 확인 중 · ${x.settle_at ? when(x.settle_at) + "쯤 지급" : "곧 지급"}` : `종가 ${when(x.close_at)} 이후 정산`;
       return `<div class="g-h"><div><span class="t">${MKN[x.market]} ${esc(x.symbol)}</span> ${k ? `<small style="color:var(--sub)">${esc(k)}</small>` : ""} <i class="vb ${x.verdict}">${VL[x.verdict] || ""}</i> ${st}<div class="m">${sub}</div></div>${right}</div>`;
     }).join("") : `<div class="empty">아직 투자 기록이 없어요. 첫 종목을 골라 보세요!</div>`;
