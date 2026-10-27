@@ -78,6 +78,7 @@
   .g-tools select{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:9px 10px;font-size:14px}
   .favbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:9px 12px;font-size:14px;cursor:pointer}
   .favbtn[aria-pressed="true"]{background:#FFF4D1;border-color:#F5B400}
+  .g-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.g-links a{border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:12.5px;color:var(--ink);text-decoration:none;background:var(--card)}.g-links a:hover{border-color:var(--ink)}
   .cancel{margin-top:4px;border:1px solid #F5C2C2;background:#FFF5F5;color:#9A1F28;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
   .vb{font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 7px;white-space:nowrap;flex:0 0 auto}
   .vb.up{background:#FCE4E5;color:#B3222D}.vb.dn{background:#E4ECFB;color:#1D4FB0}.vb.mx{background:#FFF0D2;color:#8A5300}
@@ -313,6 +314,8 @@
       return `<button type="button" class="g-sym" data-s="${esc(s.symbol)}" aria-pressed="${sel && sel.symbol === s.symbol}"><span class="star ${s.fav ? "on" : ""}" data-fav="${esc(s.symbol)}" title="즐겨찾기">${s.fav ? "★" : "☆"}</span><span class="nm"><b>${esc(s.symbol)}</b>${k ? ` <small style="color:var(--sub)">${esc(k)}</small>` : ""}<small class="inf ${cc}">${info}</small></span><i class="vb ${s.verdict}">${VL[s.verdict]}</i></button>`;
     }).join("") : `<div class="empty">${favOnly && syms.length ? "즐겨찾기한 종목이 없어요. ☆를 눌러 추가해 보세요" : syms.length ? (theme ? "이 분야엔 지금 걸 수 있는 종목이 없어요" : "찾는 종목이 없어요") : "지금 걸 수 있는 종목이 없어요 (마감됐거나 오늘 예측 전이에요)"}</div>`;
   }
+  // 고른 종목을 대시보드 보드에서 바로 열기 (?s= 로 그 종목을 띄움, 새 탭이라 고른 상태는 그대로)
+  const boardUrl = (v) => `dashboard.html?m=${market === "bithumb" ? "coin&ex=bithumb" : market === "coin" ? "coin&ex=upbit" : market}&v=${v}&s=${encodeURIComponent(sel.symbol)}`;
   function drawBet() {
     const box = document.getElementById("bet");
     if (my.broke_at) { box.innerHTML = `<p class="hint" style="margin:0;color:#9A1F28;font-size:13px">😵 친구가 기절해 있어서 지금은 걸 수 없어요. ${when(my.revive_at)}에 부활해요.</p>`; return; }
@@ -320,7 +323,8 @@
     const max = Math.floor(my.points / 2 / 1000) * 1000;
     box.innerHTML = `<div class="g-bet">
       <div><b>${MKN[market]} ${esc(sel.symbol)}</b> ${ko(market, sel.symbol) ? `<small style="color:var(--sub)">${esc(ko(market, sel.symbol))}</small>` : ""} · AI 판정 <i class="vb ${sel.verdict}">${VL[sel.verdict]}</i>
-        <div class="m" style="font-size:12.5px;color:var(--sub);margin-top:2px">마감 ${when(sel.cutoff_at)} · 최대 ${fmt(max)} (보유의 50%)</div></div>
+        <div class="m" style="font-size:12.5px;color:var(--sub);margin-top:2px">마감 ${when(sel.cutoff_at)} · 최대 ${fmt(max)} (보유의 50%)</div>
+        <div class="g-links"><a href="${boardUrl("chart")}" target="_blank" rel="noopener">📈 가격 차트 보기</a><a href="${boardUrl("priority")}" target="_blank" rel="noopener">🚦 우선순위 보기</a></div></div>
       <div class="row"><input id="amt" type="number" min="1000" step="1000" max="${max}" placeholder="걸 포인트 (최소 1,000P)">
         <span class="q"><button type="button" data-p=".1">10%</button> <button type="button" data-p=".25">25%</button> <button type="button" data-p=".5">50%</button></span></div>
       <div class="row"><button class="btn" id="betBtn" type="button" ${my.today_left <= 0 ? "disabled" : ""}>${my.today_left <= 0 ? "오늘은 5개를 다 걸었어요" : "🐾 이 종목에 걸기"}</button><span id="betMsg" style="font-size:13px"></span></div></div>`;
