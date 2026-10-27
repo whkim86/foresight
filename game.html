@@ -9,13 +9,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261029b">
+<link rel="stylesheet" href="assets/style.css?v=20261029c">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261029b"></script>
-<script src="assets/app.js?v=20261029b"></script>
-<script src="assets/names.js?v=20261029b"></script>
-<script src="assets/catalog-data.js?v=20261029b"></script>
-<script src="assets/game-chars.js?v=20261029b"></script>
+<script src="config.js?v=20261029c"></script>
+<script src="assets/app.js?v=20261029c"></script>
+<script src="assets/names.js?v=20261029c"></script>
+<script src="assets/catalog-data.js?v=20261029c"></script>
+<script src="assets/game-chars.js?v=20261029c"></script>
 <style>
   /* 화면 */
   .g-hero{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:center}
@@ -94,6 +94,9 @@
   .closet .it[aria-pressed="true"]{border-color:var(--ink);background:#F4F6FB}
   .closet .it.lock{opacity:.5;cursor:not-allowed}
   .closet .it small{display:block;color:var(--sub)}
+  body.guest main.page{padding-bottom:90px}body.guest .portal-toast{bottom:86px}
+  .guest-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:#1B2233;color:#fff;padding:10px 16px;font-size:14px;box-shadow:0 -4px 16px #0003}
+  .guest-bar .btn.ghost{color:#fff;background:transparent;border-color:#fff6}
   .demo-badge{background:#FFE08A;color:#6B4A00;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px}
   @media (max-width:640px){.g-stats{grid-template-columns:repeat(2,1fr)}.g-hero{grid-template-columns:1fr}.g-char{max-width:220px;margin:0 auto}.g-pick{grid-template-columns:repeat(4,1fr)}}
 </style>
@@ -103,7 +106,11 @@
 (async function () {
   const { sb, requireUser, renderHeader, esc, errText } = Portal;
   const GC = window.GameChars;
-  const DEMO = new URLSearchParams(location.search).has("demo");  // 화면 확인용 가짜 데이터 (?demo)
+  let DEMO = new URLSearchParams(location.search).has("demo");  // 화면 확인용 가짜 데이터 (?demo)
+  // 비회원(로그인 안 함)은 '둘러보기': 가짜 데이터로 똑같이 해 볼 수 있고 저장은 안 됨 → 가입 유도
+  let GUEST = false;
+  if (!DEMO && sb) { const { data: { session } } = await sb.auth.getSession(); if (!session) GUEST = DEMO = true; }
+  const nudge = () => { if (GUEST) Portal.toast("👀 둘러보기라 저장되지 않아요 · 무료 가입하면 진짜 10만P!"); };
   const MK = [["coin", "업비트"], ["bithumb", "빗썸"], ["nasdaq", "나스닥"], ["kospi", "코스피"]];
   const MKN = Object.fromEntries(MK);
   const VL = { up: "상승", mx: "혼돈", dn: "하락" };
@@ -127,7 +134,10 @@
   let me = null;
   if (!DEMO) { me = await requireUser(); if (!me) return; }
   renderHeader(me);
-  if (!DEMO) Portal.track("game");
+  Portal.track(GUEST ? "game_guest" : "game");
+  if (GUEST) document.body.classList.add("guest");
+  if (GUEST) document.body.insertAdjacentHTML("beforeend", `<div class="guest-bar"><span>👀 <b>둘러보기 중</b> · 해 볼 수 있지만 저장되지 않아요</span>
+    <span><a class="btn sm" href="login.html#signup">무료 가입하고 10만P 받기</a> <a class="btn sm ghost" href="login.html?next=game.html">로그인</a></span></div>`);
   const main = document.createElement("main");
   main.className = "page";
   document.body.appendChild(main);
@@ -147,19 +157,37 @@
     rank: [["코인왕범돌", "tiger", 9, 182000, 0.184], ["복돼지대장", "pig", 7, 151000, 0.121], ["신호등지기", "tiger", 3, 87600, 0.023], ["새벽꼬꼬", "rooster", 4, 99000, -0.01]]
       .map(([nickname, animal, level, points, week_ret], i) => ({ nickname, animal, level, points, week_ret, hat: ["helmet", "party", "beanie", "cap"][i], outfit: ["hanbok", "hoodie", "tee", "tee"][i], shoes: ["boots", "boots", "sneakers", "none"][i], total_ret: [0.82, 0.51, 0.126, -0.01][i], revives: i === 3 ? 1 : 0, broke: false, is_me: nickname === "신호등지기" })),
   };
+  if (GUEST) Object.assign(fake.my, { joined: false, nickname: "", points: 100000, exp: 0, level: 1, level_floor: 0, level_next: 60, today_left: 5, invested: 0,
+    total_ret: 0, hat: "cap", display_name: "둘러보기 손님", missions: { login: false, chart: false, post: false, points: 1000 }, bets: [] });
+  const FAKE_SYMS = { nasdaq: ["NVIDIA", "APPLE", "TESLA", "MICROSOFT", "AMAZON", "META", "ALPHABET_A", "NETFLIX", "PALANTIR", "BROADCOM", "NASDAQ100", "SP500"],
+    kospi: ["삼성전자", "SK하이닉스", "LG에너지솔루션", "현대차", "기아", "NAVER", "카카오", "셀트리온", "POSCO홀딩스", "KB금융", "한화에어로스페이스", "KODEX200"] };
+  const fakeSyms = (m) => FAKE_SYMS[m] ? fake.syms.map((s, i) => ({ ...s, symbol: FAKE_SYMS[m][i], base_close: [180, 230, 250, 420, 190, 600, 170, 1100, 150, 330, 21000, 6500][i] * (m === "kospi" ? 300 : 1), fav: false })) : fake.syms;
   if (new URLSearchParams(location.search).has("broke")) Object.assign(fake.my, { points: 400, invested: 0, total_ret: -0.996, broke_at: new Date(now - 30 * H).toISOString(), revive_at: new Date(now + 42 * H).toISOString() });
   const api = {
     my: async () => DEMO ? fake.my : (await sb.rpc("game_my")).data,
-    join: async (c) => DEMO ? (fake.my.joined = true, fake.my.character = c, { ok: true }) : (await sb.rpc("game_join", { p_character: c })).data,
-    syms: async (m) => DEMO ? fake.syms : ((await sb.rpc("game_symbols", { p_market: m })).data || []),
-    bet: async (m, s, a) => DEMO ? { ok: true } : await sb.rpc("game_bet", { p_market: m, p_symbol: s, p_amount: a }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
+    join: async (c) => DEMO ? (nudge(), fake.my.joined = true, fake.my.character = c, { ok: true }) : (await sb.rpc("game_join", { p_character: c })).data,
+    syms: async (m) => DEMO ? fakeSyms(m) : ((await sb.rpc("game_symbols", { p_market: m })).data || []),
+    bet: async (m, s, a) => DEMO ? fakeBet(m, s, a) : await sb.rpc("game_bet", { p_market: m, p_symbol: s, p_amount: a }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
     rank: async (k) => DEMO ? fake.rank : ((await sb.rpc("game_rank", { p_kind: k })).data || []),
     fav: async (m, s) => DEMO ? !fake.syms.find((x) => x.symbol === s).fav : (await sb.rpc("game_fav", { p_market: m, p_symbol: s })).data,
-    dress: async (h, o, s) => DEMO ? { ok: true } : await sb.rpc("game_dress", { p_hat: h, p_outfit: o, p_shoes: s }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
-    showName: async (on) => DEMO ? on : (await sb.rpc("game_show_name", { p_on: on })).data,
+    dress: async (h, o, s) => DEMO ? (nudge(), { ok: true }) : await sb.rpc("game_dress", { p_hat: h, p_outfit: o, p_shoes: s }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
+    showName: async (on) => DEMO ? (nudge(), on) : (await sb.rpc("game_show_name", { p_on: on })).data,
     cancel: async (id) => DEMO ? { ok: true, refund: 15000 } : await sb.rpc("game_cancel", { p_id: id }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
   };
 
+  // 둘러보기에서 건 투자: 화면 안에서만 기록 (5개 · 50% · 최소 1,000P 규칙은 실제와 같게)
+  function fakeBet(m, s, a) {
+    const f = fake.my;
+    if (f.today_left <= 0) return { ok: false, msg: "오늘은 5개를 모두 걸었어요" };
+    if (a < 1000) return { ok: false, msg: "최소 1,000P부터 걸 수 있어요" };
+    if (a > f.points / 2) return { ok: false, msg: "보유 포인트의 50%까지 걸 수 있어요" };
+    if (f.bets.some((b) => b.market === m && b.symbol === s)) return { ok: false, msg: "이 종목은 이미 걸었어요" };
+    const sym = (m === "nasdaq" || m === "kospi" ? fakeSyms(m) : fake.syms).find((x) => x.symbol === s) || {};
+    f.bets.unshift({ id: Date.now(), market: m, symbol: s, amount: a, verdict: sym.verdict, close_at: new Date(now + 20 * H).toISOString(), status: "open", created_at: new Date().toISOString(), cancel_until: new Date(now + 17 * H).toISOString() });
+    f.points -= a; f.invested += a; f.today_left--;
+    nudge();
+    return { ok: true };
+  }
   let my = await api.my().catch(() => null);
   if (!my) { main.innerHTML = `<div class="msg error">모의투자 정보를 불러오지 못했어요. 잠시 후 다시 들어와 주세요.</div>`; return; }
   if (!my.allowed) {
@@ -264,13 +292,13 @@
     if (!dress) dress = myDress();
     const span = my.level_next ? my.level_next - my.level_floor : 1, cur = my.level_next ? my.exp - my.level_floor : span;
     main.innerHTML = `
-      <section class="on-night" style="padding:6px 0 2px"><h1>🚦 모의투자 ${DEMO ? '<span class="demo-badge">미리보기 · 가짜 데이터</span>' : '<span class="demo-badge">베타</span>'}</h1>
+      <section class="on-night" style="padding:6px 0 2px"><h1>🚦 모의투자 ${DEMO ? `<span class="demo-badge">${GUEST ? "둘러보기 · 저장 안 됨" : "미리보기 · 가짜 데이터"}</span>` : '<span class="demo-badge">베타</span>'}</h1>
         <p class="lead">AI 신호를 보고 포인트를 걸어 보세요. 다음 종가의 실제 등락률만큼 포인트가 늘거나 줄어요.</p></section>
       <div class="card g-hero">
         <div class="g-char"><div class="stg" id="stg">${GC.draw(my.character, { ...dress, pt: my.points + (my.invested || 0), mood: my.broke_at ? "sleep" : "" }, "me")}</div></div>
         <div>
           ${my.broke_at ? `<div class="broke">😵 포인트를 다 잃어서 ${esc(z.n)}가 기절했어요…<br><b>${when(my.revive_at)}</b>에 <b>${fmt(my.revive_points || 50000)}</b>로 부활해요! <small id="cd"></small></div>` : ""}
-          <p class="g-name">${esc(my.nickname || "")}님의 ${esc(z.n)} <small style="font-weight:400;color:var(--sub)">(${z.a}띠)</small></p>
+          <p class="g-name">${my.nickname ? esc(my.nickname) + "님의" : "나의"} ${esc(z.n)} <small style="font-weight:400;color:var(--sub)">(${z.a}띠)</small></p>
           <p class="g-sub">${esc(z.s)}${my.revives ? ` · 💫 부활 ${my.revives}회` : ""}</p>
           <div><b>Lv.${my.level}</b> <small style="color:var(--sub)">${my.level_next ? `다음 레벨까지 ${my.level_next - my.exp} EXP` : "최고 레벨!"}</small>
             <div class="expbar"><i style="width:${Math.max(3, Math.min(100, cur / span * 100))}%"></i></div></div>
@@ -402,7 +430,7 @@
       if (!amt) { msg.textContent = "포인트를 입력해 주세요"; return; }
       const r = await api.bet(market, sel.symbol, amt);
       if (!r || !r.ok) { msg.style.color = "#B3222D"; msg.textContent = (r && r.msg) || "걸지 못했어요"; return; }
-      if (DEMO) { msg.style.color = "#1E7A43"; msg.textContent = "걸었어요! (미리보기)"; return; }
+      if (DEMO && !GUEST) { msg.style.color = "#1E7A43"; msg.textContent = "걸었어요! (미리보기)"; return; }
       my = await api.my(); renderMain();
     };
   }

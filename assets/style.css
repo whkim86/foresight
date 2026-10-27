@@ -562,3 +562,9 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; backgro
 .friend-card .fc-btns{display:flex;gap:8px;flex-wrap:wrap}
 .friend-room{grid-template-columns:180px 1fr}
 @media (max-width:560px){.friend-card{grid-template-columns:96px 1fr;gap:10px}.friend-room{grid-template-columns:120px 1fr}}
+/* 로그인 화면: 모의투자 소개 카드 */
+.auth-col{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px}
+.game-teaser{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;padding:18px}
+.game-teaser .gt-char svg{width:100%;height:auto;overflow:visible}
+.game-teaser .gt-title{font-size:16px}
+.game-teaser .gt-btns{display:flex;gap:6px;flex-wrap:wrap}

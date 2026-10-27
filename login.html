@@ -19,13 +19,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261029b">
+<link rel="stylesheet" href="assets/style.css?v=20261029c">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261029b"></script>
-<script src="assets/app.js?v=20261029b"></script>
+<script src="config.js?v=20261029c"></script>
+<script src="assets/app.js?v=20261029c"></script>
+<script src="assets/game-chars.js?v=20261029c"></script>
 </head>
 <body>
-<main class="auth-wrap">
+<main class="auth-wrap"><div class="auth-col">
   <div class="card auth-card">
     <span class="auth-badge">코인 · 나스닥 · 코스피 예측</span>
     <div>
@@ -60,7 +61,16 @@
       <p class="fine" id="terms" hidden>가입하면 서비스 이용약관과 개인정보 처리방침에 동의하는 것으로 간주돼요. 서비스 개선을 위해 이용 기록(방문한 화면·시간, 조회·검색한 종목)을 90일간 보관하고, 운영자가 회원별 이용 현황(최근 방문일 등)을 확인할 수 있어요</p>
     </form>
   </div>
-</main>
+  <!-- 신호등 친구들 모의투자 소개 (비회원 둘러보기: game.html 이 로그인 없이 맛보기 모드로 열림) -->
+  <div class="card game-teaser">
+    <div class="gt-char" id="gtChar"></div>
+    <div>
+      <b class="gt-title">🐯 신호등 친구들 모의투자</b>
+      <p class="hint" style="margin:4px 0 10px">무료 가입하면 <b>10만P</b> 지급! 12지 친구를 키우며 AI 신호로 포인트를 걸고, 레벨업·꾸미기·순위표에 도전해요.</p>
+      <div class="gt-btns"><button class="btn sm" type="button" id="gtJoin">무료 가입하고 10만P 받기</button><a class="btn sm ghost" href="game.html">가입 없이 둘러보기</a></div>
+    </div>
+  </div>
+</div></main>
 
 <script>
 (async function () {
@@ -97,6 +107,8 @@
   $("tabLogin").onclick = () => setMode("login");
   $("tabSignup").onclick = () => setMode("signup");
   if (location.hash === "#signup") setMode("signup");
+  if (window.GameChars) $("gtChar").innerHTML = GameChars.draw(["tiger", "rabbit", "pig", "dragon"][Math.floor(Math.random() * 4)], { hat: "cap", outfit: "tee", shoes: "sneakers", pt: 100000 }, "gt", true);
+  $("gtJoin").onclick = () => { setMode("signup"); window.scrollTo({ top: 0, behavior: "smooth" }); $("nickname").focus(); };
 
   const KO = {
     "Invalid login credentials": "이메일 또는 비밀번호가 맞지 않아요.",
