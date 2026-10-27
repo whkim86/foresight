@@ -138,6 +138,10 @@
       } else {
         const { data, error } = await sb.auth.signUp({ email, password, options: { data: { nickname } } });
         if (error) throw error;
+        // 메일 인증을 쓰면 Supabase 는 이미 가입된 이메일에도 오류 대신 '로그인 정보가 빈' 사용자를 돌려줌 (가입 여부 노출 방지)
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          setMode("login"); show("error", KO["User already registered"]); return;
+        }
         if (data.session) location.replace(next);
         else { setMode("login"); show("ok", "가입 신청이 끝났어요! 메일함에서 인증 링크를 누른 뒤 로그인해 주세요."); }
       }
