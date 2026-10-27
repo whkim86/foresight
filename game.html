@@ -9,13 +9,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261029d">
+<link rel="stylesheet" href="assets/style.css?v=20261029e">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261029d"></script>
-<script src="assets/app.js?v=20261029d"></script>
-<script src="assets/names.js?v=20261029d"></script>
-<script src="assets/catalog-data.js?v=20261029d"></script>
-<script src="assets/game-chars.js?v=20261029d"></script>
+<script src="config.js?v=20261029e"></script>
+<script src="assets/app.js?v=20261029e"></script>
+<script src="assets/names.js?v=20261029e"></script>
+<script src="assets/catalog-data.js?v=20261029e"></script>
+<script src="assets/game-chars.js?v=20261029e"></script>
 <style>
   /* 화면 */
   .g-hero{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:center}
@@ -101,6 +101,14 @@
   .side button{border:2px solid var(--line);background:#fff;border-radius:12px;padding:9px;font-size:14px;font-weight:600;cursor:pointer;color:var(--ink)}
   .side button.up[aria-pressed="true"]{border-color:#D9363E;background:#FFF1F1;color:#B3222D}
   .side button.dn[aria-pressed="true"]{border-color:#2F6FDB;background:#EEF3FD;color:#1D4FB0}
+  .sched summary{cursor:pointer;font-weight:700;font-size:16px}.sched summary small{font-weight:400;color:var(--sub);font-size:12.5px;margin-left:4px}
+  .sched .tbl{overflow-x:auto;margin-top:10px}
+  .sched table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+  .sched th,.sched td{border-bottom:1px solid var(--line);padding:7px 6px;text-align:center;vertical-align:middle}
+  .sched tr:first-child th{background:#F3F5F9;font-size:12.5px;color:var(--sub)}
+  .sched tr th:first-child{text-align:left}
+  .sched small{color:var(--sub);font-weight:400}
+  .sched ul{margin:10px 0 0;padding-left:18px;font-size:13px;color:var(--sub);line-height:1.6}
   .demo-badge{background:#FFE08A;color:#6B4A00;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px}
   @media (max-width:640px){.g-stats{grid-template-columns:repeat(2,1fr)}.g-hero{grid-template-columns:1fr}.g-char{max-width:220px;margin:0 auto}.g-pick{grid-template-columns:repeat(4,1fr)}}
 </style>
@@ -291,6 +299,25 @@
     }
     try { localStorage.setItem("gameLvSeen", String(my.level)); } catch (e) {}
   }
+  // ---------- 시장별 시간표 (stage32.sql: 걸기·취소 마감 = 종가 3시간 전) ----------
+  function schedule() {
+    const rows = [
+      ["업비트", "매일 09:20쯤", "다음 날 <b>06:00</b>", "다음 날 09:00", "다음 날 09:30쯤"],
+      ["빗썸", "매일 01:30쯤", "그날 <b>21:00</b>", "다음 날 00:00", "다음 날 01:40쯤"],
+      ["코스피", "전날 23:30쯤", "<b>12:30</b>", "15:30", "그날 23:40쯤"],
+      ["나스닥", "08:20쯤", "새벽 <b>2~3시</b><br><small>미국 13:00</small>", "새벽 5~6시<br><small>미국 16:00</small>", "08:30쯤"],
+    ];
+    return `<details class="card sched" ${location.hash === "#schedule" ? "open" : ""} id="schedule"><summary>⏰ 시장별 시간표 <small>언제 걸고, 언제 마감하고, 언제 받나요? (한국 시간)</small></summary>
+      <div class="tbl"><table><tr><th>시장</th><th>걸기 시작<br><small>AI 예측 공개</small></th><th>걸기·취소 마감</th><th>결과 기준<br><small>종가</small></th><th>포인트 지급</th></tr>
+        ${rows.map((r) => `<tr><th>${r[0]}</th>${r.slice(1).map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</table></div>
+      <ul>
+        <li><b>걸기·취소 마감은 종가 3시간 전</b>으로 같아요. 그 전까지는 장 흐름을 보면서 언제든 걸거나 취소할 수 있어요 (취소하면 포인트·투자 횟수 그대로 돌려받음).</li>
+        <li>코스피는 다음 거래일 장을 걸어요 (밤에 예측 공개 → 다음 날 12:30 마감). 주말·휴장일엔 다음 거래일로 넘어가요.</li>
+        <li>나스닥은 한국 밤에 열리는 미국장을 걸어요. 미국 서머타임(3월~11월 초)엔 마감 새벽 2시·종가 5시, 그 외엔 새벽 3시·6시예요.</li>
+        <li>종가가 확인되면 '🔍 검토 중'으로 바뀌고 약 7분 뒤 포인트가 들어와요. 데이터 수집이 늦어지면 지급도 조금 늦어질 수 있어요.</li>
+        <li>각 종목의 정확한 마감 시각은 종목을 고르면 나오는 <b>⏰ 카운트다운</b>이 기준이에요.</li>
+      </ul></details>`;
+  }
   function renderMain() {
     const z = GC.Z.find((x) => x.id === my.character) || GC.Z[2];
     if (!dress) dress = myDress();
@@ -336,13 +363,14 @@
         <div class="g-syms" id="syms"><div class="empty">불러오는 중…</div></div>
         <div id="bet"></div>
       </div>
+      ${schedule()}
       <div class="card stack"><h2 style="margin:0;font-size:18px">📋 내 투자 기록</h2><div class="g-hist" id="hist"></div></div>
       <div class="card stack"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
           <h2 style="margin:0;font-size:18px">🏆 순위표</h2>
           <div class="g-tabs" id="rk"><button type="button" data-k="ret">주간 수익률</button><button type="button" data-k="total">총 수익률</button><button type="button" data-k="level">레벨</button><button type="button" data-k="points">총자산</button></div></div>
         <div class="g-rank" id="rank"></div></div>
       <p class="hint" style="font-size:12px;color:var(--faint);line-height:1.6">모의투자는 재미를 위한 게임이에요. 포인트는 현금·결제에 쓸 수 없고, 신호는 투자 권유가 아니에요.<br>
-        마감: 업비트 예측일 12:00 · 빗썸 예측일 06:00 · 코스피 09:00 · 나스닥 미국장 시작 전. 📈 상승 / 📉 하락 중 골라서 걸 수 있어요. 종가가 나오면 '검토 중' 후 약 5~10분 뒤 지급돼요.<br>취소: 장 마감 3시간 전까지 언제든 (포인트·투자 횟수 그대로 돌려받아요).</p>`;
+        걸기·취소 마감은 종가 3시간 전 (업비트 다음 날 06:00 · 빗썸 21:00 · 코스피 12:30 · 나스닥 미국 13:00) — 위 '⏰ 시장별 시간표' 참고. 📈 상승 / 📉 하락 중 골라서 걸 수 있어요. 종가가 나오면 '검토 중' 후 약 5~10분 뒤 지급돼요.</p>`;
     document.getElementById("closetBtn").onclick = () => { closetOpen = !closetOpen; const b = document.getElementById("closet"); b.hidden = !closetOpen; document.getElementById("closetBtn").setAttribute("aria-pressed", closetOpen); if (closetOpen) { drawCloset(); b.scrollIntoView({ behavior: "smooth", block: "nearest" }); } };
     if (closetOpen) drawCloset();
     document.getElementById("nameBtn").onclick = async () => { const on = await api.showName(!my.show_name); if (on === null || on === undefined) return; my.show_name = !!on; renderMain(); };
