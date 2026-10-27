@@ -65,10 +65,19 @@
   .g-tabs button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 14px;font-size:14px;cursor:pointer}
   .g-tabs button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
   .g-search{width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:10px 13px;font-size:15px}
-  .g-syms{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;max-height:300px;overflow:auto;padding:2px}
+  .g-syms{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;max-height:340px;overflow:auto;padding:2px}
   .g-sym{display:flex;justify-content:space-between;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 9px;cursor:pointer;text-align:left;color:var(--ink);font-size:13.5px}
   .g-sym[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px #1B223322}
-  .g-sym span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .g-sym .nm{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+  .g-sym .nm b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .g-sym .nm small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .g-sym .inf{font-size:11.5px;color:var(--sub)}.g-sym .inf.pos{color:#B3222D}.g-sym .inf.neg{color:#1D4FB0}
+  .star{flex:0 0 auto;font-size:16px;color:#C3CBD8;cursor:pointer;padding:0 2px}.star.on{color:#F5B400}
+  .g-tools{display:flex;gap:8px;flex-wrap:wrap}.g-tools .g-search{flex:1 1 200px;width:auto}
+  .g-tools select{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:9px 10px;font-size:14px}
+  .favbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:9px 12px;font-size:14px;cursor:pointer}
+  .favbtn[aria-pressed="true"]{background:#FFF4D1;border-color:#F5B400}
+  .cancel{margin-top:4px;border:1px solid #F5C2C2;background:#FFF5F5;color:#9A1F28;border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer}
   .vb{font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 7px;white-space:nowrap;flex:0 0 auto}
   .vb.up{background:#FCE4E5;color:#B3222D}.vb.dn{background:#E4ECFB;color:#1D4FB0}.vb.mx{background:#FFF0D2;color:#8A5300}
   .g-bet{display:grid;gap:8px;background:#F7F8FB;border-radius:14px;padding:12px}
@@ -104,6 +113,7 @@
   const VL = { up: "상승", mx: "혼돈", dn: "하락" };
   const fmt = (n) => Math.round(n).toLocaleString("ko-KR") + "P";
   const pct = (x) => (x >= 0 ? "+" : "") + (x * 100).toFixed(2) + "%";
+  const px = (v) => v == null ? "-" : (v >= 1000 ? Math.round(v).toLocaleString("ko-KR") : v >= 1 ? v.toLocaleString("ko-KR", { maximumFractionDigits: 2 }) : v.toLocaleString("ko-KR", { maximumSignificantDigits: 4 }));
   const when = (t) => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
 
   let me = null;
@@ -120,11 +130,11 @@
     my: { allowed: true, joined: true, nickname: "신호등지기", character: "tiger", points: 87600, exp: 143, level: 3, level_floor: 130, level_next: 210, today_left: 3, invested: 25000,
       granted: 100000, total_ret: 0.126, revives: 0, revive_points: 50000,
       bets: [
-        { id: 3, market: "coin", symbol: "BTC", amount: 15000, verdict: "up", close_at: new Date(now + 20 * H).toISOString(), status: "open", created_at: new Date(now - H).toISOString() },
+        { id: 3, market: "coin", symbol: "BTC", amount: 15000, verdict: "up", close_at: new Date(now + 20 * H).toISOString(), status: "open", created_at: new Date(now - 0.2 * H).toISOString(), cancel_until: new Date(now + 0.3 * H).toISOString() },
         { id: 2, market: "kospi", symbol: "삼성전자", amount: 10000, verdict: "up", close_at: new Date(now - 0.1 * H).toISOString(), settle_at: new Date(now + 0.1 * H).toISOString(), status: "review", created_at: new Date(now - 20 * H).toISOString() },
         { id: 1, market: "nasdaq", symbol: "NVIDIA", amount: 20000, verdict: "up", close_at: new Date(now - 30 * H).toISOString(), status: "settled", ret: 0.0234, payout: 20468, exp_delta: 10, created_at: new Date(now - 40 * H).toISOString() },
       ] },
-    syms: ["BTC", "ETH", "XRP", "SOL", "DOGE", "ADA", "TRX", "AVAX", "LINK", "SUI", "ZIL", "CHZ"].map((s, i) => ({ symbol: s, verdict: ["up", "mx", "dn"][i % 3], cutoff_at: new Date(now + 20 * H).toISOString() })),
+    syms: ["BTC", "ETH", "XRP", "SOL", "DOGE", "ADA", "TRX", "AVAX", "LINK", "SUI", "ZIL", "CHZ"].map((s, i) => ({ symbol: s, verdict: ["up", "mx", "dn"][i % 3], cutoff_at: new Date(now + 20 * H).toISOString(), base_close: [158e6, 5.2e6, 3400, 290000, 380, 900, 440, 41000, 25000, 5200, 30, 110][i], chg: [0.012, -0.023, 0.051, -0.008, 0.031, -0.041, 0.002, 0.066, -0.015, 0.019, 0.088, -0.052][i], up_n: [39, 22, 12, 30, 25, 9, 40, 28, 15, 33, 45, 8][i], dn_n: [5, 18, 30, 10, 12, 35, 4, 11, 28, 9, 3, 38][i], n_models: 52, med1: [0.008, 0.001, -0.012, 0.004, 0.003, -0.01, 0.006, 0.005, -0.004, 0.007, 0.015, -0.013][i], fav: i < 2 })),
     rank: [["코인왕범돌", "tiger", 9, 182000, 0.184], ["복돼지대장", "pig", 7, 151000, 0.121], ["신호등지기", "tiger", 3, 87600, 0.023], ["새벽꼬꼬", "rooster", 4, 99000, -0.01]]
       .map(([nickname, animal, level, points, week_ret], i) => ({ nickname, animal, level, points, week_ret, total_ret: [0.82, 0.51, 0.126, -0.01][i], revives: i === 3 ? 1 : 0, broke: false, is_me: nickname === "신호등지기" })),
   };
@@ -135,6 +145,8 @@
     syms: async (m) => DEMO ? fake.syms : ((await sb.rpc("game_symbols", { p_market: m })).data || []),
     bet: async (m, s, a) => DEMO ? { ok: true } : await sb.rpc("game_bet", { p_market: m, p_symbol: s, p_amount: a }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
     rank: async (k) => DEMO ? fake.rank : ((await sb.rpc("game_rank", { p_kind: k })).data || []),
+    fav: async (m, s) => DEMO ? !fake.syms.find((x) => x.symbol === s).fav : (await sb.rpc("game_fav", { p_market: m, p_symbol: s })).data,
+    cancel: async (id) => DEMO ? { ok: true, refund: 15000 } : await sb.rpc("game_cancel", { p_id: id }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
   };
 
   let my = await api.my().catch(() => null);
@@ -189,7 +201,9 @@
   }
 
   // ---------- 메인 ----------
-  let market = "coin", syms = [], sel = null, rkind = "ret";
+  let market = "coin", syms = [], sel = null, rkind = "ret", favOnly = false, sortKey = "name";
+  try { sortKey = localStorage.getItem("gameSort") || "name"; } catch (e) {}
+  const SORTS = { chg: (s) => s.chg, up: (s) => s.n_models ? s.up_n / s.n_models : null, med: (s) => s.med1, px: (s) => s.base_close };
   function renderMain() {
     const z = GC.Z.find((x) => x.id === my.character) || GC.Z[2];
     const span = my.level_next ? my.level_next - my.level_floor : 1, cur = my.level_next ? my.exp - my.level_floor : span;
@@ -216,7 +230,15 @@
       <div class="card stack">
         <h2 style="margin:0;font-size:18px">💰 오늘 투자하기</h2>
         <div class="g-tabs" id="mk">${MK.map(([k, n]) => `<button type="button" data-m="${k}" aria-pressed="${k === market}">${n}</button>`).join("")}</div>
-        <input class="g-search" id="q" type="search" placeholder="종목·한글명으로 찾기" autocomplete="off">
+        <div class="g-tools"><input class="g-search" id="q" type="search" placeholder="종목·한글명으로 찾기" autocomplete="off">
+          <select id="sort" aria-label="정렬">
+            <option value="name">이름순</option>
+            <option value="chg_d">어제 많이 오른 순</option><option value="chg_a">어제 많이 내린 순</option>
+            <option value="up_d">상승 예측 모델 많은 순</option><option value="up_a">상승 예측 모델 적은 순</option>
+            <option value="med_d">AI 예상 상승률 높은 순</option><option value="med_a">AI 예상 상승률 낮은 순</option>
+            <option value="px_d">가격 높은 순</option><option value="px_a">가격 낮은 순</option>
+          </select>
+          <button type="button" class="favbtn" id="favOnly" aria-pressed="false">⭐ 즐겨찾기만</button></div>
         <div class="g-syms" id="syms"><div class="empty">불러오는 중…</div></div>
         <div id="bet"></div>
       </div>
@@ -226,14 +248,28 @@
           <div class="g-tabs" id="rk"><button type="button" data-k="ret">주간 수익률</button><button type="button" data-k="total">총 수익률</button><button type="button" data-k="level">레벨</button><button type="button" data-k="points">총자산</button></div></div>
         <div class="g-rank" id="rank"></div></div>
       <p class="hint" style="font-size:12px;color:var(--faint);line-height:1.6">모의투자는 재미를 위한 게임이에요. 포인트는 현금·결제에 쓸 수 없고, 신호는 투자 권유가 아니에요.<br>
-        마감: 업비트 다음 날 09:00 · 빗썸 다음 날 00:00 · 코스피 09:00 · 나스닥 미국장 시작 전. 종가가 나오면 '검토 중' 후 약 5~10분 뒤 지급돼요.</p>`;
+        마감: 업비트 다음 날 09:00 · 빗썸 다음 날 00:00 · 코스피 09:00 · 나스닥 미국장 시작 전. 종가가 나오면 '검토 중' 후 약 5~10분 뒤 지급돼요.<br>취소: 장 마감 3시간 전까지 언제든 (포인트·투자 횟수 그대로 돌려받아요).</p>`;
     const stg = document.getElementById("stg");
     stg.onpointermove = (e) => { const b = stg.getBoundingClientRect(), x = (e.clientX - b.left) / b.width - .5, y = (e.clientY - b.top) / b.height - .5; stg.style.transform = `rotateY(${x * 26}deg) rotateX(${-y * 20}deg)`; };
     stg.onpointerleave = () => stg.style.transform = "";
     stg.onclick = () => { stg.classList.remove("win"); void stg.offsetWidth; stg.classList.add("win"); setTimeout(() => stg.classList.remove("win"), 1900); };
     document.getElementById("mk").onclick = (e) => { const b = e.target.closest("[data-m]"); if (b) { market = b.dataset.m; sel = null; loadSyms(); document.querySelectorAll("#mk button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.m === market)); } };
     document.getElementById("q").oninput = drawSyms;
-    document.getElementById("syms").onclick = (e) => { const b = e.target.closest("[data-s]"); if (b) { sel = syms.find((x) => x.symbol === b.dataset.s); drawSyms(); drawBet(); } };
+    document.getElementById("sort").value = sortKey;
+    document.getElementById("sort").onchange = (e) => { sortKey = e.target.value; try { localStorage.setItem("gameSort", sortKey); } catch (x) {} drawSyms(); };
+    const fo = document.getElementById("favOnly"); fo.setAttribute("aria-pressed", favOnly);
+    fo.onclick = () => { favOnly = !favOnly; fo.setAttribute("aria-pressed", favOnly); drawSyms(); };
+    document.getElementById("syms").onclick = async (e) => {
+      const f = e.target.closest("[data-fav]");
+      if (f) { e.stopPropagation(); const s = syms.find((x) => x.symbol === f.dataset.fav); const on = await api.fav(market, s.symbol); if (on !== null && on !== undefined) s.fav = !!on; drawSyms(); return; }
+      const b = e.target.closest("[data-s]"); if (b) { sel = syms.find((x) => x.symbol === b.dataset.s); drawSyms(); drawBet(); } };
+    document.getElementById("hist").onclick = async (e) => {
+      const c = e.target.closest("[data-cancel]"); if (!c) return;
+      if (!Portal.confirmClick(c, "한 번 더 누르면 취소돼요")) return;
+      const r = await api.cancel(+c.dataset.cancel);
+      if (!r || !r.ok) { alert((r && r.msg) || "취소하지 못했어요"); return; }
+      if (DEMO) { fake.my.bets = fake.my.bets.filter((x) => x.id !== +c.dataset.cancel); fake.my.points += r.refund; fake.my.invested -= r.refund; fake.my.today_left++; }
+      my = await api.my(); renderMain(); };
     document.getElementById("rk").onclick = (e) => { const b = e.target.closest("[data-k]"); if (b) { rkind = b.dataset.k; loadRank(); } };
     drawHist(); loadSyms(); loadRank();
   }
@@ -245,11 +281,16 @@
   }
   function drawSyms() {
     const q = (document.getElementById("q").value || "").trim().toUpperCase();
-    const list = syms.filter((s) => !q || s.symbol.toUpperCase().includes(q) || ko(market, s.symbol).includes(q));
+    let list = syms.filter((s) => (!q || s.symbol.toUpperCase().includes(q) || ko(market, s.symbol).includes(q)) && (!favOnly || s.fav));
+    if (sortKey !== "name") { const [k, dir] = sortKey.split("_"), f = SORTS[k];
+      list = list.slice().sort((a, b) => { const x = f(a), y = f(b); if (x == null) return 1; if (y == null) return -1; return dir === "d" ? y - x : x - y; }); }
+    list.sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0));  // 즐겨찾기는 항상 위로
     document.getElementById("syms").innerHTML = list.length ? list.slice(0, 300).map((s) => {
       const k = ko(market, s.symbol);
-      return `<button type="button" class="g-sym" data-s="${esc(s.symbol)}" aria-pressed="${sel && sel.symbol === s.symbol}"><span>${esc(s.symbol)}${k ? ` <small style="color:var(--sub)">${esc(k)}</small>` : ""}</span><i class="vb ${s.verdict}">${VL[s.verdict]}</i></button>`;
-    }).join("") : `<div class="empty">${syms.length ? "찾는 종목이 없어요" : "지금 걸 수 있는 종목이 없어요 (마감됐거나 오늘 예측 전이에요)"}</div>`;
+      const info = sortKey.startsWith("px") ? px(s.base_close) : sortKey.startsWith("up") ? `상승 ${s.up_n ?? "-"}/${s.n_models ?? "-"}` : sortKey.startsWith("med") ? `AI ${s.med1 == null ? "-" : pct(s.med1)}` : `어제 ${s.chg == null ? "-" : pct(s.chg)}`;
+      const cc = sortKey.startsWith("px") || sortKey.startsWith("up") ? "" : ((sortKey.startsWith("med") ? s.med1 : s.chg) >= 0 ? "pos" : "neg");
+      return `<button type="button" class="g-sym" data-s="${esc(s.symbol)}" aria-pressed="${sel && sel.symbol === s.symbol}"><span class="star ${s.fav ? "on" : ""}" data-fav="${esc(s.symbol)}" title="즐겨찾기">${s.fav ? "★" : "☆"}</span><span class="nm"><b>${esc(s.symbol)}</b>${k ? ` <small style="color:var(--sub)">${esc(k)}</small>` : ""}<small class="inf ${cc}">${info}</small></span><i class="vb ${s.verdict}">${VL[s.verdict]}</i></button>`;
+    }).join("") : `<div class="empty">${favOnly && syms.length ? "즐겨찾기한 종목이 없어요. ☆를 눌러 추가해 보세요" : syms.length ? "찾는 종목이 없어요" : "지금 걸 수 있는 종목이 없어요 (마감됐거나 오늘 예측 전이에요)"}</div>`;
   }
   function drawBet() {
     const box = document.getElementById("bet");
@@ -279,7 +320,7 @@
       const st = x.status === "settled" ? `<span class="st settled">정산 완료</span>` : x.status === "review" ? `<span class="st review">🔍 검토 중</span>` : `<span class="st open">진행 중</span>`;
       const right = x.status === "settled"
         ? `<div class="r ${x.ret >= 0 ? "u" : "d"}">${pct(x.ret)}<br><small style="font-weight:500;color:var(--sub)">${fmt(x.payout)} · EXP ${x.exp_delta >= 0 ? "+" : ""}${x.exp_delta}</small></div>`
-        : `<div class="r" style="color:var(--sub);font-weight:500;font-size:13px">${fmt(x.amount)}</div>`;
+        : `<div class="r" style="color:var(--sub);font-weight:500;font-size:13px">${fmt(x.amount)}${x.cancel_until ? `<br><button type="button" class="cancel" data-cancel="${x.id}">취소 <small>${when(x.cancel_until)}까지</small></button>` : ""}</div>`;
       const sub = x.status === "settled" ? `${fmt(x.amount)} 걸음` : x.status === "review" ? `실제 종가 확인 중 · ${x.settle_at ? when(x.settle_at) + "쯤 지급" : "곧 지급"}` : `종가 ${when(x.close_at)} 이후 정산`;
       return `<div class="g-h"><div><span class="t">${MKN[x.market]} ${esc(x.symbol)}</span> ${k ? `<small style="color:var(--sub)">${esc(k)}</small>` : ""} <i class="vb ${x.verdict}">${VL[x.verdict] || ""}</i> ${st}<div class="m">${sub}</div></div>${right}</div>`;
     }).join("") : `<div class="empty">아직 투자 기록이 없어요. 첫 종목을 골라 보세요!</div>`;
