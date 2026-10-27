@@ -9,12 +9,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261028a">
+<link rel="stylesheet" href="assets/style.css?v=20261029a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261028a"></script>
-<script src="assets/app.js?v=20261028a"></script>
-<script src="assets/names.js?v=20261028a"></script>
-<script src="assets/catalog-data.js?v=20261028a"></script>
+<script src="config.js?v=20261029a"></script>
+<script src="assets/app.js?v=20261029a"></script>
+<script src="assets/names.js?v=20261029a"></script>
+<script src="assets/catalog-data.js?v=20261029a"></script>
 <script src="assets/game-chars.js?v=20261028b"></script>
 <style>
   /* 캐릭터 움직임 (blog_assets/캐릭터_만들기_데모.html 과 같음) */
@@ -223,7 +223,7 @@
     const z = GC.Z.find((x) => x.id === my.character) || GC.Z[2];
     const span = my.level_next ? my.level_next - my.level_floor : 1, cur = my.level_next ? my.exp - my.level_floor : span;
     main.innerHTML = `
-      <section class="on-night" style="padding:6px 0 2px"><h1>🚦 모의투자 ${DEMO ? '<span class="demo-badge">미리보기 · 가짜 데이터</span>' : '<span class="demo-badge">운영자 테스트 중</span>'}</h1>
+      <section class="on-night" style="padding:6px 0 2px"><h1>🚦 모의투자 ${DEMO ? '<span class="demo-badge">미리보기 · 가짜 데이터</span>' : '<span class="demo-badge">베타</span>'}</h1>
         <p class="lead">AI 신호를 보고 포인트를 걸어 보세요. 다음 종가의 실제 등락률만큼 포인트가 늘거나 줄어요.</p></section>
       <div class="card g-hero">
         <div class="g-char"><div class="stg" id="stg">${GC.draw(my.character, { pt: my.points + (my.invested || 0), mood: my.broke_at ? "sleep" : "" }, "me")}</div></div>
