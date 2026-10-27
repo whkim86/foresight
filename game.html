@@ -14,6 +14,7 @@
 <script src="config.js?v=20261028a"></script>
 <script src="assets/app.js?v=20261028a"></script>
 <script src="assets/names.js?v=20261028a"></script>
+<script src="assets/catalog-data.js?v=20261028a"></script>
 <script src="assets/game-chars.js?v=20261028b"></script>
 <style>
   /* 캐릭터 움직임 (blog_assets/캐릭터_만들기_데모.html 과 같음) */
@@ -201,7 +202,7 @@
   }
 
   // ---------- 메인 ----------
-  let market = "coin", syms = [], sel = null, rkind = "ret", favOnly = false, sortKey = "name";
+  let market = "coin", syms = [], sel = null, rkind = "ret", favOnly = false, sortKey = "name", theme = "";
   try { sortKey = localStorage.getItem("gameSort") || "name"; } catch (e) {}
   const SORTS = { chg: (s) => s.chg, up: (s) => s.n_models ? s.up_n / s.n_models : null, med: (s) => s.med1, px: (s) => s.base_close };
   function renderMain() {
@@ -238,6 +239,7 @@
             <option value="med_d">AI 예상 상승률 높은 순</option><option value="med_a">AI 예상 상승률 낮은 순</option>
             <option value="px_d">가격 높은 순</option><option value="px_a">가격 낮은 순</option>
           </select>
+          <select id="theme" aria-label="분야"></select>
           <button type="button" class="favbtn" id="favOnly" aria-pressed="false">⭐ 즐겨찾기만</button></div>
         <div class="g-syms" id="syms"><div class="empty">불러오는 중…</div></div>
         <div id="bet"></div>
@@ -257,6 +259,7 @@
     document.getElementById("q").oninput = drawSyms;
     document.getElementById("sort").value = sortKey;
     document.getElementById("sort").onchange = (e) => { sortKey = e.target.value; try { localStorage.setItem("gameSort", sortKey); } catch (x) {} drawSyms(); };
+    document.getElementById("theme").onchange = (e) => { theme = e.target.value; drawSyms(); };
     const fo = document.getElementById("favOnly"); fo.setAttribute("aria-pressed", favOnly);
     fo.onclick = () => { favOnly = !favOnly; fo.setAttribute("aria-pressed", favOnly); drawSyms(); };
     document.getElementById("syms").onclick = async (e) => {
@@ -277,11 +280,29 @@
   async function loadSyms() {
     document.getElementById("syms").innerHTML = `<div class="empty">불러오는 중…</div>`;
     syms = await api.syms(market).catch(() => []);
-    drawSyms(); drawBet();
+    drawThemes(); drawSyms(); drawBet();
+  }
+  // 분야(테마): 종목 카탈로그(catalog-data.js)의 분류를 그대로 씀 · 빗썸도 coin 목록 · 지금 종목이 하나라도 있는 분야만
+  const themeKey = () => market === "bithumb" ? "coin" : market;
+  function inTheme(s) {
+    if (!theme) return true;
+    const T = (window.CATALOG && CATALOG.themes) || [], mk = themeKey();
+    if (theme === "_etc") return !T.some((x) => (x[mk] || []).includes(s.symbol));
+    const x = T.find((x) => x.key === theme); return !!x && (x[mk] || []).includes(s.symbol);
+  }
+  function drawThemes() {
+    const T = (window.CATALOG && CATALOG.themes) || [], mk = themeKey(), have = new Set(syms.map((s) => s.symbol));
+    const opts = T.map((x) => [x.key, `${x.icon} ${x.label}`, (x[mk] || []).filter((s) => have.has(s)).length]).filter((o) => o[2] > 0);
+    const etc = syms.filter((s) => !T.some((x) => (x[mk] || []).includes(s.symbol))).length;
+    if (etc) opts.push(["_etc", mk === "coin" ? "✨ 기타 알트" : "📦 분류 전", etc]);
+    if (!opts.some((o) => o[0] === theme)) theme = "";
+    const el = document.getElementById("theme");
+    el.innerHTML = `<option value="">전체 분야</option>` + opts.map(([k, l, n]) => `<option value="${k}">${esc(l)} (${n})</option>`).join("");
+    el.value = theme;
   }
   function drawSyms() {
     const q = (document.getElementById("q").value || "").trim().toUpperCase();
-    let list = syms.filter((s) => (!q || s.symbol.toUpperCase().includes(q) || ko(market, s.symbol).includes(q)) && (!favOnly || s.fav));
+    let list = syms.filter((s) => (!q || s.symbol.toUpperCase().includes(q) || ko(market, s.symbol).includes(q)) && (!favOnly || s.fav) && inTheme(s));
     if (sortKey !== "name") { const [k, dir] = sortKey.split("_"), f = SORTS[k];
       list = list.slice().sort((a, b) => { const x = f(a), y = f(b); if (x == null) return 1; if (y == null) return -1; return dir === "d" ? y - x : x - y; }); }
     list.sort((a, b) => (b.fav ? 1 : 0) - (a.fav ? 1 : 0));  // 즐겨찾기는 항상 위로
@@ -290,7 +311,7 @@
       const info = sortKey.startsWith("px") ? px(s.base_close) : sortKey.startsWith("up") ? `상승 ${s.up_n ?? "-"}/${s.n_models ?? "-"}` : sortKey.startsWith("med") ? `AI ${s.med1 == null ? "-" : pct(s.med1)}` : `어제 ${s.chg == null ? "-" : pct(s.chg)}`;
       const cc = sortKey.startsWith("px") || sortKey.startsWith("up") ? "" : ((sortKey.startsWith("med") ? s.med1 : s.chg) >= 0 ? "pos" : "neg");
       return `<button type="button" class="g-sym" data-s="${esc(s.symbol)}" aria-pressed="${sel && sel.symbol === s.symbol}"><span class="star ${s.fav ? "on" : ""}" data-fav="${esc(s.symbol)}" title="즐겨찾기">${s.fav ? "★" : "☆"}</span><span class="nm"><b>${esc(s.symbol)}</b>${k ? ` <small style="color:var(--sub)">${esc(k)}</small>` : ""}<small class="inf ${cc}">${info}</small></span><i class="vb ${s.verdict}">${VL[s.verdict]}</i></button>`;
-    }).join("") : `<div class="empty">${favOnly && syms.length ? "즐겨찾기한 종목이 없어요. ☆를 눌러 추가해 보세요" : syms.length ? "찾는 종목이 없어요" : "지금 걸 수 있는 종목이 없어요 (마감됐거나 오늘 예측 전이에요)"}</div>`;
+    }).join("") : `<div class="empty">${favOnly && syms.length ? "즐겨찾기한 종목이 없어요. ☆를 눌러 추가해 보세요" : syms.length ? (theme ? "이 분야엔 지금 걸 수 있는 종목이 없어요" : "찾는 종목이 없어요") : "지금 걸 수 있는 종목이 없어요 (마감됐거나 오늘 예측 전이에요)"}</div>`;
   }
   function drawBet() {
     const box = document.getElementById("bet");
