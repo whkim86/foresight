@@ -9,13 +9,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261029c">
+<link rel="stylesheet" href="assets/style.css?v=20261029d">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261029c"></script>
-<script src="assets/app.js?v=20261029c"></script>
-<script src="assets/names.js?v=20261029c"></script>
-<script src="assets/catalog-data.js?v=20261029c"></script>
-<script src="assets/game-chars.js?v=20261029c"></script>
+<script src="config.js?v=20261029d"></script>
+<script src="assets/app.js?v=20261029d"></script>
+<script src="assets/names.js?v=20261029d"></script>
+<script src="assets/catalog-data.js?v=20261029d"></script>
+<script src="assets/game-chars.js?v=20261029d"></script>
 <style>
   /* 화면 */
   .g-hero{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:center}
@@ -97,6 +97,10 @@
   body.guest main.page{padding-bottom:90px}body.guest .portal-toast{bottom:86px}
   .guest-bar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:#1B2233;color:#fff;padding:10px 16px;font-size:14px;box-shadow:0 -4px 16px #0003}
   .guest-bar .btn.ghost{color:#fff;background:transparent;border-color:#fff6}
+  .side{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .side button{border:2px solid var(--line);background:#fff;border-radius:12px;padding:9px;font-size:14px;font-weight:600;cursor:pointer;color:var(--ink)}
+  .side button.up[aria-pressed="true"]{border-color:#D9363E;background:#FFF1F1;color:#B3222D}
+  .side button.dn[aria-pressed="true"]{border-color:#2F6FDB;background:#EEF3FD;color:#1D4FB0}
   .demo-badge{background:#FFE08A;color:#6B4A00;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px}
   @media (max-width:640px){.g-stats{grid-template-columns:repeat(2,1fr)}.g-hero{grid-template-columns:1fr}.g-char{max-width:220px;margin:0 auto}.g-pick{grid-template-columns:repeat(4,1fr)}}
 </style>
@@ -167,7 +171,7 @@
     my: async () => DEMO ? fake.my : (await sb.rpc("game_my")).data,
     join: async (c) => DEMO ? (nudge(), fake.my.joined = true, fake.my.character = c, { ok: true }) : (await sb.rpc("game_join", { p_character: c })).data,
     syms: async (m) => DEMO ? fakeSyms(m) : ((await sb.rpc("game_symbols", { p_market: m })).data || []),
-    bet: async (m, s, a) => DEMO ? fakeBet(m, s, a) : await sb.rpc("game_bet", { p_market: m, p_symbol: s, p_amount: a }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
+    bet: async (m, s, a, side) => DEMO ? fakeBet(m, s, a, side) : await sb.rpc("game_bet", { p_market: m, p_symbol: s, p_amount: a, p_side: side }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
     rank: async (k) => DEMO ? fake.rank : ((await sb.rpc("game_rank", { p_kind: k })).data || []),
     fav: async (m, s) => DEMO ? !fake.syms.find((x) => x.symbol === s).fav : (await sb.rpc("game_fav", { p_market: m, p_symbol: s })).data,
     dress: async (h, o, s) => DEMO ? (nudge(), { ok: true }) : await sb.rpc("game_dress", { p_hat: h, p_outfit: o, p_shoes: s }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
@@ -176,14 +180,14 @@
   };
 
   // 둘러보기에서 건 투자: 화면 안에서만 기록 (5개 · 50% · 최소 1,000P 규칙은 실제와 같게)
-  function fakeBet(m, s, a) {
+  function fakeBet(m, s, a, side) {
     const f = fake.my;
     if (f.today_left <= 0) return { ok: false, msg: "오늘은 5개를 모두 걸었어요" };
     if (a < 1000) return { ok: false, msg: "최소 1,000P부터 걸 수 있어요" };
     if (a > f.points / 2) return { ok: false, msg: "보유 포인트의 50%까지 걸 수 있어요" };
     if (f.bets.some((b) => b.market === m && b.symbol === s)) return { ok: false, msg: "이 종목은 이미 걸었어요" };
     const sym = (m === "nasdaq" || m === "kospi" ? fakeSyms(m) : fake.syms).find((x) => x.symbol === s) || {};
-    f.bets.unshift({ id: Date.now(), market: m, symbol: s, amount: a, verdict: sym.verdict, close_at: new Date(now + 20 * H).toISOString(), status: "open", created_at: new Date().toISOString(), cancel_until: new Date(now + 17 * H).toISOString() });
+    f.bets.unshift({ id: Date.now(), market: m, symbol: s, amount: a, side, verdict: sym.verdict, close_at: new Date(now + 20 * H).toISOString(), status: "open", created_at: new Date().toISOString(), cancel_until: new Date(now + 17 * H).toISOString() });
     f.points -= a; f.invested += a; f.today_left--;
     nudge();
     return { ok: true };
@@ -227,7 +231,7 @@
     const pick = rows.filter(([l]) => [2, 5, 10, 15, 20, 25, 30].includes(l));
     return `<details class="lvguide"><summary>📘 레벨은 어떻게 오르나요?</summary>
       <table><tr><th>이럴 때</th><th>경험치</th></tr>
-        <tr><td>투자한 종목이 올랐을 때 (+0.1% 넘게)</td><td><b>+10</b></td></tr>
+        <tr><td>내가 고른 쪽으로 움직였을 때 (+0.1% 넘게) · 하락에 걸었으면 내렸을 때</td><td><b>+10</b></td></tr>
         <tr><td>크게 올랐을 때 (+3% 이상)</td><td><b>+15</b></td></tr>
         <tr><td>거의 그대로일 때 (±0.1% 이내)</td><td>+2</td></tr>
         <tr><td>내렸을 때</td><td>−4</td></tr>
@@ -338,7 +342,7 @@
           <div class="g-tabs" id="rk"><button type="button" data-k="ret">주간 수익률</button><button type="button" data-k="total">총 수익률</button><button type="button" data-k="level">레벨</button><button type="button" data-k="points">총자산</button></div></div>
         <div class="g-rank" id="rank"></div></div>
       <p class="hint" style="font-size:12px;color:var(--faint);line-height:1.6">모의투자는 재미를 위한 게임이에요. 포인트는 현금·결제에 쓸 수 없고, 신호는 투자 권유가 아니에요.<br>
-        마감: 업비트 다음 날 09:00 · 빗썸 다음 날 00:00 · 코스피 09:00 · 나스닥 미국장 시작 전. 종가가 나오면 '검토 중' 후 약 5~10분 뒤 지급돼요.<br>취소: 장 마감 3시간 전까지 언제든 (포인트·투자 횟수 그대로 돌려받아요).</p>`;
+        마감: 업비트 예측일 12:00 · 빗썸 예측일 06:00 · 코스피 09:00 · 나스닥 미국장 시작 전. 📈 상승 / 📉 하락 중 골라서 걸 수 있어요. 종가가 나오면 '검토 중' 후 약 5~10분 뒤 지급돼요.<br>취소: 장 마감 3시간 전까지 언제든 (포인트·투자 횟수 그대로 돌려받아요).</p>`;
     document.getElementById("closetBtn").onclick = () => { closetOpen = !closetOpen; const b = document.getElementById("closet"); b.hidden = !closetOpen; document.getElementById("closetBtn").setAttribute("aria-pressed", closetOpen); if (closetOpen) { drawCloset(); b.scrollIntoView({ behavior: "smooth", block: "nearest" }); } };
     if (closetOpen) drawCloset();
     document.getElementById("nameBtn").onclick = async () => { const on = await api.showName(!my.show_name); if (on === null || on === undefined) return; my.show_name = !!on; renderMain(); };
@@ -411,24 +415,29 @@
   }
   // 고른 종목을 대시보드 보드에서 바로 열기 (?s= 로 그 종목을 띄움, 새 탭이라 고른 상태는 그대로)
   const boardUrl = (v) => `dashboard.html?m=${market === "bithumb" ? "coin&ex=bithumb" : market === "coin" ? "coin&ex=upbit" : market}&v=${v}&s=${encodeURIComponent(sel.symbol)}`;
+  let betSide = { sym: "", v: "up" };
   function drawBet() {
     const box = document.getElementById("bet");
     if (my.broke_at) { box.innerHTML = `<p class="hint" style="margin:0;color:#9A1F28;font-size:13px">😵 친구가 기절해 있어서 지금은 걸 수 없어요. ${when(my.revive_at)}에 부활해요.</p>`; return; }
     if (!sel) { box.innerHTML = `<p class="hint" style="margin:0;color:var(--sub);font-size:13px">종목을 고르면 포인트를 걸 수 있어요.</p>`; return; }
     const max = Math.floor(my.points / 2 / 1000) * 1000;
+    if (betSide.sym !== market + ":" + sel.symbol) betSide = { sym: market + ":" + sel.symbol, v: sel.verdict === "dn" ? "dn" : "up" };
     box.innerHTML = `<div class="g-bet">
       <div><b>${MKN[market]} ${esc(sel.symbol)}</b> ${ko(market, sel.symbol) ? `<small style="color:var(--sub)">${esc(ko(market, sel.symbol))}</small>` : ""} · AI 판정 <i class="vb ${sel.verdict}">${VL[sel.verdict]}</i>
         <div class="g-cd">⏰ 투자 마감까지 <b data-until="${sel.cutoff_at}" data-done="마감됐어요">${left(new Date(sel.cutoff_at) - Date.now())}</b></div>
         <div class="m" style="font-size:12.5px;color:var(--sub);margin-top:2px">마감 ${when(sel.cutoff_at)} · 최대 ${fmt(max)} (보유의 50%)</div>
         <div class="g-links"><a href="${boardUrl("chart")}" target="_blank" rel="noopener">📈 가격 차트 보기</a><a href="${boardUrl("priority")}" target="_blank" rel="noopener">🚦 우선순위 보기</a></div></div>
+      <div class="side" id="side"><button type="button" data-side="up" class="up" aria-pressed="${betSide.v === "up"}">📈 상승에 걸기</button><button type="button" data-side="dn" class="dn" aria-pressed="${betSide.v === "dn"}">📉 하락에 걸기</button></div>
+      <p class="m" style="margin:0;font-size:12.5px;color:var(--sub)">${betSide.v === "dn" ? "하락에 걸면 <b>내린 만큼 벌고</b>, 오른 만큼 잃어요." : "상승에 걸면 <b>오른 만큼 벌고</b>, 내린 만큼 잃어요."}</p>
       <div class="row"><input id="amt" type="number" min="1000" step="1000" max="${max}" placeholder="걸 포인트 (최소 1,000P)">
         <span class="q"><button type="button" data-p=".1">10%</button> <button type="button" data-p=".25">25%</button> <button type="button" data-p=".5">50%</button></span></div>
       <div class="row"><button class="btn" id="betBtn" type="button" ${my.today_left <= 0 ? "disabled" : ""}>${my.today_left <= 0 ? "오늘은 5개를 다 걸었어요" : "🐾 이 종목에 걸기"}</button><span id="betMsg" style="font-size:13px"></span></div></div>`;
+    box.querySelector("#side").onclick = (e) => { const b = e.target.closest("[data-side]"); if (!b) return; const v = document.getElementById("amt").value; betSide.v = b.dataset.side; drawBet(); document.getElementById("amt").value = v; };
     box.querySelector(".q").onclick = (e) => { const b = e.target.closest("[data-p]"); if (b) document.getElementById("amt").value = Math.max(1000, Math.floor(my.points * +b.dataset.p / 1000) * 1000); };
     document.getElementById("betBtn").onclick = async () => {
       const amt = +document.getElementById("amt").value, msg = document.getElementById("betMsg");
       if (!amt) { msg.textContent = "포인트를 입력해 주세요"; return; }
-      const r = await api.bet(market, sel.symbol, amt);
+      const r = await api.bet(market, sel.symbol, amt, betSide.v);
       if (!r || !r.ok) { msg.style.color = "#B3222D"; msg.textContent = (r && r.msg) || "걸지 못했어요"; return; }
       if (DEMO && !GUEST) { msg.style.color = "#1E7A43"; msg.textContent = "걸었어요! (미리보기)"; return; }
       my = await api.my(); renderMain();
@@ -437,13 +446,13 @@
   function drawHist() {
     const b = my.bets || [];
     document.getElementById("hist").innerHTML = b.length ? b.map((x) => {
-      const k = ko(x.market, x.symbol);
+      const k = ko(x.market, x.symbol), mine = x.side === "dn" ? -(x.ret || 0) : x.ret;
       const st = x.status === "settled" ? `<span class="st settled">정산 완료</span>` : x.status === "review" ? `<span class="st review">🔍 검토 중</span>` : `<span class="st open">진행 중</span>`;
       const right = x.status === "settled"
-        ? `<div class="r ${x.ret >= 0 ? "u" : "d"}">${pct(x.ret)}<br><small style="font-weight:500;color:var(--sub)">${fmt(x.payout)} · EXP ${x.exp_delta >= 0 ? "+" : ""}${x.exp_delta}</small></div>`
+        ? `<div class="r ${mine >= 0 ? "u" : "d"}">${pct(mine)}<br><small style="font-weight:500;color:var(--sub)">${x.side === "dn" ? `실제 ${pct(x.ret)} · ` : ""}${fmt(x.payout)} · EXP ${x.exp_delta >= 0 ? "+" : ""}${x.exp_delta}</small></div>`
         : `<div class="r" style="color:var(--sub);font-weight:500;font-size:13px">${fmt(x.amount)}${x.cancel_until ? `<br><button type="button" class="cancel" data-cancel="${x.id}">취소 <small data-until="${x.cancel_until}" data-done="취소 마감">${left(new Date(x.cancel_until) - Date.now())}</small> 남음</button>` : ""}</div>`;
       const sub = x.status === "settled" ? `${fmt(x.amount)} 걸음` : x.status === "review" ? `실제 종가 확인 중 · ${x.settle_at ? when(x.settle_at) + "쯤 지급" : "곧 지급"}` : `종가 ${when(x.close_at)} 이후 정산`;
-      return `<div class="g-h"><div><span class="t">${MKN[x.market]} ${esc(x.symbol)}</span> ${k ? `<small style="color:var(--sub)">${esc(k)}</small>` : ""} <i class="vb ${x.verdict}">${VL[x.verdict] || ""}</i> ${st}<div class="m">${sub}</div></div>${right}</div>`;
+      return `<div class="g-h"><div><span class="t">${MKN[x.market]} ${esc(x.symbol)}</span> ${k ? `<small style="color:var(--sub)">${esc(k)}</small>` : ""} <i class="vb ${x.side === "dn" ? "dn" : "up"}">${x.side === "dn" ? "📉 하락에 걸기" : "📈 상승에 걸기"}</i> ${st}<div class="m">${sub}</div></div>${right}</div>`;
     }).join("") : `<div class="empty">아직 투자 기록이 없어요. 첫 종목을 골라 보세요!</div>`;
   }
   async function loadRank() {
