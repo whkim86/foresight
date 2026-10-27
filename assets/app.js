@@ -110,6 +110,49 @@
     );
     const btn = document.getElementById("logoutBtn");
     if (btn) btn.addEventListener("click", async () => { await sb.auth.signOut(); location.replace("login.html"); });
+    if (me) friendNav();
+    try { const t = sessionStorage.getItem("portalToast"); if (t) { sessionStorage.removeItem("portalToast"); setTimeout(() => toast(t), 400); } } catch (e) {}
+  }
+
+  // ---------- 신호등 친구들 (supabase/stage28.sql game_card) ----------
+  // 내 친구 카드: 한 화면에서 한 번만 부름 (부를 때 출석 보너스도 지급됨)
+  let cardP = null;
+  const gameCard = () => cardP || (cardP = sb.rpc("game_card").then((r) => r.error ? null : r.data).catch(() => null));
+  // 캐릭터 그림(game-chars.js)은 필요할 때만 불러옴
+  let charsP = null;
+  const loadChars = () => window.GameChars ? Promise.resolve(window.GameChars) : charsP || (charsP = new Promise((ok) => {
+    const s = document.createElement("script");
+    s.src = (document.querySelector('script[src*="assets/app.js"]').getAttribute("src").replace(/app\.js.*$/, "")) + "game-chars.js?v=20261029b";
+    s.onload = () => ok(window.GameChars); s.onerror = () => ok(null);
+    document.head.appendChild(s);
+  }));
+  const dressOf = (c) => ({ hat: c.hat, outfit: c.outfit, shoes: c.shoes, pt: (c.points || 0) + (c.invested || 0) });
+  // 상단 메뉴 '🐯 모의투자' → 내 캐릭터 얼굴 + Lv, 출석 보너스를 받았으면 잠깐 알림
+  async function friendNav() {
+    const c = await gameCard();
+    if (!c || !c.joined) return;
+    const G = await loadChars();
+    const a = document.querySelector('.topbar a[href="game.html"]');
+    if (!G || !a) return;
+    a.classList.add("nav-friend");
+    a.innerHTML = `<span class="nf-face">${G.draw(c.character, dressOf(c), "nav", true).replace(/viewBox="[^"]*"/, 'viewBox="38 2 124 124"')}</span><span class="lbl-l">Lv.${c.level}</span>`;
+    if (c.bonus_now > 0) toast(`🎁 출석 보너스 +${Number(c.bonus_now).toLocaleString("ko-KR")}P`);
+  }
+  // 화면을 옮기기 직전에 생긴 알림은 다음 화면에서 보여 줌
+  function toast(text, nextPage) {
+    if (nextPage) { try { sessionStorage.setItem("portalToast", text); } catch (e) {} return; }
+    const t = document.createElement("div");
+    t.className = "portal-toast"; t.textContent = text;
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add("out"), 2600);
+    setTimeout(() => t.remove(), 3200);
+  }
+  // 오늘의 보너스 (chart: 대시보드 보드를 열었을 때 / post: 글을 쓴 뒤)
+  async function gameBonus(kind) {
+    const c = await gameCard();
+    if (!c || !c.joined || (c.missions && c.missions[kind])) return;
+    const { data } = await sb.rpc("game_bonus", { p_kind: kind });
+    if (data && data.given > 0) { c.missions[kind] = true; toast(`🎁 ${kind === "post" ? "글쓰기" : "차트 보기"} 보너스 +${Number(data.given).toLocaleString("ko-KR")}P`, kind === "post"); }
   }
 
   // Supabase 오류 메시지에서 우리가 raise 한 한국어 문장만 꺼냄
@@ -213,5 +256,5 @@
     (m.exchanges || [{ data: tab }]).map((x) => ({ key: x.data, tab, name: x.label ? `${m.name}(${x.label})` : m.name })));
   const marketName = (k) => DATA_MARKETS.find((x) => x.key === k)?.name || cfg.MARKETS[k]?.name || k;
 
-  window.Portal = { sb, cfg, DATA_MARKETS, marketName, configured, requireUser, renderHeader, esc, won, ymd, ago, daysLeft, price, access, errText, confirmClick, track, ICONS, DAY };
+  window.Portal = { sb, cfg, DATA_MARKETS, marketName, configured, requireUser, renderHeader, esc, won, ymd, ago, daysLeft, price, access, errText, confirmClick, track, ICONS, DAY, gameCard, loadChars, dressOf, gameBonus, toast };
 })();

@@ -9,31 +9,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261029a">
+<link rel="stylesheet" href="assets/style.css?v=20261029b">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261029a"></script>
-<script src="assets/app.js?v=20261029a"></script>
-<script src="assets/names.js?v=20261029a"></script>
-<script src="assets/catalog-data.js?v=20261029a"></script>
-<script src="assets/game-chars.js?v=20261028b"></script>
+<script src="config.js?v=20261029b"></script>
+<script src="assets/app.js?v=20261029b"></script>
+<script src="assets/names.js?v=20261029b"></script>
+<script src="assets/catalog-data.js?v=20261029b"></script>
+<script src="assets/game-chars.js?v=20261029b"></script>
 <style>
-  /* 캐릭터 움직임 (blog_assets/캐릭터_만들기_데모.html 과 같음) */
-  .bob{transform-box:fill-box;transform-origin:50% 100%;animation:bob 2.4s ease-in-out infinite}
-  .shadow{opacity:.12;transform-box:fill-box;transform-origin:50% 50%;animation:shadow 2.4s ease-in-out infinite both}
-  @keyframes bob{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-7px) scale(.98,1.03)}}
-  @keyframes shadow{0%,100%{transform:scale(1)}50%{transform:scale(.82)}}
-  .eyes{transform-box:fill-box;transform-origin:50% 50%;animation:blink 4.2s infinite}
-  @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
-  .ear{transform-box:fill-box;transform-origin:50% 100%;animation:ear 3.2s ease-in-out infinite}.ear.r{animation-delay:.4s}
-  @keyframes ear{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-8deg)}90%{transform:rotate(6deg)}}
-  .coin{transform-box:fill-box;transform-origin:50% 50%;animation:coin 2s ease-in-out infinite}
-  @keyframes coin{0%,100%{transform:translateY(0) scaleX(1)}50%{transform:translateY(-3px) scaleX(.6)}}
-  .aura{transform-box:fill-box;transform-origin:50% 50%;animation:aura 2.4s ease-in-out infinite}
-  @keyframes aura{0%,100%{opacity:.35}50%{opacity:.7}}
-  .spark{transform-box:fill-box;transform-origin:50% 50%;animation:spark 1.6s ease-in-out infinite}
-  @keyframes spark{0%,100%{transform:scale(.6);opacity:.5}50%{transform:scale(1.15) rotate(20deg);opacity:1}}
-  .win .bob{animation:jump .9s ease-out 2}
-  @keyframes jump{0%{transform:translateY(0) scale(1.08,.9)}30%{transform:translateY(-30px) scale(.92,1.1)}60%{transform:translateY(0) scale(1.1,.88)}100%{transform:translateY(0)}}
   /* 화면 */
   .g-hero{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:center}
   .g-char{perspective:700px}
@@ -101,6 +84,16 @@
   .g-ri svg{width:70px;height:auto;overflow:visible}
   .g-ri .no{text-align:center;font-weight:800}
   .g-ri .v{font-weight:700}
+  .g-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .g-acts button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 13px;font-size:13px;cursor:pointer}
+  .g-acts button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .closet{display:grid;gap:10px}
+  .closet .items{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+  .closet .it{border:2px solid var(--line);background:var(--card);border-radius:14px;padding:4px 4px 7px;cursor:pointer;font-size:12.5px;color:var(--ink);text-align:center}
+  .closet .it svg{width:100%;height:auto}
+  .closet .it[aria-pressed="true"]{border-color:var(--ink);background:#F4F6FB}
+  .closet .it.lock{opacity:.5;cursor:not-allowed}
+  .closet .it small{display:block;color:var(--sub)}
   .demo-badge{background:#FFE08A;color:#6B4A00;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px}
   @media (max-width:640px){.g-stats{grid-template-columns:repeat(2,1fr)}.g-hero{grid-template-columns:1fr}.g-char{max-width:220px;margin:0 auto}.g-pick{grid-template-columns:repeat(4,1fr)}}
 </style>
@@ -143,7 +136,8 @@
   const now = Date.now(), H = 3600e3;
   const fake = {
     my: { allowed: true, joined: true, nickname: "신호등지기", character: "tiger", points: 87600, exp: 143, level: 3, level_floor: 130, level_next: 210, today_left: 3, invested: 25000,
-      granted: 100000, total_ret: 0.126, revives: 0, revive_points: 50000,
+      granted: 100000, total_ret: 0.126, revives: 0, revive_points: 50000, hat: "beanie", outfit: "tee", shoes: "sneakers", show_name: false,
+      display_name: "익명 호랑이 #042", missions: { login: true, chart: false, post: false, points: 1000 },
       bets: [
         { id: 3, market: "coin", symbol: "BTC", amount: 15000, verdict: "up", close_at: new Date(now + 20 * H).toISOString(), status: "open", created_at: new Date(now - 0.2 * H).toISOString(), cancel_until: new Date(now + 0.3 * H).toISOString() },
         { id: 2, market: "kospi", symbol: "삼성전자", amount: 10000, verdict: "up", close_at: new Date(now - 0.1 * H).toISOString(), settle_at: new Date(now + 0.1 * H).toISOString(), status: "review", created_at: new Date(now - 20 * H).toISOString() },
@@ -151,7 +145,7 @@
       ] },
     syms: ["BTC", "ETH", "XRP", "SOL", "DOGE", "ADA", "TRX", "AVAX", "LINK", "SUI", "ZIL", "CHZ"].map((s, i) => ({ symbol: s, verdict: ["up", "mx", "dn"][i % 3], cutoff_at: new Date(now + 20 * H).toISOString(), base_close: [158e6, 5.2e6, 3400, 290000, 380, 900, 440, 41000, 25000, 5200, 30, 110][i], chg: [0.012, -0.023, 0.051, -0.008, 0.031, -0.041, 0.002, 0.066, -0.015, 0.019, 0.088, -0.052][i], up_n: [39, 22, 12, 30, 25, 9, 40, 28, 15, 33, 45, 8][i], dn_n: [5, 18, 30, 10, 12, 35, 4, 11, 28, 9, 3, 38][i], n_models: 52, med1: [0.008, 0.001, -0.012, 0.004, 0.003, -0.01, 0.006, 0.005, -0.004, 0.007, 0.015, -0.013][i], fav: i < 2 })),
     rank: [["코인왕범돌", "tiger", 9, 182000, 0.184], ["복돼지대장", "pig", 7, 151000, 0.121], ["신호등지기", "tiger", 3, 87600, 0.023], ["새벽꼬꼬", "rooster", 4, 99000, -0.01]]
-      .map(([nickname, animal, level, points, week_ret], i) => ({ nickname, animal, level, points, week_ret, total_ret: [0.82, 0.51, 0.126, -0.01][i], revives: i === 3 ? 1 : 0, broke: false, is_me: nickname === "신호등지기" })),
+      .map(([nickname, animal, level, points, week_ret], i) => ({ nickname, animal, level, points, week_ret, hat: ["helmet", "party", "beanie", "cap"][i], outfit: ["hanbok", "hoodie", "tee", "tee"][i], shoes: ["boots", "boots", "sneakers", "none"][i], total_ret: [0.82, 0.51, 0.126, -0.01][i], revives: i === 3 ? 1 : 0, broke: false, is_me: nickname === "신호등지기" })),
   };
   if (new URLSearchParams(location.search).has("broke")) Object.assign(fake.my, { points: 400, invested: 0, total_ret: -0.996, broke_at: new Date(now - 30 * H).toISOString(), revive_at: new Date(now + 42 * H).toISOString() });
   const api = {
@@ -161,6 +155,8 @@
     bet: async (m, s, a) => DEMO ? { ok: true } : await sb.rpc("game_bet", { p_market: m, p_symbol: s, p_amount: a }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
     rank: async (k) => DEMO ? fake.rank : ((await sb.rpc("game_rank", { p_kind: k })).data || []),
     fav: async (m, s) => DEMO ? !fake.syms.find((x) => x.symbol === s).fav : (await sb.rpc("game_fav", { p_market: m, p_symbol: s })).data,
+    dress: async (h, o, s) => DEMO ? { ok: true } : await sb.rpc("game_dress", { p_hat: h, p_outfit: o, p_shoes: s }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
+    showName: async (on) => DEMO ? on : (await sb.rpc("game_show_name", { p_on: on })).data,
     cancel: async (id) => DEMO ? { ok: true, refund: 15000 } : await sb.rpc("game_cancel", { p_id: id }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
   };
 
@@ -212,21 +208,66 @@
       · 레벨이 오를수록 다음 레벨까지 필요한 경험치가 조금씩 늘어요 (Lv.n → n+1: 50 + 10×n).</p>
       <div class="lvrow">${pick.map(([l, e]) => `<span class="${my.level >= l ? "on" : ""}">Lv.${l} · ${e.toLocaleString("ko-KR")} EXP</span>`).join("")}</div>
       <p style="margin:8px 0 0">🎁 <b>레벨 보상</b>: Lv.10 → 1개 시장 7일 이용권 · Lv.20 → 1개월 이용권 · Lv.30 → 3개월 이용권 + 명예의 전당<br>
-      👕 레벨이 오르면 모자·옷·신발이 하나씩 열려요 (곧 추가)</p></details>`;
+      👕 레벨이 오르면 모자·옷·신발이 하나씩 열려요 (꾸미기에서 입어 보세요)<br>
+      🎁 오늘의 미션: 출석 · 차트 보기 · 게시판 글쓰기(20자 이상) 하루 한 번씩 각 ${fmt((my.missions && my.missions.points) || 1000)}</p></details>`;
   }
 
   // ---------- 메인 ----------
-  let market = "coin", syms = [], sel = null, rkind = "ret", favOnly = false, sortKey = "name", theme = "";
+  const QS = new URLSearchParams(location.search);
+  let pendingSym = QS.get("s");
+  let market = MK.some(([k]) => k === QS.get("m")) ? QS.get("m") : "coin", syms = [], sel = null, rkind = "ret", favOnly = false, sortKey = "name", theme = "";
   try { sortKey = localStorage.getItem("gameSort") || "name"; } catch (e) {}
   const SORTS = { chg: (s) => s.chg, up: (s) => s.n_models ? s.up_n / s.n_models : null, med: (s) => s.med1, px: (s) => s.base_close };
+  // ---------- 꾸미기 (stage28.sql game_dress, 레벨로 잠금 해제) ----------
+  let closetOpen = location.hash === "#closet", closetTab = "hat", dress = null;
+  const ITEMS = { hat: ["모자", GC.HAT], outfit: ["옷", GC.OUT], shoes: ["신발", GC.SHO] };
+  const myDress = () => ({ hat: my.hat || "cap", outfit: my.outfit || "tee", shoes: my.shoes || "sneakers" });
+  function drawCloset() {
+    const box = document.getElementById("closet"); if (!box) return;
+    const [, list] = ITEMS[closetTab];
+    const changed = JSON.stringify(dress) !== JSON.stringify(myDress());
+    box.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <h2 style="margin:0;font-size:18px">👕 꾸미기</h2>
+        <div class="g-tabs" id="ctab">${Object.entries(ITEMS).map(([k, [n]]) => `<button type="button" data-k="${k}" aria-pressed="${k === closetTab}">${n}</button>`).join("")}</div></div>
+      <div class="items">${list.map((it) => { const lock = it.lv > my.level, o = { ...dress, [closetTab]: it.id };
+        return `<button type="button" class="it ${lock ? "lock" : ""}" data-it="${it.id}" aria-pressed="${dress[closetTab] === it.id}" ${lock ? "disabled" : ""}>${GC.draw(my.character, o, "c-" + it.id, true)}${esc(it.n)}<small>${lock ? "🔒 Lv." + it.lv : "Lv." + it.lv}</small></button>`; }).join("")}</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn" id="dressSave" type="button" ${changed ? "" : "disabled"}>${changed ? "이대로 입기" : "지금 입고 있어요"}</button>
+        ${changed ? '<button class="linkbtn" id="dressReset" type="button">되돌리기</button>' : ""}<span id="dressMsg" style="font-size:13px"></span></div>`;
+    box.querySelector("#ctab").onclick = (e) => { const b = e.target.closest("[data-k]"); if (b) { closetTab = b.dataset.k; drawCloset(); } };
+    box.querySelector(".items").onclick = (e) => { const b = e.target.closest("[data-it]"); if (b && !b.disabled) { dress = { ...dress, [closetTab]: b.dataset.it }; drawCloset(); drawHeroChar(); } };
+    const rs = box.querySelector("#dressReset"); if (rs) rs.onclick = () => { dress = myDress(); drawCloset(); drawHeroChar(); };
+    box.querySelector("#dressSave").onclick = async () => {
+      const r = await api.dress(dress.hat, dress.outfit, dress.shoes);
+      if (!r || !r.ok) { document.getElementById("dressMsg").textContent = (r && r.msg) || "저장하지 못했어요"; return; }
+      Object.assign(my, dress); drawCloset(); Portal.toast("👕 새 옷을 입었어요!");
+    };
+  }
+  const drawHeroChar = () => { document.getElementById("stg").innerHTML = GC.draw(my.character, { ...dress, pt: my.points + (my.invested || 0), mood: my.broke_at ? "sleep" : "" }, "me"); };
+  // 오늘의 미션 (stage28.sql 보너스)
+  function missions() {
+    const m = my.missions; if (!m) return "";
+    const it = (on, label, href) => `<a href="${href}" style="text-decoration:none;color:${on ? "var(--sub)" : "var(--ink)"}">${on ? "✅" : "⬜"} ${label}</a>`;
+    return `<div class="g-cd" style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px"><b>🎁 오늘의 미션 <small style="font-weight:400;color:var(--sub)">각 +${fmt(m.points || 1000)}</small></b>
+      ${it(m.login, "출석", "#")}${it(m.chart, "차트 보기", "dashboard.html")}${it(m.post, "글쓰기", "board.html")}</div>`;
+  }
+  // 레벨이 올라 새 아이템이 열렸으면 한 번 알려 줌
+  function newItemsToast() {
+    let seen = 0; try { seen = +(localStorage.getItem("gameLvSeen") || 0); } catch (e) {}
+    if (seen && my.level > seen) {
+      const got = Object.values(ITEMS).flatMap(([, l]) => l).filter((it) => it.lv > seen && it.lv <= my.level).map((it) => it.n);
+      if (got.length) Portal.toast(`🎉 Lv.${my.level}! 새 아이템: ${got.join(", ")} — 꾸미기에서 입어 보세요`);
+    }
+    try { localStorage.setItem("gameLvSeen", String(my.level)); } catch (e) {}
+  }
   function renderMain() {
     const z = GC.Z.find((x) => x.id === my.character) || GC.Z[2];
+    if (!dress) dress = myDress();
     const span = my.level_next ? my.level_next - my.level_floor : 1, cur = my.level_next ? my.exp - my.level_floor : span;
     main.innerHTML = `
       <section class="on-night" style="padding:6px 0 2px"><h1>🚦 모의투자 ${DEMO ? '<span class="demo-badge">미리보기 · 가짜 데이터</span>' : '<span class="demo-badge">베타</span>'}</h1>
         <p class="lead">AI 신호를 보고 포인트를 걸어 보세요. 다음 종가의 실제 등락률만큼 포인트가 늘거나 줄어요.</p></section>
       <div class="card g-hero">
-        <div class="g-char"><div class="stg" id="stg">${GC.draw(my.character, { pt: my.points + (my.invested || 0), mood: my.broke_at ? "sleep" : "" }, "me")}</div></div>
+        <div class="g-char"><div class="stg" id="stg">${GC.draw(my.character, { ...dress, pt: my.points + (my.invested || 0), mood: my.broke_at ? "sleep" : "" }, "me")}</div></div>
         <div>
           ${my.broke_at ? `<div class="broke">😵 포인트를 다 잃어서 ${esc(z.n)}가 기절했어요…<br><b>${when(my.revive_at)}</b>에 <b>${fmt(my.revive_points || 50000)}</b>로 부활해요! <small id="cd"></small></div>` : ""}
           <p class="g-name">${esc(my.nickname || "")}님의 ${esc(z.n)} <small style="font-weight:400;color:var(--sub)">(${z.a}띠)</small></p>
@@ -239,9 +280,14 @@
             <div class="g-stat"><small>총 수익률</small><b class="${(my.total_ret || 0) >= 0 ? "pos" : "neg"}">${pct(my.total_ret || 0)}</b></div>
             <div class="g-stat"><small>오늘 남은 투자</small><b>${my.today_left}/5</b></div>
           </div>
+          ${missions()}
+          <div class="g-acts"><button type="button" id="closetBtn" aria-pressed="${closetOpen}">👕 꾸미기</button>
+            <button type="button" id="nameBtn" aria-pressed="${!!my.show_name}">${my.show_name ? "🙋 닉네임 공개 중" : "🙈 익명으로 보이는 중"}</button></div>
+          <p class="hint" style="font-size:12px;color:var(--sub);margin:6px 0 0">순위표·영상에 보이는 이름: <b>${esc(my.show_name ? (my.nickname || "") : (my.display_name || "익명"))}</b> · 버튼을 누르면 바뀌어요</p>
           ${levelGuide()}
         </div>
       </div>
+      <div class="card closet" id="closet" ${closetOpen ? "" : "hidden"}></div>
       <div class="card stack">
         <h2 style="margin:0;font-size:18px">💰 오늘 투자하기</h2>
         <div class="g-tabs" id="mk">${MK.map(([k, n]) => `<button type="button" data-m="${k}" aria-pressed="${k === market}">${n}</button>`).join("")}</div>
@@ -265,6 +311,10 @@
         <div class="g-rank" id="rank"></div></div>
       <p class="hint" style="font-size:12px;color:var(--faint);line-height:1.6">모의투자는 재미를 위한 게임이에요. 포인트는 현금·결제에 쓸 수 없고, 신호는 투자 권유가 아니에요.<br>
         마감: 업비트 다음 날 09:00 · 빗썸 다음 날 00:00 · 코스피 09:00 · 나스닥 미국장 시작 전. 종가가 나오면 '검토 중' 후 약 5~10분 뒤 지급돼요.<br>취소: 장 마감 3시간 전까지 언제든 (포인트·투자 횟수 그대로 돌려받아요).</p>`;
+    document.getElementById("closetBtn").onclick = () => { closetOpen = !closetOpen; const b = document.getElementById("closet"); b.hidden = !closetOpen; document.getElementById("closetBtn").setAttribute("aria-pressed", closetOpen); if (closetOpen) { drawCloset(); b.scrollIntoView({ behavior: "smooth", block: "nearest" }); } };
+    if (closetOpen) drawCloset();
+    document.getElementById("nameBtn").onclick = async () => { const on = await api.showName(!my.show_name); if (on === null || on === undefined) return; my.show_name = !!on; renderMain(); };
+    newItemsToast();
     const stg = document.getElementById("stg");
     stg.onpointermove = (e) => { const b = stg.getBoundingClientRect(), x = (e.clientX - b.left) / b.width - .5, y = (e.clientY - b.top) / b.height - .5; stg.style.transform = `rotateY(${x * 26}deg) rotateX(${-y * 20}deg)`; };
     stg.onpointerleave = () => stg.style.transform = "";
@@ -294,6 +344,10 @@
   async function loadSyms() {
     document.getElementById("syms").innerHTML = `<div class="empty">불러오는 중…</div>`;
     syms = await api.syms(market).catch(() => []);
+    if (pendingSym) {
+      sel = syms.find((x) => x.symbol === pendingSym) || null; pendingSym = null;
+      if (sel) setTimeout(() => document.getElementById("bet").scrollIntoView({ behavior: "smooth", block: "center" }), 300);
+    }
     drawThemes(); drawSyms(); drawBet();
   }
   // 분야(테마): 종목 카탈로그(catalog-data.js)의 분류를 그대로 씀 · 빗썸도 coin 목록 · 지금 종목이 하나라도 있는 분야만
@@ -372,7 +426,7 @@
       const z = GC.Z.find((x) => x.id === r.animal) || GC.Z[2];
       const rv = rkind === "total" ? (r.total_ret || 0) : r.week_ret;
       const v = rkind === "level" ? `Lv.${r.level}` : rkind === "points" ? fmt(r.points) : `<span class="${rv >= 0 ? "pos" : "neg"}">${pct(rv)}</span>`;
-      return `<div class="g-ri ${r.is_me ? "me" : ""}"><div class="no">${medal(i)}</div>${GC.draw(r.animal, { pt: r.points, mood: r.broke ? "sleep" : "" }, "r" + i, false)}<div><b>${esc(r.nickname)}</b>${r.broke ? " 😵" : ""}<br><small style="color:var(--sub)">${z.a}띠 ${esc(z.n)} · Lv.${r.level}${r.revives ? ` · 💫${r.revives}` : ""}</small></div><div class="v">${v}</div></div>`;
+      return `<div class="g-ri ${r.is_me ? "me" : ""}"><div class="no">${medal(i)}</div>${GC.draw(r.animal, { hat: r.hat, outfit: r.outfit, shoes: r.shoes, pt: r.points, mood: r.broke ? "sleep" : "" }, "r" + i, false)}<div><b>${esc(r.nickname)}</b>${r.broke ? " 😵" : ""}<br><small style="color:var(--sub)">${z.a}띠 ${esc(z.n)} · Lv.${r.level}${r.revives ? ` · 💫${r.revives}` : ""}</small></div><div class="v">${v}</div></div>`;
     }).join("") : `<div class="empty">아직 순위가 없어요</div>`;
   }
 

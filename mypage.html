@@ -19,10 +19,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261029a">
+<link rel="stylesheet" href="assets/style.css?v=20261029b">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261029a"></script>
-<script src="assets/app.js?v=20261029a"></script>
+<script src="config.js?v=20261029b"></script>
+<script src="assets/app.js?v=20261029b"></script>
+<script src="assets/game-card.js?v=20261029b"></script>
 </head>
 <body>
 <script>
@@ -197,7 +198,9 @@
       <h1>마이페이지</h1>
       <p class="lead">이용 상태와 결제 안내를 확인해요</p>
     </section>
+    <div id="friendRoom" style="margin-bottom:16px"></div>
     <div class="two-col">${left}<div class="stack">${coupon}${right}</div></div>`;
+  GameCard.mount();  // 내 친구 방 (assets/game-card.js)
 
   if (document.getElementById("cpForm")) {
     const cpShow = (kind, text) => { const m = document.getElementById("cpMsg"); m.className = "msg " + kind; m.textContent = text; m.hidden = false; };

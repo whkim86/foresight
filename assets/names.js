@@ -127,6 +127,30 @@
   // 들어올 때 ?s=종목 이 있으면 그 종목을 바로 보여줌 (종목 카탈로그 → 대시보드 → 보드)
   //  · 우선순위: 순위표 검색칸에 넣어 그 줄만 보이게 + 아래 '코인별 예측 확률' 차트도 그 종목으로
   //  · 가격 차트: 종목 검색칸에 넣고 그 종목을 골라 차트를 띄움 (대표 종목 BTC 등은 맨 위 차트라 그대로)
+  // 신호등 친구들: 지금 보고 있는 종목을 모의투자에서 바로 걸 수 있게 오른쪽 아래 버튼 (누르면 그 종목이 골라진 채로 열림)
+  //  · 우선순위: 종목 선택칸(#coinInput) 값 / 가격 차트: 마지막으로 누른 종목 버튼
+  const fab = document.createElement("a");
+  fab.target = "_top"; fab.hidden = true;
+  fab.style.cssText = "position:fixed;right:14px;bottom:14px;z-index:50;background:#1B2233;color:#fff;border-radius:999px;padding:10px 16px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 6px 18px #0003";
+  if (document.body) document.body.appendChild(fab); else document.addEventListener("DOMContentLoaded", () => document.body.appendChild(fab));
+  function betOn(sym) {
+    if (!sym) return;
+    fab.href = `../game.html?m=${board.market}&s=${encodeURIComponent(sym)}`;
+    fab.textContent = `🐾 ${sym} 걸기`;
+    fab.hidden = false;
+  }
+  document.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("button[data-coin]"); if (b) betOn(b.getAttribute("data-coin")); }, true);
+  document.addEventListener("change", (e) => {
+    if (!e.target || e.target.id !== "coinInput") return;
+    const v = e.target.value.trim();
+    if ([...document.querySelectorAll("#coinList option")].some((o) => o.value === v)) betOn(v);
+  });
+  document.addEventListener("input", (e) => {
+    if (!e.target || e.target.id !== "coinInput") return;
+    const v = e.target.value.trim();
+    if ([...document.querySelectorAll("#coinList option")].some((o) => o.value === v)) betOn(v);
+  });
+
   const pickSym = new URLSearchParams(location.search).get("s");
   function openPick() {
     const sym = pickSym;
@@ -154,7 +178,7 @@
       }
     }, 250);
   }
-  if (pickSym) openPick();
+  if (pickSym) { openPick(); betOn(pickSym); }
 
   function queue() { if (map && !queued) { queued = true; setTimeout(decorate, 20); } }  // 화면이 가려져 있어도 동작하게 타이머
   load(board.market).then((m) => {

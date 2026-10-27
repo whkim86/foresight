@@ -19,10 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261029a">
+<link rel="stylesheet" href="assets/style.css?v=20261029b">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261029a"></script>
-<script src="assets/app.js?v=20261029a"></script>
+<script src="config.js?v=20261029b"></script>
+<script src="assets/app.js?v=20261029b"></script>
 </head>
 <body>
 <script>
@@ -92,6 +92,7 @@
       : sb.from("posts").insert({ ...row, board: key, is_secret: Boolean(board.secret) }).select("id").single();
     const { data, error } = await q;
     if (error) { $("submit").disabled = false; return show(errText(error)); }
+    if (!post) await Promise.race([Portal.gameBonus("post"), new Promise((r) => setTimeout(r, 1500))]);  // '글쓰기' 미션 (20자 이상, 하루 한 번)
     location.replace("post.html?id=" + data.id);
   });
 })();

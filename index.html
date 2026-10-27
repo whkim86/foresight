@@ -19,12 +19,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261029a">
+<link rel="stylesheet" href="assets/style.css?v=20261029b">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261029a"></script>
-<script src="assets/app.js?v=20261029a"></script>
-<script src="assets/names.js?v=20261029a"></script>
-<script src="assets/landing.js?v=20261029a"></script>
+<script src="config.js?v=20261029b"></script>
+<script src="assets/app.js?v=20261029b"></script>
+<script src="assets/game-card.js?v=20261029b"></script>
+<script src="assets/names.js?v=20261029b"></script>
+<script src="assets/landing.js?v=20261029b"></script>
 </head>
 <body class="home">
 <script>
@@ -198,6 +199,8 @@
         </div>
       </section>
 
+      <div id="friendCard"></div>
+
       <section class="section">
         <div class="section-head on-night">
           <div>
@@ -224,6 +227,7 @@
       </p>
     </main>`);
 
+  GameCard.mount();  // 내 신호등 친구 카드 (assets/game-card.js)
   const bar = document.getElementById("noticeBar");
   if (bar) bar.querySelector(".x").addEventListener("click", () => {
     try { localStorage.setItem("noticeClosed", JSON.stringify([...closed, notice[0].id].slice(-30))); } catch (e) { /* 저장이 막혀도 이번 화면에서만 닫음 */ }

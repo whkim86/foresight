@@ -524,3 +524,41 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; backgro
 .notice-bar .x { border: 0; background: none; color: var(--sub); font-size: 20px; line-height: 1; padding: 2px 6px; border-radius: 8px; cursor: pointer; }
 .notice-bar .x:hover { background: var(--line-soft); }
 @media (max-width: 520px) { .notice-bar { font-size: 13.5px; gap: 8px; } .notice-bar .when { display: none; } }
+
+/* ---------- 신호등 친구들 (캐릭터 움직임 · 상단 메뉴 얼굴 · 알림 · 홈 카드 · 친구 방) ---------- */
+.bob{transform-box:fill-box;transform-origin:50% 100%;animation:bob 2.4s ease-in-out infinite}
+.shadow{opacity:.12;transform-box:fill-box;transform-origin:50% 50%;animation:shadow 2.4s ease-in-out infinite both}
+@keyframes bob{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-7px) scale(.98,1.03)}}
+@keyframes shadow{0%,100%{transform:scale(1)}50%{transform:scale(.82)}}
+.eyes{transform-box:fill-box;transform-origin:50% 50%;animation:blink 4.2s infinite}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.ear{transform-box:fill-box;transform-origin:50% 100%;animation:ear 3.2s ease-in-out infinite}.ear.r{animation-delay:.4s}
+@keyframes ear{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-8deg)}90%{transform:rotate(6deg)}}
+.coin{transform-box:fill-box;transform-origin:50% 50%;animation:coin 2s ease-in-out infinite}
+@keyframes coin{0%,100%{transform:translateY(0) scaleX(1)}50%{transform:translateY(-3px) scaleX(.6)}}
+.aura{transform-box:fill-box;transform-origin:50% 50%;animation:aura 2.4s ease-in-out infinite}
+@keyframes aura{0%,100%{opacity:.35}50%{opacity:.7}}
+.spark{transform-box:fill-box;transform-origin:50% 50%;animation:spark 1.6s ease-in-out infinite}
+@keyframes spark{0%,100%{transform:scale(.6);opacity:.5}50%{transform:scale(1.15) rotate(20deg);opacity:1}}
+.win .bob{animation:jump .9s ease-out 2}
+@keyframes jump{0%{transform:translateY(0) scale(1.08,.9)}30%{transform:translateY(-30px) scale(.92,1.1)}60%{transform:translateY(0) scale(1.1,.88)}100%{transform:translateY(0)}}
+.nav-friend{display:inline-flex;align-items:center;gap:3px}
+.nav-friend .nf-face{display:inline-block;width:30px;height:30px;overflow:hidden;border-radius:50%;background:#FFF4D6}
+.nav-friend .nf-face svg{width:30px;height:30px;display:block}
+.portal-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#1B2233;color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;box-shadow:0 8px 24px #0004;z-index:999;transition:opacity .5s,transform .5s;max-width:calc(100vw - 32px);text-align:center}
+.portal-toast.out{opacity:0;transform:translate(-50%,10px)}
+.friend-card{display:grid;grid-template-columns:130px 1fr;gap:14px;align-items:center}
+.friend-card .fc-char svg{width:100%;height:auto;overflow:visible}
+.friend-card h3{margin:0;font-size:17px}
+.friend-card .fc-sub{font-size:13px;color:var(--sub);margin:2px 0 8px}
+.friend-card .fc-stats{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.friend-card .fc-stats span{background:#F3F5F9;border-radius:10px;padding:5px 9px;font-size:13px}
+.friend-card .fc-stats b{font-variant-numeric:tabular-nums}
+.friend-card .fc-mis{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;margin:4px 0 10px}
+.friend-card .fc-mis a{color:var(--ink);text-decoration:none}.friend-card .fc-mis a.done{color:var(--sub)}
+.friend-card .fc-bar{height:8px;border-radius:999px;background:#ECEFF5;overflow:hidden;margin-top:4px}
+.friend-card .fc-bar i{display:block;height:100%;background:linear-gradient(90deg,#FFC93C,#FF9F2E)}
+.friend-card .pos{color:#B3222D}.friend-card .neg{color:#1D4FB0}
+.friend-card .fc-btns{display:flex;gap:8px;flex-wrap:wrap}
+.friend-room{grid-template-columns:180px 1fr}
+@media (max-width:560px){.friend-card{grid-template-columns:96px 1fr;gap:10px}.friend-room{grid-template-columns:120px 1fr}}
