@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>모의투자 · AI 신호등</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=20261028a">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261028a"></script>
+<script src="assets/app.js?v=20261028a"></script>
+<script src="assets/names.js?v=20261028a"></script>
+<script src="assets/game-chars.js?v=20261028a"></script>
+<style>
+  /* 캐릭터 움직임 (blog_assets/캐릭터_만들기_데모.html 과 같음) */
+  .bob{transform-box:fill-box;transform-origin:50% 100%;animation:bob 2.4s ease-in-out infinite}
+  .shadow{opacity:.12;transform-box:fill-box;transform-origin:50% 50%;animation:shadow 2.4s ease-in-out infinite both}
+  @keyframes bob{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-7px) scale(.98,1.03)}}
+  @keyframes shadow{0%,100%{transform:scale(1)}50%{transform:scale(.82)}}
+  .eyes{transform-box:fill-box;transform-origin:50% 50%;animation:blink 4.2s infinite}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  .ear{transform-box:fill-box;transform-origin:50% 100%;animation:ear 3.2s ease-in-out infinite}.ear.r{animation-delay:.4s}
+  @keyframes ear{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-8deg)}90%{transform:rotate(6deg)}}
+  .coin{transform-box:fill-box;transform-origin:50% 50%;animation:coin 2s ease-in-out infinite}
+  @keyframes coin{0%,100%{transform:translateY(0) scaleX(1)}50%{transform:translateY(-3px) scaleX(.6)}}
+  .aura{transform-box:fill-box;transform-origin:50% 50%;animation:aura 2.4s ease-in-out infinite}
+  @keyframes aura{0%,100%{opacity:.35}50%{opacity:.7}}
+  .spark{transform-box:fill-box;transform-origin:50% 50%;animation:spark 1.6s ease-in-out infinite}
+  @keyframes spark{0%,100%{transform:scale(.6);opacity:.5}50%{transform:scale(1.15) rotate(20deg);opacity:1}}
+  .win .bob{animation:jump .9s ease-out 2}
+  @keyframes jump{0%{transform:translateY(0) scale(1.08,.9)}30%{transform:translateY(-30px) scale(.92,1.1)}60%{transform:translateY(0) scale(1.1,.88)}100%{transform:translateY(0)}}
+  /* 화면 */
+  .g-hero{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:center}
+  .g-char{perspective:700px}
+  .g-char .stg{transition:transform .15s ease-out;cursor:pointer}
+  .g-char svg{width:100%;height:auto;overflow:visible}
+  .g-name{font-size:21px;font-weight:700;margin:0}
+  .g-sub{font-size:13px;color:var(--sub);margin:2px 0 10px}
+  .g-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+  .lvguide{margin-top:10px;font-size:13px}
+  .lvguide summary{cursor:pointer;color:var(--sub);font-weight:600}
+  .lvguide table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
+  .lvguide td,.lvguide th{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left}
+  .lvguide th{color:var(--sub);font-weight:600}
+  .lvguide .lvrow{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .lvguide .lvrow span{background:#F3F5F9;border-radius:8px;padding:2px 7px;font-size:12px}
+  .lvguide .lvrow span.on{background:#FFE9B3;font-weight:700}
+  .broke{background:#FFF1F1;border:1px solid #F5C2C2;color:#9A1F28;border-radius:12px;padding:10px 12px;font-size:14px;margin-bottom:8px}
+  .pos{color:#B3222D}.neg{color:#1D4FB0}
+  .g-stat{background:var(--bg2,#F3F5F9);border-radius:12px;padding:9px 10px}
+  .g-stat small{display:block;font-size:12px;color:var(--sub)}
+  .g-stat b{font-size:17px}
+  .expbar{height:10px;border-radius:999px;background:#ECEFF5;overflow:hidden;margin-top:4px}
+  .expbar i{display:block;height:100%;background:linear-gradient(90deg,#FFC93C,#FF9F2E);border-radius:999px}
+  .g-pick{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .g-pick button{border:2px solid var(--line);background:var(--card);border-radius:14px;padding:4px 2px 6px;cursor:pointer;font-size:12px;color:var(--ink)}
+  .g-pick button[aria-pressed="true"]{border-color:var(--ink);background:#F4F6FB}
+  .g-pick svg{width:100%;height:auto}
+  .g-pick b{display:block;font-size:13px}
+  .g-tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .g-tabs button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 14px;font-size:14px;cursor:pointer}
+  .g-tabs button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .g-search{width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:10px 13px;font-size:15px}
+  .g-syms{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;max-height:300px;overflow:auto;padding:2px}
+  .g-sym{display:flex;justify-content:space-between;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 9px;cursor:pointer;text-align:left;color:var(--ink);font-size:13.5px}
+  .g-sym[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px #1B223322}
+  .g-sym span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .vb{font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 7px;white-space:nowrap;flex:0 0 auto}
+  .vb.up{background:#FCE4E5;color:#B3222D}.vb.dn{background:#E4ECFB;color:#1D4FB0}.vb.mx{background:#FFF0D2;color:#8A5300}
+  .g-bet{display:grid;gap:8px;background:#F7F8FB;border-radius:14px;padding:12px}
+  .g-bet .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .g-bet input{flex:1 1 140px;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:16px;background:#fff}
+  .g-bet .q button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 11px;font-size:13px;cursor:pointer}
+  .g-hist{display:flex;flex-direction:column;gap:6px}
+  .g-h{display:grid;grid-template-columns:1fr auto;gap:4px 10px;border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:var(--card)}
+  .g-h .t{font-weight:600}
+  .g-h .m{font-size:12.5px;color:var(--sub)}
+  .g-h .r{text-align:right;font-weight:700}
+  .g-h .r.u{color:#B3222D}.g-h .r.d{color:#1D4FB0}
+  .st{font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px}
+  .st.open{background:#ECEEF3;color:#5A6478}.st.review{background:#FFF0D2;color:#8A5300}.st.settled{background:#E6F6EC;color:#1E7A43}
+  .g-rank{display:flex;flex-direction:column}
+  .g-ri{display:grid;grid-template-columns:36px 70px 1fr auto;align-items:center;gap:8px;padding:5px 4px;border-bottom:1px solid var(--line)}
+  .g-ri.me{background:#FFF8E1;border-radius:10px}
+  .g-ri svg{width:70px;height:auto;overflow:visible}
+  .g-ri .no{text-align:center;font-weight:800}
+  .g-ri .v{font-weight:700}
+  .demo-badge{background:#FFE08A;color:#6B4A00;font-size:12px;font-weight:700;border-radius:999px;padding:2px 10px}
+  @media (max-width:640px){.g-stats{grid-template-columns:repeat(2,1fr)}.g-hero{grid-template-columns:1fr}.g-char{max-width:220px;margin:0 auto}.g-pick{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, requireUser, renderHeader, esc, errText } = Portal;
+  const GC = window.GameChars;
+  const DEMO = new URLSearchParams(location.search).has("demo");  // 화면 확인용 가짜 데이터 (?demo)
+  const MK = [["coin", "업비트"], ["bithumb", "빗썸"], ["nasdaq", "나스닥"], ["kospi", "코스피"]];
+  const MKN = Object.fromEntries(MK);
+  const VL = { up: "상승", mx: "혼돈", dn: "하락" };
+  const fmt = (n) => Math.round(n).toLocaleString("ko-KR") + "P";
+  const pct = (x) => (x >= 0 ? "+" : "") + (x * 100).toFixed(2) + "%";
+  const when = (t) => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+
+  let me = null;
+  if (!DEMO) { me = await requireUser(); if (!me) return; }
+  renderHeader(me);
+  if (!DEMO) Portal.track("game");
+  const main = document.createElement("main");
+  main.className = "page";
+  document.body.appendChild(main);
+
+  // ---------- 데이터 (DEMO 면 가짜) ----------
+  const now = Date.now(), H = 3600e3;
+  const fake = {
+    my: { allowed: true, joined: true, nickname: "신호등지기", character: "tiger", points: 87600, exp: 143, level: 3, level_floor: 130, level_next: 210, today_left: 3, invested: 25000,
+      granted: 100000, total_ret: 0.126, revives: 0, revive_points: 50000,
+      bets: [
+        { id: 3, market: "coin", symbol: "BTC", amount: 15000, verdict: "up", close_at: new Date(now + 20 * H).toISOString(), status: "open", created_at: new Date(now - H).toISOString() },
+        { id: 2, market: "kospi", symbol: "삼성전자", amount: 10000, verdict: "up", close_at: new Date(now - 0.1 * H).toISOString(), settle_at: new Date(now + 0.1 * H).toISOString(), status: "review", created_at: new Date(now - 20 * H).toISOString() },
+        { id: 1, market: "nasdaq", symbol: "NVIDIA", amount: 20000, verdict: "up", close_at: new Date(now - 30 * H).toISOString(), status: "settled", ret: 0.0234, payout: 20468, exp_delta: 10, created_at: new Date(now - 40 * H).toISOString() },
+      ] },
+    syms: ["BTC", "ETH", "XRP", "SOL", "DOGE", "ADA", "TRX", "AVAX", "LINK", "SUI", "ZIL", "CHZ"].map((s, i) => ({ symbol: s, verdict: ["up", "mx", "dn"][i % 3], cutoff_at: new Date(now + 20 * H).toISOString() })),
+    rank: [["코인왕범돌", "tiger", 9, 182000, 0.184], ["복돼지대장", "pig", 7, 151000, 0.121], ["신호등지기", "tiger", 3, 87600, 0.023], ["새벽꼬꼬", "rooster", 4, 99000, -0.01]]
+      .map(([nickname, animal, level, points, week_ret], i) => ({ nickname, animal, level, points, week_ret, total_ret: [0.82, 0.51, 0.126, -0.01][i], revives: i === 3 ? 1 : 0, broke: false, is_me: nickname === "신호등지기" })),
+  };
+  if (new URLSearchParams(location.search).has("broke")) Object.assign(fake.my, { points: 400, invested: 0, total_ret: -0.996, broke_at: new Date(now - 30 * H).toISOString(), revive_at: new Date(now + 42 * H).toISOString() });
+  const api = {
+    my: async () => DEMO ? fake.my : (await sb.rpc("game_my")).data,
+    join: async (c) => DEMO ? (fake.my.joined = true, fake.my.character = c, { ok: true }) : (await sb.rpc("game_join", { p_character: c })).data,
+    syms: async (m) => DEMO ? fake.syms : ((await sb.rpc("game_symbols", { p_market: m })).data || []),
+    bet: async (m, s, a) => DEMO ? { ok: true } : await sb.rpc("game_bet", { p_market: m, p_symbol: s, p_amount: a }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
+    rank: async (k) => DEMO ? fake.rank : ((await sb.rpc("game_rank", { p_kind: k })).data || []),
+  };
+
+  let my = await api.my().catch(() => null);
+  if (!my) { main.innerHTML = `<div class="msg error">모의투자 정보를 불러오지 못했어요. 잠시 후 다시 들어와 주세요.</div>`; return; }
+  if (!my.allowed) {
+    main.innerHTML = `<section class="on-night"><h1>모의투자</h1></section><div class="card center-note">🐣 신호등 친구들 모의투자를 준비 중이에요. 곧 열릴게요!</div>`;
+    return;
+  }
+
+  const KN = {};
+  await Promise.race([Promise.all(MK.map(async ([k]) => { try { KN[k] = await PortalNames.load(k); } catch (e) {} })), new Promise((r) => setTimeout(r, 2000))]);
+  const ko = (m, s) => { try { return PortalNames.ko(KN[m], s) || ""; } catch (e) { return ""; } };
+
+  // ---------- 캐릭터 고르기 (처음 한 번) ----------
+  function renderPick() {
+    let pick = "tiger";
+    main.innerHTML = `
+      <section class="on-night" style="padding:6px 0 2px"><h1>🚦 신호등 친구 고르기 ${DEMO ? '<span class="demo-badge">미리보기</span>' : ""}</h1>
+        <p class="lead">함께 투자할 12지 친구를 골라 주세요. 100,000P로 시작해요!</p></section>
+      <div class="card"><div class="g-pick" id="pick"></div>
+        <div style="display:flex;justify-content:center;margin-top:14px"><button class="btn" id="go" type="button">이 친구로 시작하기</button></div>
+        <p class="hint" style="font-size:12px;color:var(--faint);text-align:center;margin:10px 0 0">친구는 나중에 바꿀 수 있어요. 포인트는 게임 안에서만 쓰여요(현금·결제 사용 불가).</p></div>`;
+    const draw = () => {
+      document.getElementById("pick").innerHTML = GC.Z.map((z) => `<button type="button" data-z="${z.id}" aria-pressed="${z.id === pick}">${GC.draw(z.id, {}, "p-" + z.id, true)}<b>${z.a}</b>${esc(z.n)}<br><small style="color:var(--sub)">${esc(z.s)}</small></button>`).join("");
+    };
+    draw();
+    document.getElementById("pick").onclick = (e) => { const b = e.target.closest("[data-z]"); if (b) { pick = b.dataset.z; draw(); } };
+    document.getElementById("go").onclick = async () => {
+      const r = await api.join(pick);
+      if (!r || !r.ok) return alert((r && r.msg) || "시작하지 못했어요");
+      my = await api.my(); renderMain();
+    };
+  }
+
+  // ---------- 레벨 안내 (stage27.sql game_exp · game_level 과 같은 규칙) ----------
+  function levelGuide() {
+    let need = 0; const rows = [];
+    for (let n = 1; n < 30; n++) { need += 50 + 10 * n; rows.push([n + 1, need]); }
+    const pick = rows.filter(([l]) => [2, 5, 10, 15, 20, 25, 30].includes(l));
+    return `<details class="lvguide"><summary>📘 레벨은 어떻게 오르나요?</summary>
+      <table><tr><th>이럴 때</th><th>경험치</th></tr>
+        <tr><td>투자한 종목이 올랐을 때 (+0.1% 넘게)</td><td><b>+10</b></td></tr>
+        <tr><td>크게 올랐을 때 (+3% 이상)</td><td><b>+15</b></td></tr>
+        <tr><td>거의 그대로일 때 (±0.1% 이내)</td><td>+2</td></tr>
+        <tr><td>내렸을 때</td><td>−4</td></tr>
+        <tr><td>그날 첫 투자 (출석)</td><td>+3</td></tr></table>
+      <p style="margin:8px 0 0">· 레벨은 <b>Lv.1~30</b>까지예요. 경험치가 줄어도 <b>레벨은 내려가지 않아요.</b><br>
+      · 레벨이 오를수록 다음 레벨까지 필요한 경험치가 조금씩 늘어요 (Lv.n → n+1: 50 + 10×n).</p>
+      <div class="lvrow">${pick.map(([l, e]) => `<span class="${my.level >= l ? "on" : ""}">Lv.${l} · ${e.toLocaleString("ko-KR")} EXP</span>`).join("")}</div>
+      <p style="margin:8px 0 0">🎁 <b>레벨 보상</b>: Lv.10 → 1개 시장 7일 이용권 · Lv.20 → 1개월 이용권 · Lv.30 → 3개월 이용권 + 명예의 전당<br>
+      👕 레벨이 오르면 모자·옷·신발이 하나씩 열려요 (곧 추가)</p></details>`;
+  }
+
+  // ---------- 메인 ----------
+  let market = "coin", syms = [], sel = null, rkind = "ret";
+  function renderMain() {
+    const z = GC.Z.find((x) => x.id === my.character) || GC.Z[2];
+    const span = my.level_next ? my.level_next - my.level_floor : 1, cur = my.level_next ? my.exp - my.level_floor : span;
+    main.innerHTML = `
+      <section class="on-night" style="padding:6px 0 2px"><h1>🚦 모의투자 ${DEMO ? '<span class="demo-badge">미리보기 · 가짜 데이터</span>' : '<span class="demo-badge">운영자 테스트 중</span>'}</h1>
+        <p class="lead">AI 신호를 보고 포인트를 걸어 보세요. 다음 종가의 실제 등락률만큼 포인트가 늘거나 줄어요.</p></section>
+      <div class="card g-hero">
+        <div class="g-char"><div class="stg" id="stg">${GC.draw(my.character, { pt: my.points + (my.invested || 0), mood: my.broke_at ? "sleep" : "" }, "me")}</div></div>
+        <div>
+          ${my.broke_at ? `<div class="broke">😵 포인트를 다 잃어서 ${esc(z.n)}가 기절했어요…<br><b>${when(my.revive_at)}</b>에 <b>${fmt(my.revive_points || 50000)}</b>로 부활해요! <small id="cd"></small></div>` : ""}
+          <p class="g-name">${esc(my.nickname || "")}님의 ${esc(z.n)} <small style="font-weight:400;color:var(--sub)">(${z.a}띠)</small></p>
+          <p class="g-sub">${esc(z.s)}${my.revives ? ` · 💫 부활 ${my.revives}회` : ""}</p>
+          <div><b>Lv.${my.level}</b> <small style="color:var(--sub)">${my.level_next ? `다음 레벨까지 ${my.level_next - my.exp} EXP` : "최고 레벨!"}</small>
+            <div class="expbar"><i style="width:${Math.max(3, Math.min(100, cur / span * 100))}%"></i></div></div>
+          <div class="g-stats">
+            <div class="g-stat"><small>보유 포인트</small><b>${fmt(my.points)}</b></div>
+            <div class="g-stat"><small>투자 중</small><b>${fmt(my.invested || 0)}</b></div>
+            <div class="g-stat"><small>총 수익률</small><b class="${(my.total_ret || 0) >= 0 ? "pos" : "neg"}">${pct(my.total_ret || 0)}</b></div>
+            <div class="g-stat"><small>오늘 남은 투자</small><b>${my.today_left}/5</b></div>
+          </div>
+          ${levelGuide()}
+        </div>
+      </div>
+      <div class="card stack">
+        <h2 style="margin:0;font-size:18px">💰 오늘 투자하기</h2>
+        <div class="g-tabs" id="mk">${MK.map(([k, n]) => `<button type="button" data-m="${k}" aria-pressed="${k === market}">${n}</button>`).join("")}</div>
+        <input class="g-search" id="q" type="search" placeholder="종목·한글명으로 찾기" autocomplete="off">
+        <div class="g-syms" id="syms"><div class="empty">불러오는 중…</div></div>
+        <div id="bet"></div>
+      </div>
+      <div class="card stack"><h2 style="margin:0;font-size:18px">📋 내 투자 기록</h2><div class="g-hist" id="hist"></div></div>
+      <div class="card stack"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <h2 style="margin:0;font-size:18px">🏆 순위표</h2>
+          <div class="g-tabs" id="rk"><button type="button" data-k="ret">주간 수익률</button><button type="button" data-k="total">총 수익률</button><button type="button" data-k="level">레벨</button><button type="button" data-k="points">총자산</button></div></div>
+        <div class="g-rank" id="rank"></div></div>
+      <p class="hint" style="font-size:12px;color:var(--faint);line-height:1.6">모의투자는 재미를 위한 게임이에요. 포인트는 현금·결제에 쓸 수 없고, 신호는 투자 권유가 아니에요.<br>
+        마감: 업비트 다음 날 09:00 · 빗썸 다음 날 00:00 · 코스피 09:00 · 나스닥 미국장 시작 전. 종가가 나오면 '검토 중' 후 약 5~10분 뒤 지급돼요.</p>`;
+    const stg = document.getElementById("stg");
+    stg.onpointermove = (e) => { const b = stg.getBoundingClientRect(), x = (e.clientX - b.left) / b.width - .5, y = (e.clientY - b.top) / b.height - .5; stg.style.transform = `rotateY(${x * 26}deg) rotateX(${-y * 20}deg)`; };
+    stg.onpointerleave = () => stg.style.transform = "";
+    stg.onclick = () => { stg.classList.remove("win"); void stg.offsetWidth; stg.classList.add("win"); setTimeout(() => stg.classList.remove("win"), 1900); };
+    document.getElementById("mk").onclick = (e) => { const b = e.target.closest("[data-m]"); if (b) { market = b.dataset.m; sel = null; loadSyms(); document.querySelectorAll("#mk button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.m === market)); } };
+    document.getElementById("q").oninput = drawSyms;
+    document.getElementById("syms").onclick = (e) => { const b = e.target.closest("[data-s]"); if (b) { sel = syms.find((x) => x.symbol === b.dataset.s); drawSyms(); drawBet(); } };
+    document.getElementById("rk").onclick = (e) => { const b = e.target.closest("[data-k]"); if (b) { rkind = b.dataset.k; loadRank(); } };
+    drawHist(); loadSyms(); loadRank();
+  }
+
+  async function loadSyms() {
+    document.getElementById("syms").innerHTML = `<div class="empty">불러오는 중…</div>`;
+    syms = await api.syms(market).catch(() => []);
+    drawSyms(); drawBet();
+  }
+  function drawSyms() {
+    const q = (document.getElementById("q").value || "").trim().toUpperCase();
+    const list = syms.filter((s) => !q || s.symbol.toUpperCase().includes(q) || ko(market, s.symbol).includes(q));
+    document.getElementById("syms").innerHTML = list.length ? list.slice(0, 300).map((s) => {
+      const k = ko(market, s.symbol);
+      return `<button type="button" class="g-sym" data-s="${esc(s.symbol)}" aria-pressed="${sel && sel.symbol === s.symbol}"><span>${esc(s.symbol)}${k ? ` <small style="color:var(--sub)">${esc(k)}</small>` : ""}</span><i class="vb ${s.verdict}">${VL[s.verdict]}</i></button>`;
+    }).join("") : `<div class="empty">${syms.length ? "찾는 종목이 없어요" : "지금 걸 수 있는 종목이 없어요 (마감됐거나 오늘 예측 전이에요)"}</div>`;
+  }
+  function drawBet() {
+    const box = document.getElementById("bet");
+    if (my.broke_at) { box.innerHTML = `<p class="hint" style="margin:0;color:#9A1F28;font-size:13px">😵 친구가 기절해 있어서 지금은 걸 수 없어요. ${when(my.revive_at)}에 부활해요.</p>`; return; }
+    if (!sel) { box.innerHTML = `<p class="hint" style="margin:0;color:var(--sub);font-size:13px">종목을 고르면 포인트를 걸 수 있어요.</p>`; return; }
+    const max = Math.floor(my.points / 2 / 1000) * 1000;
+    box.innerHTML = `<div class="g-bet">
+      <div><b>${MKN[market]} ${esc(sel.symbol)}</b> ${ko(market, sel.symbol) ? `<small style="color:var(--sub)">${esc(ko(market, sel.symbol))}</small>` : ""} · AI 판정 <i class="vb ${sel.verdict}">${VL[sel.verdict]}</i>
+        <div class="m" style="font-size:12.5px;color:var(--sub);margin-top:2px">마감 ${when(sel.cutoff_at)} · 최대 ${fmt(max)} (보유의 50%)</div></div>
+      <div class="row"><input id="amt" type="number" min="1000" step="1000" max="${max}" placeholder="걸 포인트 (최소 1,000P)">
+        <span class="q"><button type="button" data-p=".1">10%</button> <button type="button" data-p=".25">25%</button> <button type="button" data-p=".5">50%</button></span></div>
+      <div class="row"><button class="btn" id="betBtn" type="button" ${my.today_left <= 0 ? "disabled" : ""}>${my.today_left <= 0 ? "오늘은 5개를 다 걸었어요" : "🐾 이 종목에 걸기"}</button><span id="betMsg" style="font-size:13px"></span></div></div>`;
+    box.querySelector(".q").onclick = (e) => { const b = e.target.closest("[data-p]"); if (b) document.getElementById("amt").value = Math.max(1000, Math.floor(my.points * +b.dataset.p / 1000) * 1000); };
+    document.getElementById("betBtn").onclick = async () => {
+      const amt = +document.getElementById("amt").value, msg = document.getElementById("betMsg");
+      if (!amt) { msg.textContent = "포인트를 입력해 주세요"; return; }
+      const r = await api.bet(market, sel.symbol, amt);
+      if (!r || !r.ok) { msg.style.color = "#B3222D"; msg.textContent = (r && r.msg) || "걸지 못했어요"; return; }
+      if (DEMO) { msg.style.color = "#1E7A43"; msg.textContent = "걸었어요! (미리보기)"; return; }
+      my = await api.my(); renderMain();
+    };
+  }
+  function drawHist() {
+    const b = my.bets || [];
+    document.getElementById("hist").innerHTML = b.length ? b.map((x) => {
+      const k = ko(x.market, x.symbol);
+      const st = x.status === "settled" ? `<span class="st settled">정산 완료</span>` : x.status === "review" ? `<span class="st review">🔍 검토 중</span>` : `<span class="st open">진행 중</span>`;
+      const right = x.status === "settled"
+        ? `<div class="r ${x.ret >= 0 ? "u" : "d"}">${pct(x.ret)}<br><small style="font-weight:500;color:var(--sub)">${fmt(x.payout)} · EXP ${x.exp_delta >= 0 ? "+" : ""}${x.exp_delta}</small></div>`
+        : `<div class="r" style="color:var(--sub);font-weight:500;font-size:13px">${fmt(x.amount)}</div>`;
+      const sub = x.status === "settled" ? `${fmt(x.amount)} 걸음` : x.status === "review" ? `실제 종가 확인 중 · ${x.settle_at ? when(x.settle_at) + "쯤 지급" : "곧 지급"}` : `종가 ${when(x.close_at)} 이후 정산`;
+      return `<div class="g-h"><div><span class="t">${MKN[x.market]} ${esc(x.symbol)}</span> ${k ? `<small style="color:var(--sub)">${esc(k)}</small>` : ""} <i class="vb ${x.verdict}">${VL[x.verdict] || ""}</i> ${st}<div class="m">${sub}</div></div>${right}</div>`;
+    }).join("") : `<div class="empty">아직 투자 기록이 없어요. 첫 종목을 골라 보세요!</div>`;
+  }
+  async function loadRank() {
+    document.querySelectorAll("#rk button").forEach((x) => x.setAttribute("aria-pressed", x.dataset.k === rkind));
+    const rows = await api.rank(rkind).catch(() => []);
+    const medal = (i) => ["🥇", "🥈", "🥉"][i] || i + 1;
+    document.getElementById("rank").innerHTML = rows.length ? rows.map((r, i) => {
+      const z = GC.Z.find((x) => x.id === r.animal) || GC.Z[2];
+      const rv = rkind === "total" ? (r.total_ret || 0) : r.week_ret;
+      const v = rkind === "level" ? `Lv.${r.level}` : rkind === "points" ? fmt(r.points) : `<span class="${rv >= 0 ? "pos" : "neg"}">${pct(rv)}</span>`;
+      return `<div class="g-ri ${r.is_me ? "me" : ""}"><div class="no">${medal(i)}</div>${GC.draw(r.animal, { pt: r.points, mood: r.broke ? "sleep" : "" }, "r" + i, false)}<div><b>${esc(r.nickname)}</b>${r.broke ? " 😵" : ""}<br><small style="color:var(--sub)">${z.a}띠 ${esc(z.n)} · Lv.${r.level}${r.revives ? ` · 💫${r.revives}` : ""}</small></div><div class="v">${v}</div></div>`;
+    }).join("") : `<div class="empty">아직 순위가 없어요</div>`;
+  }
+
+  if (my.joined) renderMain(); else renderPick();
+})();
+</script>
+</body>
+</html>
