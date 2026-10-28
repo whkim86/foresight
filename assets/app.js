@@ -122,7 +122,7 @@
   let charsP = null;
   const loadChars = () => window.GameChars ? Promise.resolve(window.GameChars) : charsP || (charsP = new Promise((ok) => {
     const s = document.createElement("script");
-    s.src = (document.querySelector('script[src*="assets/app.js"]').getAttribute("src").replace(/app\.js.*$/, "")) + "game-chars.js?v=20261029f";
+    s.src = (document.querySelector('script[src*="assets/app.js"]').getAttribute("src").replace(/app\.js.*$/, "")) + "game-chars.js?v=20261029g";
     s.onload = () => ok(window.GameChars); s.onerror = () => ok(null);
     document.head.appendChild(s);
   }));

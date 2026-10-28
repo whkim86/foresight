@@ -9,13 +9,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261029f">
+<link rel="stylesheet" href="assets/style.css?v=20261029g">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261029f"></script>
-<script src="assets/app.js?v=20261029f"></script>
-<script src="assets/names.js?v=20261029f"></script>
-<script src="assets/catalog-data.js?v=20261029f"></script>
-<script src="assets/game-chars.js?v=20261029f"></script>
+<script src="config.js?v=20261029g"></script>
+<script src="assets/app.js?v=20261029g"></script>
+<script src="assets/names.js?v=20261029g"></script>
+<script src="assets/catalog-data.js?v=20261029g"></script>
+<script src="assets/game-chars.js?v=20261029g"></script>
 <style>
   /* 화면 */
   .g-hero{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:center}
@@ -288,7 +288,7 @@
     const m = my.missions; if (!m) return "";
     const it = (on, label, href) => `<a href="${href}" style="text-decoration:none;color:${on ? "var(--sub)" : "var(--ink)"}">${on ? "✅" : "⬜"} ${label}</a>`;
     return `<div class="g-cd" style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px"><b>🎁 오늘의 미션 <small style="font-weight:400;color:var(--sub)">각 +${fmt(m.points || 1000)}</small></b>
-      ${it(m.login, "출석", "#")}${it(m.chart, "차트 보기", "dashboard.html")}${it(m.post, "글쓰기", "board.html")}</div>`;
+      ${it(m.login, "출석", "#")}${it(m.chart, "차트 보기", "dashboard.html")}${it(m.post, "글쓰기", "board.html?b=game")}</div>`;
   }
   // 레벨이 올라 새 아이템이 열렸으면 한 번 알려 줌
   function newItemsToast() {
@@ -341,6 +341,7 @@
           </div>
           ${missions()}
           <div class="g-acts"><button type="button" id="closetBtn" aria-pressed="${closetOpen}">👕 꾸미기</button>
+            <a class="btn sm ghost" href="board.html?b=game" style="border-radius:999px">💬 모의투자 게시판</a>
             <button type="button" id="nameBtn" aria-pressed="${!!my.show_name}">${my.show_name ? "🙋 닉네임 공개 중" : "🙈 익명으로 보이는 중"}</button></div>
           <p class="hint" style="font-size:12px;color:var(--sub);margin:6px 0 0">순위표·영상에 보이는 이름: <b>${esc(my.show_name ? (my.nickname || "") : (my.display_name || "익명"))}</b> · 버튼을 누르면 바뀌어요</p>
           ${levelGuide()}

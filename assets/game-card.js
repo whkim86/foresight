@@ -15,7 +15,7 @@
     const m = c.missions || {};
     const it = (on, label, href) => `<a class="${on ? "done" : ""}" href="${href}">${on ? "✅" : "⬜"} ${label}</a>`;
     return `<div class="fc-mis"><b>🎁 오늘의 미션 <small style="font-weight:400;color:var(--sub)">각 +${fmt(m.points || 1000)}</small></b>
-      ${it(m.login, "출석", "game.html")}${it(m.chart, "차트 보기", "dashboard.html")}${it(m.post, "글쓰기", "board.html")}</div>`;
+      ${it(m.login, "출석", "game.html")}${it(m.chart, "차트 보기", "dashboard.html")}${it(m.post, "글쓰기", "board.html?b=game")}</div>`;
   }
   function expBar(c) {
     const span = c.level_next ? c.level_next - c.level_floor : 1, cur = c.level_next ? c.exp - c.level_floor : span;
