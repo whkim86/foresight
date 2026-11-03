@@ -84,6 +84,7 @@
   .g-ri svg{width:70px;height:auto;overflow:visible}
   .g-ri .no{text-align:center;font-weight:800}
   .g-ri .v{font-weight:700}
+  .g-ri .best{font-size:12px;color:var(--sub)}
   .g-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
   .g-acts button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 13px;font-size:13px;cursor:pointer}
   .g-acts button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -167,7 +168,8 @@
       ] },
     syms: ["BTC", "ETH", "XRP", "SOL", "DOGE", "ADA", "TRX", "AVAX", "LINK", "SUI", "ZIL", "CHZ"].map((s, i) => ({ symbol: s, verdict: ["up", "mx", "dn"][i % 3], cutoff_at: new Date(now + 20 * H).toISOString(), base_close: [158e6, 5.2e6, 3400, 290000, 380, 900, 440, 41000, 25000, 5200, 30, 110][i], chg: [0.012, -0.023, 0.051, -0.008, 0.031, -0.041, 0.002, 0.066, -0.015, 0.019, 0.088, -0.052][i], up_n: [39, 22, 12, 30, 25, 9, 40, 28, 15, 33, 45, 8][i], dn_n: [5, 18, 30, 10, 12, 35, 4, 11, 28, 9, 3, 38][i], n_models: 52, med1: [0.008, 0.001, -0.012, 0.004, 0.003, -0.01, 0.006, 0.005, -0.004, 0.007, 0.015, -0.013][i], fav: i < 2 })),
     rank: [["코인왕범돌", "tiger", 9, 182000, 0.184], ["복돼지대장", "pig", 7, 151000, 0.121], ["신호등지기", "tiger", 3, 87600, 0.023], ["새벽꼬꼬", "rooster", 4, 99000, -0.01]]
-      .map(([nickname, animal, level, points, week_ret], i) => ({ nickname, animal, level, points, week_ret, hat: ["helmet", "party", "beanie", "cap"][i], outfit: ["hanbok", "hoodie", "tee", "tee"][i], shoes: ["boots", "boots", "sneakers", "none"][i], total_ret: [0.82, 0.51, 0.126, -0.01][i], revives: i === 3 ? 1 : 0, broke: false, is_me: nickname === "신호등지기" })),
+      .map(([nickname, animal, level, points, week_ret], i) => ({ nickname, animal, level, points, week_ret, hat: ["helmet", "party", "beanie", "cap"][i], outfit: ["hanbok", "hoodie", "tee", "tee"][i], shoes: ["boots", "boots", "sneakers", "none"][i], total_ret: [0.82, 0.51, 0.126, -0.01][i], revives: i === 3 ? 1 : 0, broke: false, is_me: nickname === "신호등지기",
+        best_market: ["coin", "kospi", "nasdaq", null][i], best_symbol: ["SOL", "삼성전자", "NVIDIA", null][i], best_ret: [0.062, 0.031, 0.0234, null][i], best_n: [4, 2, 1, null][i] })),
   };
   if (GUEST) Object.assign(fake.my, { joined: false, nickname: "", points: 100000, exp: 0, level: 1, level_floor: 0, level_next: 60, today_left: 5, invested: 0,
     total_ret: 0, hat: "cap", display_name: "둘러보기 손님", missions: { login: false, chart: false, post: false, points: 1000 }, bets: [] });
@@ -492,7 +494,10 @@
       const z = GC.Z.find((x) => x.id === r.animal) || GC.Z[2];
       const rv = rkind === "total" ? (r.total_ret || 0) : r.week_ret;
       const v = rkind === "level" ? `Lv.${r.level}` : rkind === "points" ? fmt(r.points) : `<span class="${rv >= 0 ? "pos" : "neg"}">${pct(rv)}</span>`;
-      return `<div class="g-ri ${r.is_me ? "me" : ""}"><div class="no">${medal(i)}</div>${GC.draw(r.animal, { hat: r.hat, outfit: r.outfit, shoes: r.shoes, pt: r.points, mood: r.broke ? "sleep" : "" }, "r" + i, false)}<div><b>${esc(r.nickname)}</b>${r.broke ? " 😵" : ""}<br><small style="color:var(--sub)">${z.a}띠 ${esc(z.n)} · Lv.${r.level}${r.revives ? ` · 💫${r.revives}` : ""}</small></div><div class="v">${v}</div></div>`;
+      // 가장 잘 번 종목: 맞히면 +등락률, 틀리면 −등락률 을 종목별로 더한 값이 가장 큰 것 (stage34)
+      const bk = r.best_symbol ? ko(r.best_market, r.best_symbol) : "";
+      const best = r.best_symbol ? `<br><small class="best">⭐ ${MKN[r.best_market] || ""} ${esc(r.best_symbol)}${bk ? ` ${esc(bk)}` : ""} <span class="pos">${pct(r.best_ret)}</span> (${r.best_n}회)</small>` : "";
+      return `<div class="g-ri ${r.is_me ? "me" : ""}"><div class="no">${medal(i)}</div>${GC.draw(r.animal, { hat: r.hat, outfit: r.outfit, shoes: r.shoes, pt: r.points, mood: r.broke ? "sleep" : "" }, "r" + i, false)}<div><b>${esc(r.nickname)}</b>${r.broke ? " 😵" : ""}<br><small style="color:var(--sub)">${z.a}띠 ${esc(z.n)} · Lv.${r.level}${r.revives ? ` · 💫${r.revives}` : ""}</small>${best}</div><div class="v">${v}</div></div>`;
     }).join("") : `<div class="empty">아직 순위가 없어요</div>`;
   }
 
