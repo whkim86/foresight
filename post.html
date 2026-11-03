@@ -19,10 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261104a">
+<link rel="stylesheet" href="assets/style.css?v=20261104b">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261104a"></script>
-<script src="assets/app.js?v=20261104a"></script>
+<script src="config.js?v=20261104b"></script>
+<script src="assets/app.js?v=20261104b"></script>
 </head>
 <body>
 <script>
@@ -50,6 +50,11 @@
   document.title = post.title + " · AI 신호등";
 
   const { data: myReport } = await sb.from("post_reports").select("post_id").eq("post_id", id).eq("user_id", me.user.id).maybeSingle();
+  // 좋아요 (stage36): 내 글·비밀글은 숫자만, 나머지는 누르면 좋아요 / 다시 누르면 취소
+  const canLike = !mine && !post.is_secret;
+  let liked = false, likes = post.like_count || 0;
+  if (canLike) { const { data } = await sb.from("post_likes").select("post_id").eq("post_id", id).eq("user_id", me.user.id).maybeSingle(); liked = !!data; }
+  const likeBtn = () => `${liked ? "❤️" : "🤍"} 좋아요 ${likes}`;
 
   main.innerHTML = `
     <a class="hint on-night" href="board.html?b=${post.board}">← ${esc(board.name)} 게시판</a>
@@ -69,6 +74,8 @@
       <div class="post-body">${esc(post.body)}</div>
       <div class="post-actions">
         <div>
+          ${canLike ? `<button class="btn sm ghost like-btn" id="likeBtn" type="button" aria-pressed="${liked}">${likeBtn()}</button>`
+            : !post.is_secret ? `<span class="like-count">❤️ 좋아요 ${likes}</span>` : ""}
           ${!mine && !post.is_secret ? `<button class="btn sm ghost" id="reportBtn" type="button">${myReport ? "신고 취소" : "신고"}</button>` : ""}
         </div>
         <div>
@@ -144,6 +151,17 @@
     const { error } = await sb.from("posts").update({ pinned: !post.pinned }).eq("id", id);
     if (error) return show("error", errText(error));
     location.reload();
+  };
+
+  if ($("likeBtn")) $("likeBtn").onclick = async () => {
+    const b = $("likeBtn"); b.disabled = true;
+    const { error } = liked
+      ? await sb.from("post_likes").delete().eq("post_id", id).eq("user_id", me.user.id)
+      : await sb.from("post_likes").insert({ post_id: id });
+    b.disabled = false;
+    if (error) return show("error", errText(error));
+    liked = !liked; likes = Math.max(0, likes + (liked ? 1 : -1));
+    b.setAttribute("aria-pressed", liked); b.textContent = likeBtn();
   };
 
   if ($("reportBtn")) $("reportBtn").onclick = async () => {

@@ -9,13 +9,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261104a">
+<link rel="stylesheet" href="assets/style.css?v=20261104b">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261104a"></script>
-<script src="assets/app.js?v=20261104a"></script>
-<script src="assets/names.js?v=20261104a"></script>
-<script src="assets/catalog-data.js?v=20261104a"></script>
-<script src="assets/game-chars.js?v=20261104a"></script>
+<script src="config.js?v=20261104b"></script>
+<script src="assets/app.js?v=20261104b"></script>
+<script src="assets/names.js?v=20261104b"></script>
+<script src="assets/catalog-data.js?v=20261104b"></script>
+<script src="assets/game-chars.js?v=20261104b"></script>
 <style>
   /* 화면 */
   .g-hero{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:center}
@@ -87,6 +87,14 @@
   .g-ri .best{font-size:12px;color:var(--sub)}
   .hello-bar{display:block;margin:8px 0;font-size:13.5px;text-decoration:none;color:var(--ink);background:#FFF8E1;border:1px solid #F5D77A}
   .hello-bar small{color:var(--sub);margin-left:4px}
+  .ledger summary{cursor:pointer;font-weight:700;font-size:17px}
+  .ledger summary small{font-weight:400;font-size:12.5px;color:var(--sub);margin-left:6px}
+  .lg-day{margin-top:12px}
+  .lg-h{display:flex;justify-content:space-between;padding:6px 2px;border-bottom:1px solid var(--line);font-size:14px}
+  .lg-h span{color:var(--sub);font-size:13px}
+  .lg-r{display:grid;grid-template-columns:84px 1fr auto;gap:8px;align-items:center;padding:6px 2px;font-size:13.5px;border-bottom:1px dashed var(--line)}
+  .lg-r > span:first-child{font-weight:700;text-align:right}
+  .lg-r small{color:var(--sub)}
   .g-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
   .g-acts button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 13px;font-size:13px;cursor:pointer}
   .g-acts button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -172,6 +180,15 @@
     rank: [["코인왕범돌", "tiger", 9, 182000, 0.184], ["복돼지대장", "pig", 7, 151000, 0.121], ["신호등지기", "tiger", 3, 87600, 0.023], ["새벽꼬꼬", "rooster", 4, 99000, -0.01]]
       .map(([nickname, animal, level, points, week_ret], i) => ({ nickname, animal, level, points, week_ret, hat: ["helmet", "party", "beanie", "cap"][i], outfit: ["hanbok", "hoodie", "tee", "tee"][i], shoes: ["boots", "boots", "sneakers", "none"][i], total_ret: [0.82, 0.51, 0.126, -0.01][i], revives: i === 3 ? 1 : 0, broke: false, is_me: nickname === "신호등지기",
         best_market: ["coin", "kospi", "nasdaq", null][i], best_symbol: ["SOL", "삼성전자", "NVIDIA", null][i], best_ret: [0.062, 0.031, 0.0234, null][i], best_n: [4, 2, 1, null][i] })),
+    ledger: [
+      { at: new Date(now - 0.2 * H).toISOString(), kind: "bet", market: "coin", symbol: "BTC", side: "up", delta: -15000, balance: 87600 },
+      { at: new Date(now - 1 * H).toISOString(), kind: "bonus_login", delta: 1000, balance: 102600 },
+      { at: new Date(now - 20 * H).toISOString(), kind: "bet", market: "kospi", symbol: "삼성전자", side: "up", delta: -10000, balance: 101600 },
+      { at: new Date(now - 26 * H).toISOString(), kind: "settle", market: "nasdaq", symbol: "NVIDIA", side: "up", ret: 0.0234, delta: 20468, balance: 111600 },
+      { at: new Date(now - 30 * H).toISOString(), kind: "hello", delta: 50000, balance: 91132 },
+      { at: new Date(now - 40 * H).toISOString(), kind: "bet", market: "nasdaq", symbol: "NVIDIA", side: "up", delta: -20000, balance: 41132 },
+      { at: new Date(now - 41 * H).toISOString(), kind: "start", delta: 100000, balance: 100000 },
+    ],
   };
   if (GUEST) Object.assign(fake.my, { joined: false, nickname: "", points: 100000, exp: 0, level: 1, level_floor: 0, level_next: 60, today_left: 5, invested: 0,
     total_ret: 0, hat: "cap", display_name: "둘러보기 손님", missions: { login: false, chart: false, post: false, points: 1000 }, bets: [] });
@@ -185,6 +202,7 @@
     syms: async (m) => DEMO ? fakeSyms(m) : ((await sb.rpc("game_symbols", { p_market: m })).data || []),
     bet: async (m, s, a, side) => DEMO ? fakeBet(m, s, a, side) : await sb.rpc("game_bet", { p_market: m, p_symbol: s, p_amount: a, p_side: side }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
     rank: async (k) => DEMO ? fake.rank : ((await sb.rpc("game_rank", { p_kind: k })).data || []),
+    ledger: async () => DEMO ? fake.ledger : await sb.rpc("game_ledger", { p_days: 60 }).then((r) => r.error ? null : (r.data || [])),
     fav: async (m, s) => DEMO ? !fake.syms.find((x) => x.symbol === s).fav : (await sb.rpc("game_fav", { p_market: m, p_symbol: s })).data,
     dress: async (h, o, s) => DEMO ? (nudge(), { ok: true }) : await sb.rpc("game_dress", { p_hat: h, p_outfit: o, p_shoes: s }).then((r) => r.error ? { ok: false, msg: errText(r.error) } : r.data),
     showName: async (on) => DEMO ? (nudge(), on) : (await sb.rpc("game_show_name", { p_on: on })).data,
@@ -294,6 +312,33 @@
     };
   }
   const drawHeroChar = () => { document.getElementById("stg").innerHTML = GC.draw(my.character, { ...dress, pt: my.points + (my.invested || 0), mood: my.broke_at ? "sleep" : "" }, "me"); };
+  // ---------- 포인트 내역 (stage36.sql game_ledger) — 열 때 불러옴, 날짜(KST)별로 묶고 그날 끝 잔액 표시 ----------
+  const LK = { start: "🐣 모의투자 시작", bonus_login: "🎁 출석 보너스", bonus_chart: "🎁 차트 보기 보너스", bonus_post: "🎁 글쓰기 보너스", hello: "👋 가입인사 보너스", revive: "💫 부활" };
+  const kday = (t) => new Date(new Date(t).getTime() + 9 * H).toISOString().slice(0, 10);
+  const DOW = "일월화수목금토";
+  async function loadLedger() {
+    const box = document.getElementById("ledgerBox"); if (!box || box.dataset.loaded) return;
+    box.innerHTML = `<p class="hint">불러오는 중…</p>`;
+    const rows = await api.ledger().catch(() => null);
+    if (!rows) { box.innerHTML = `<p class="hint">내역을 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>`; return; }
+    box.dataset.loaded = "1";
+    if (!rows.length) { box.innerHTML = `<p class="hint">아직 내역이 없어요</p>`; return; }
+    const days = []; rows.forEach((r) => { const d = kday(r.at); if (!days.length || days[days.length - 1].d !== d) days.push({ d, rows: [] }); days[days.length - 1].rows.push(r); });
+    const what = (r) => {
+      if (LK[r.kind]) return LK[r.kind];
+      const s = `${MKN[r.market] || ""} ${esc(r.symbol)}${ko(r.market, r.symbol) ? ` <small>${esc(ko(r.market, r.symbol))}</small>` : ""}`;
+      const side = r.side === "dn" ? "📉 하락" : "📈 상승";
+      return r.kind === "bet" ? `${s} ${side}에 걸기` : `${s} 정산 <small class="${(r.ret || 0) >= 0 ? "pos" : "neg"}">${side} · ${pct(r.ret || 0)}</small>`;
+    };
+    box.innerHTML = days.map((g) => { const dt = new Date(g.d + "T00:00:00Z");
+      return `<div class="lg-day"><div class="lg-h"><b>${dt.getUTCMonth() + 1}/${dt.getUTCDate()} (${DOW[dt.getUTCDay()]})</b><span>잔액 ${fmt(g.rows[0].balance)}</span></div>
+        ${g.rows.map((r) => `<div class="lg-r"><span class="${r.delta >= 0 ? "pos" : "neg"}">${r.delta >= 0 ? "+" : "−"}${Math.abs(r.delta).toLocaleString("ko-KR")}</span><span>${what(r)}</span><small>${when(r.at).split(" ")[1]}</small></div>`).join("")}</div>`; }).join("")
+      + `<p class="hint" style="font-size:12px;margin:8px 0 0">· 정산은 돌려받은 포인트(원금 포함)예요. 걸 때 빠져나간 포인트와 비교하면 손익이 보여요.<br>· 취소한 걸기는 그대로 돌아온 것이라 내역에서 빠져요.</p>`;
+  }
+  main.addEventListener("toggle", (e) => { if (e.target.id === "ledger" && e.target.open) loadLedger(); }, true);
+  main.addEventListener("click", (e) => { if (!e.target.closest("#ledgerBtn")) return; e.preventDefault();
+    const d = document.getElementById("ledger"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); });
+
   // 오늘의 미션 (stage28.sql 보너스)
   function missions() {
     const m = my.missions; if (!m) return "";
@@ -354,12 +399,14 @@
           ${helloBar()}
           <div class="g-acts"><button type="button" id="closetBtn" aria-pressed="${closetOpen}">👕 꾸미기</button>
             <a class="btn sm ghost" href="board.html?b=game" style="border-radius:999px">💬 모의투자 게시판</a>
+            <a class="btn sm ghost" href="#ledger" id="ledgerBtn" style="border-radius:999px">📒 포인트 내역</a>
             <button type="button" id="nameBtn" aria-pressed="${!!my.show_name}">${my.show_name ? "🙋 닉네임 공개 중" : "🙈 익명으로 보이는 중"}</button></div>
           <p class="hint" style="font-size:12px;color:var(--sub);margin:6px 0 0">순위표·영상에 보이는 이름: <b>${esc(my.show_name ? (my.nickname || "") : (my.display_name || "익명"))}</b> · 버튼을 누르면 바뀌어요</p>
           ${levelGuide()}
         </div>
       </div>
       <div class="card closet" id="closet" ${closetOpen ? "" : "hidden"}></div>
+      <details class="card ledger" id="ledger" ${location.hash === "#ledger" ? "open" : ""}><summary>📒 포인트 내역 <small>날짜별로 들어오고 나간 포인트 (최근 60일)</small></summary><div id="ledgerBox"></div></details>
       <div class="card stack">
         <h2 style="margin:0;font-size:18px">💰 오늘 투자하기</h2>
         <div class="g-tabs" id="mk">${MK.map(([k, n]) => `<button type="button" data-m="${k}" aria-pressed="${k === market}">${n}</button>`).join("")}</div>
