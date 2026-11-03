@@ -9,13 +9,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261029g">
+<link rel="stylesheet" href="assets/style.css?v=20261104a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261029g"></script>
-<script src="assets/app.js?v=20261029g"></script>
-<script src="assets/names.js?v=20261029g"></script>
-<script src="assets/catalog-data.js?v=20261029g"></script>
-<script src="assets/game-chars.js?v=20261029g"></script>
+<script src="config.js?v=20261104a"></script>
+<script src="assets/app.js?v=20261104a"></script>
+<script src="assets/names.js?v=20261104a"></script>
+<script src="assets/catalog-data.js?v=20261104a"></script>
+<script src="assets/game-chars.js?v=20261104a"></script>
 <style>
   /* 화면 */
   .g-hero{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:center}
@@ -85,6 +85,8 @@
   .g-ri .no{text-align:center;font-weight:800}
   .g-ri .v{font-weight:700}
   .g-ri .best{font-size:12px;color:var(--sub)}
+  .hello-bar{display:block;margin:8px 0;font-size:13.5px;text-decoration:none;color:var(--ink);background:#FFF8E1;border:1px solid #F5D77A}
+  .hello-bar small{color:var(--sub);margin-left:4px}
   .g-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
   .g-acts button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 13px;font-size:13px;cursor:pointer}
   .g-acts button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -209,6 +211,11 @@
     return;
   }
 
+  // 가입인사 보너스 상태 (stage35.sql) — 아직 안 썼으면 안내 띠를 보여 줌 (둘러보기·미리보기도 안내)
+  let hello = DEMO ? { done: false, points: 50000 } : await sb.rpc("game_hello_status").then((r) => r.data, () => null);
+  const helloBar = () => hello && !hello.done
+    ? `<a class="g-cd hello-bar" href="${GUEST ? "login.html#signup" : "write.html?b=hello"}">👋 <b>가입인사 남기고 ${fmt(hello.points || 50000)} 받기</b> <small>10자 이상 · 계정당 한 번</small> →</a>` : "";
+
   const KN = {};
   await Promise.race([Promise.all(MK.map(async ([k]) => { try { KN[k] = await PortalNames.load(k); } catch (e) {} })), new Promise((r) => setTimeout(r, 2000))]);
   const ko = (m, s) => { try { return PortalNames.ko(KN[m], s) || ""; } catch (e) { return ""; } };
@@ -218,7 +225,8 @@
     let pick = "tiger";
     main.innerHTML = `
       <section class="on-night" style="padding:6px 0 2px"><h1>🚦 신호등 친구 고르기 ${DEMO ? '<span class="demo-badge">미리보기</span>' : ""}</h1>
-        <p class="lead">함께 투자할 12지 친구를 골라 주세요. 100,000P로 시작해요!</p></section>
+        <p class="lead">함께 투자할 12지 친구를 골라 주세요. 100,000P로 시작해요!${hello && hello.pending ? ` 가입인사 보너스 ${fmt(hello.points)}도 함께 들어가요 🎁` : ""}</p></section>
+      ${helloBar()}
       <div class="card"><div class="g-pick" id="pick"></div>
         <div style="display:flex;justify-content:center;margin-top:14px"><button class="btn" id="go" type="button">이 친구로 시작하기</button></div>
         <p class="hint" style="font-size:12px;color:var(--faint);text-align:center;margin:10px 0 0">친구는 나중에 바꿀 수 있어요. 포인트는 게임 안에서만 쓰여요(현금·결제 사용 불가).</p></div>`;
@@ -230,6 +238,7 @@
     document.getElementById("go").onclick = async () => {
       const r = await api.join(pick);
       if (!r || !r.ok) return alert((r && r.msg) || "시작하지 못했어요");
+      if (r.hello > 0) { hello = { ...hello, given: true, pending: false }; Portal.toast(`🎉 가입인사 보너스 +${fmt(r.hello)}`, true); }
       my = await api.my(); renderMain();
     };
   }
@@ -342,6 +351,7 @@
             <div class="g-stat"><small>오늘 남은 투자</small><b>${my.today_left}/5</b></div>
           </div>
           ${missions()}
+          ${helloBar()}
           <div class="g-acts"><button type="button" id="closetBtn" aria-pressed="${closetOpen}">👕 꾸미기</button>
             <a class="btn sm ghost" href="board.html?b=game" style="border-radius:999px">💬 모의투자 게시판</a>
             <button type="button" id="nameBtn" aria-pressed="${!!my.show_name}">${my.show_name ? "🙋 닉네임 공개 중" : "🙈 익명으로 보이는 중"}</button></div>

@@ -19,10 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261029g">
+<link rel="stylesheet" href="assets/style.css?v=20261104a">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261029g"></script>
-<script src="assets/app.js?v=20261029g"></script>
+<script src="config.js?v=20261104a"></script>
+<script src="assets/app.js?v=20261104a"></script>
 </head>
 <body>
 <script>
@@ -50,6 +50,7 @@
         <a class="hint" href="board.html?b=${key}">← ${esc(board.name)} 게시판</a>
         <h1 style="margin-top:10px">${post ? "글 수정" : "글쓰기"}</h1>
         ${board.secret ? `<p class="hint">이 게시판의 글은 비밀글이라 <b>나와 운영자만</b> 볼 수 있어요</p>` : ""}
+        ${key === "hello" && !post ? `<p class="hint">👋 가입인사를 <b>10자 이상</b>으로 써 주세요. 첫 가입인사에는 모의투자 <b>50,000P</b>를 드려요 (계정당 한 번)</p>` : ""}
       </div>
       <form class="card form-stack" id="form" novalidate>
         <div class="field">
@@ -58,7 +59,7 @@
         </div>
         <div class="field">
           <label for="body">내용</label>
-          <textarea class="input tall" id="body" maxlength="5000" required>${esc(post?.body)}</textarea>
+          <textarea class="input tall" id="body" maxlength="5000" required${key === "hello" ? ` placeholder="10자 이상 써 주세요. 예) 안녕하세요! 주로 코인을 보고 있어요. AI 신호 잘 참고할게요 :)"` : ""}>${esc(post?.body)}</textarea>
           <small><span id="count">0</span> / 5,000자</small>
         </div>
         ${me.acc.isAdmin ? `<label class="check"><input type="checkbox" id="pinned" ${post?.pinned ? "checked" : ""}>공지로 고정 (목록 맨 위에 표시)</label>` : ""}
@@ -82,6 +83,7 @@
     const body = $("body").value.trim();
     if (!title) return show("제목을 입력해 주세요.");
     if (!body) return show("내용을 입력해 주세요.");
+    if (board.minLen && body.length < board.minLen) return show(`${board.minLen}자 이상으로 써 주세요. (지금 ${body.length}자)`);
 
     const row = { title, body };
     if (me.acc.isAdmin) row.pinned = $("pinned").checked;
@@ -93,6 +95,14 @@
     const { data, error } = await q;
     if (error) { $("submit").disabled = false; return show(errText(error)); }
     if (!post) await Promise.race([Portal.gameBonus("post"), new Promise((r) => setTimeout(r, 1500))]);  // '글쓰기' 미션 (20자 이상, 하루 한 번)
+    if (!post && key === "hello") {  // 첫 가입인사 보너스는 DB(stage35 트리거)가 지급 → 결과만 알려 줌
+      const { data: h } = await sb.rpc("game_hello_status");
+      if (h && h.done) {
+        const p = Number(h.points).toLocaleString("ko-KR");
+        Portal.toast(h.given ? `🎉 가입인사 보너스 +${p}P` : `🎁 모의투자 친구를 고르면 ${p}P가 들어가요`, true);
+        await new Promise((r) => setTimeout(r, 1800));
+      }
+    }
     location.replace("post.html?id=" + data.id);
   });
 })();

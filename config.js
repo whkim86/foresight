@@ -34,6 +34,7 @@ window.PORTAL_CONFIG = {
     nasdaq: { name: "나스닥", desc: "나스닥·S&P500 종목 이야기를 나눠요" },
     kospi: { name: "코스피200", desc: "코스피200 종목 이야기를 나눠요" },
     game: { name: "🐯 모의투자", desc: "신호등 친구들 모의투자 이야기 · 수익 인증 · 전략 · 질문을 나눠요" },
+    hello: { name: "👋 가입인사", desc: "가입 인사를 남겨 주세요 · 첫 인사를 10자 이상 쓰면 모의투자 50,000P 선물", minLen: 10 },
     request: { name: "종목 추가 요청", desc: "새로 예측해줬으면 하는 코인·종목을 자유롭게 요청해주세요" },
     payment: { name: "입금 문의", desc: "계좌이체·연장 관련 문의예요. 글쓴이와 운영자만 볼 수 있어요", secret: true },
   },
