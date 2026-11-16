@@ -117,6 +117,7 @@
   if (providers.length) {
     $("oauth").innerHTML = providers.map((p) =>
       `<button type="button" class="btn ${p}" data-p="${p}" data-login="${OAUTH[p]}로 로그인" data-signup="${OAUTH[p]}로 3초 만에 가입">${OAUTH[p]}로 로그인</button>`).join("")
+      + `<p class="fine" style="margin:2px 0 0;text-align:center">처음 로그인하면 자동으로 가입되며, <a href="terms.html" target="_blank" style="color:inherit;text-decoration:underline">이용약관</a>과 <a href="privacy.html" target="_blank" style="color:inherit;text-decoration:underline">개인정보처리방침</a>에 동의하는 것으로 봐요 · 만 14세 이상</p>`
       + `<div class="auth-or">또는 이메일로</div>`;
     $("oauth").hidden = false;
     $("oauth").querySelectorAll("button").forEach((b) => b.addEventListener("click", async () => {
