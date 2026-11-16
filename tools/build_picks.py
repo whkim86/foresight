@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]          # 클로드폴더
 SITE_DIR = Path(__file__).resolve().parents[1]      # foresight
 OUT = SITE_DIR / "s"
 SITE = "https://www.ai-sinhodeung.co.kr"
-VER = "20261117c"   # 페이지가 쓰는 style.css·app.js 캐시 버전 (다른 html 과 같게)
+VER = "20261117d"   # 페이지가 쓰는 style.css·app.js 캐시 버전 (다른 html 과 같게)
 KST = dt.timezone(dt.timedelta(hours=9))
 
 # 시장 → 화면 이름·대시보드 주소·가격 단위
@@ -312,6 +312,7 @@ def page(p):
   <a class="btn ghost" href="{up}s/" style="align-self:center">오늘 무료로 공개된 다른 종목 보기 →</a>
 
   <p class="pk-note">이 페이지는 여러 예측 모델의 출력을 요약한 참고 자료이며, 투자 권유나 종목 추천이 아닙니다.<br>투자 판단과 그 결과에 대한 책임은 이용자 본인에게 있습니다.</p>
+  <p class="legal-links"><a href="{up}terms.html">이용약관</a>·<a href="{up}privacy.html"><b>개인정보처리방침</b></a></p>
 </main>"""
     return (HEAD.format(title=esc(title), desc=esc(desc), url=url, site=SITE, up=up, ver=VER, ld=ld, signup=signup)
             + body + TAIL.format(up=up, ver=VER, track="pick"))
@@ -354,6 +355,7 @@ def index_page(picks):
     <p>닉네임·이메일만으로 가입 · 카드 등록 없음 · 7일 뒤 자동 결제 없음</p>
   </section>
   <p class="pk-note">이 페이지는 여러 예측 모델의 출력을 요약한 참고 자료이며, 투자 권유나 종목 추천이 아닙니다.</p>
+  <p class="legal-links"><a href="{up}terms.html">이용약관</a>·<a href="{up}privacy.html"><b>개인정보처리방침</b></a></p>
 </main>"""
     return (HEAD.format(title=esc(title), desc=esc(desc), url=url, site=SITE, up=up, ver=VER, ld=ld,
                         signup=signup_url("index.html", up)) + body + TAIL.format(up=up, ver=VER, track="pick_list"))
@@ -362,6 +364,7 @@ def index_page(picks):
 def sitemap(picks):
     now = dt.datetime.now(KST).date().isoformat()
     urls = [(f"{SITE}/", now, "daily", "1.0"), (f"{SITE}/s/", now, "daily", "0.9"),
+            (f"{SITE}/privacy.html", now, "yearly", "0.3"), (f"{SITE}/terms.html", now, "yearly", "0.3"),
             (f"{SITE}/catalog.html", now, "weekly", "0.6"), (f"{SITE}/game.html", now, "weekly", "0.5")]
     urls += [(f"{SITE}/s/{quote(p['slug'])}/", p["date"], "daily", "0.8") for p in picks]
     rows = "\n".join(f"  <url><loc>{u}</loc><lastmod>{d}</lastmod><changefreq>{c}</changefreq><priority>{pr}</priority></url>"

@@ -170,6 +170,7 @@ window.renderLanding = async function () {
         이 사이트의 정보는 예측 모델의 출력을 정리해 보여주는 참고 자료이며, 투자 권유나 종목 추천이 아닙니다.<br>
         투자 판단과 그 결과에 대한 책임은 이용자 본인에게 있습니다.
       </p>
+      <p class="legal-links"><a href="terms.html">이용약관</a>·<a href="privacy.html"><b>개인정보처리방침</b></a></p>
     </main>`);
 
   // 큰 신호등: 빨강 → 노랑 → 파랑 순서로 천천히 바뀜 (움직임 줄이기 설정이면 멈춤)
