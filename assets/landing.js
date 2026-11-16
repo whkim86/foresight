@@ -5,7 +5,26 @@ window.renderLanding = async function () {
   const MK = Object.keys(cfg.MARKETS);
   const NOUN = { coin: "코인", nasdaq: "종목", kospi: "종목" };
 
-  const [teaserRes, postsRes] = await Promise.all([sb.rpc("landing_teaser"), sb.rpc("landing_posts")]);
+  // 오늘 쇼츠에 나온 종목: 가입 없이 보는 공개 페이지 목록 (tools/build_picks.py 가 만드는 s/picks.json)
+  const picksP = fetch("s/picks.json?t=" + Date.now()).then((r) => (r.ok ? r.json() : [])).catch(() => []);
+  const [teaserRes, postsRes, picksAll] = await Promise.all([sb.rpc("landing_teaser"), sb.rpc("landing_posts"), picksP]);
+  const VC = { 상승: "v-up", 하락: "v-dn", 혼돈: "v-mx" };
+  const MKL = { upbit: "코인", nasdaq: "미국", kospi: "코스피", index: "지수" };
+  const picks = (picksAll || []).filter((p) => p.today)
+    .sort((a, b) => ["upbit", "nasdaq", "kospi", "index"].indexOf(a.market) - ["upbit", "nasdaq", "kospi", "index"].indexOf(b.market) || (a.rank || 0) - (b.rank || 0));
+  const pickName = (p) => p.ko || p.sym.replace(/_/g, " ");
+  const picksHtml = picks.length ? `
+      <section class="section">
+        <div class="section-head on-night">
+          <div><h2>쇼츠에서 본 종목, 가입 없이 바로 보기</h2>
+          <p class="hint">오늘 유튜브 쇼츠에 나온 종목의 AI 판정과 6일 예측 흐름을 무료로 공개해요</p></div>
+        </div>
+        <div class="free-picks">${picks.slice(0, 8).map((p) => `
+          <a class="card free-pick" href="s/${encodeURIComponent(p.slug)}/"><span><b>${esc(pickName(p))}</b><small>${esc(MKL[p.market] || "")}</small></span>
+            <b class="${VC[p.verdict] || "v-mx"}">${esc(p.verdict)}</b></a>`).join("")}
+        </div>
+        <a class="btn" href="s/" style="align-self:flex-start">무료 공개 종목 전체 보기 →</a>
+      </section>` : "";
   const teaser = Object.fromEntries((teaserRes.data || []).map((r) => [r.market, r]));
   const posts = postsRes.data || [];
 
@@ -83,6 +102,7 @@ window.renderLanding = async function () {
     <header class="topbar">
       <a class="brand" href="index.html">${LOGO}<b><span class="ai">AI</span>신호등</b></a>
       <nav class="nav">
+        <a href="s/">무료 종목</a>
         <a href="catalog.html">종목 카탈로그</a>
         <a href="login.html">로그인</a>
         <a class="btn sm cta-top" href="${SIGNUP}">무료로 시작하기</a>
@@ -106,6 +126,7 @@ window.renderLanding = async function () {
           <div class="lamp big up"><i></i><i></i><i></i></div>
         </div>
       </section>
+      ${picksHtml}
 
       <section class="section">
         <div class="section-head on-night">

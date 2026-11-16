@@ -19,11 +19,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=20261104b">
+<link rel="stylesheet" href="assets/style.css?v=20261117b">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js?v=20261104b"></script>
-<script src="assets/app.js?v=20261104b"></script>
-<script src="assets/game-chars.js?v=20261104b"></script>
+<script src="config.js?v=20261117b"></script>
+<script src="assets/app.js?v=20261117b"></script>
+<script src="assets/game-chars.js?v=20261117b"></script>
 </head>
 <body>
 <main class="auth-wrap"><div class="auth-col">
@@ -38,6 +38,8 @@
       <button type="button" role="tab" id="tabLogin" aria-selected="true">로그인</button>
       <button type="button" role="tab" id="tabSignup" aria-selected="false">가입하기</button>
     </div>
+
+    <div class="auth-oauth" id="oauth" hidden></div>
 
     <form class="auth-form" id="form" novalidate>
       <div class="field" id="nickField" hidden>
@@ -78,7 +80,10 @@
   renderHeader(null);
 
   const $ = (id) => document.getElementById(id);
-  const next = new URLSearchParams(location.search).get("next") || "index.html";
+  // 가입·로그인 뒤 돌아갈 곳: 같은 사이트 안 주소만 허용 (공개 종목 페이지에서 오면 그 종목 차트)
+  const rawNext = new URLSearchParams(location.search).get("next") || "index.html";
+  const next = /^[a-z0-9_-]+\.html([?#].*)?$/i.test(rawNext) ? rawNext : "index.html";
+  const nextSym = new URLSearchParams(next.split("?")[1] || "").get("s");
   let mode = "login";
 
   if (!sb) { show("error", "Supabase 연결 정보가 아직 없어요. config.js를 먼저 채워주세요."); $("submit").disabled = true; return; }
@@ -101,8 +106,25 @@
     $("password").autocomplete = signup ? "new-password" : "current-password";
     $("title").textContent = signup ? "닉네임으로 간편하게 시작해요" : "다시 오신 걸 환영해요";
     $("subtitle").textContent = signup ? "이름이나 연락처를 밝히지 않아도 돼요 · 가입 후 7일 무료" : "이메일과 비밀번호로 로그인해요";
-    $("submit").textContent = signup ? "가입하고 시작하기" : "로그인";
+    $("submit").textContent = signup ? (nextSym ? `가입하고 ${nextSym} 차트 보기` : "가입하고 시작하기") : "로그인";
     $("msg").hidden = true;
+    document.querySelectorAll("#oauth .btn").forEach((b) => (b.textContent = b.dataset[signup ? "signup" : "login"]));
+  }
+
+  // 카카오·구글 간편 로그인 (config.js OAUTH 에 켠 것만 표시). 처음 로그인하면 자동으로 가입됨 (supabase/stage37.sql)
+  const OAUTH = { kakao: "카카오", google: "구글" };
+  const providers = (Portal.cfg.OAUTH || []).filter((p) => OAUTH[p]);
+  if (providers.length) {
+    $("oauth").innerHTML = providers.map((p) =>
+      `<button type="button" class="btn ${p}" data-p="${p}" data-login="${OAUTH[p]}로 로그인" data-signup="${OAUTH[p]}로 3초 만에 가입">${OAUTH[p]}로 로그인</button>`).join("")
+      + `<div class="auth-or">또는 이메일로</div>`;
+    $("oauth").hidden = false;
+    $("oauth").querySelectorAll("button").forEach((b) => b.addEventListener("click", async () => {
+      try { sessionStorage.setItem("portalToast", "환영해요! 7일 동안 모든 탭이 무료예요"); } catch (e) {}
+      const base = location.href.replace(/[^/]*([?#].*)?$/, "");
+      const { error } = await sb.auth.signInWithOAuth({ provider: b.dataset.p, options: { redirectTo: base + next } });
+      if (error) show("error", error.message);
+    }));
   }
   $("tabLogin").onclick = () => setMode("login");
   $("tabSignup").onclick = () => setMode("signup");
@@ -142,7 +164,10 @@
         if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
           setMode("login"); show("error", KO["User already registered"]); return;
         }
-        if (data.session) location.replace(next);
+        if (data.session) {
+          try { sessionStorage.setItem("portalToast", nextSym ? `가입 완료! 7일 무료로 ${nextSym} 차트를 열었어요` : "가입 완료! 7일 동안 모든 탭이 무료예요"); } catch (e) {}
+          location.replace(next);
+        }
         else { setMode("login"); show("ok", "가입 신청이 끝났어요! 메일함에서 인증 링크를 누른 뒤 로그인해 주세요."); }
       }
     } catch (err) {

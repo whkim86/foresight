@@ -571,3 +571,16 @@ code { font-family: ui-monospace, Consolas, monospace; font-size: .92em; backgro
 .game-teaser .gt-char svg{width:100%;height:auto;overflow:visible}
 .game-teaser .gt-title{font-size:16px}
 .game-teaser .gt-btns{display:flex;gap:6px;flex-wrap:wrap}
+/* 소개 화면: 쇼츠 종목 무료 공개 카드 (assets/landing.js, s/picks.json) */
+.free-picks { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.free-pick { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 12px 14px; font-size: 14px; text-decoration: none; color: var(--ink); }
+.free-pick small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; font-weight: 500; }
+.free-pick:hover { box-shadow: 0 0 0 2px var(--accent-soft); }
+.auth-oauth { display: flex; flex-direction: column; gap: 8px; }
+.auth-oauth .btn { width: 100%; gap: 8px; }
+.auth-oauth .kakao { background: #FEE500; color: #191600; }
+.auth-oauth .kakao:hover { background: #F5DC00; color: #191600; }
+.auth-oauth .google { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+.auth-oauth .google:hover { background: var(--bg); color: var(--ink); }
+.auth-or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
+.auth-or::before, .auth-or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
