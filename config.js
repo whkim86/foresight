@@ -8,7 +8,7 @@ window.PORTAL_CONFIG = {
 
   // 간편 로그인 — Supabase 대시보드 > Authentication > Sign In / Providers 에서 켠 것만 넣으세요 (예: ["kakao", "google"])
   // 켜기 전에 넣으면 버튼을 눌렀을 때 오류가 나요. 비어 있으면 버튼이 안 보여요
-  OAUTH: [],
+  OAUTH: ["kakao", "google"],
 
   // 입금 계좌 — 계좌번호가 생기면 ACCOUNT만 바꾸면 돼요
   BANK: { name: "신한은행", holder: "김우형", account: "[계좌번호 준비 중]" },
