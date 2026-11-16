@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /analytics.html
+Disallow: /accuracy.html
+Disallow: /models.html
+Disallow: /patterns.html
+Disallow: /views.html
+Disallow: /ai.html
+Disallow: /mypage.html
+Disallow: /write.html
+Disallow: /dashboard.html
+Disallow: /boards/
+
+Sitemap: https://www.ai-sinhodeung.co.kr/sitemap.xml
