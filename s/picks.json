@@ -195,18 +195,18 @@
   "verdict": "상승",
   "votes": "52개 모델 중 상승 41 · 하락 7",
   "rank": null,
-  "today": true
+  "today": false
  },
  {
   "slug": "SK하이닉스",
   "sym": "000660",
   "ko": "SK하이닉스",
   "market": "upbit",
-  "date": "2026-11-13",
+  "date": "2026-11-17",
   "verdict": "혼돈",
-  "votes": "52개 모델 중 상승 9 · 하락 26",
+  "votes": "52개 모델 중 상승 24 · 하락 12",
   "rank": null,
-  "today": false
+  "today": true
  },
  {
   "slug": "삼성전자",
