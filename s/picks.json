@@ -59,10 +59,21 @@
   "sym": "NVIDIA",
   "ko": "엔비디아",
   "market": "nasdaq",
-  "date": "2026-11-14",
+  "date": "2026-11-17",
   "verdict": "상승",
-  "votes": "52개 모델 중 47개가 상승",
+  "votes": "52개 모델 중 46개가 상승",
   "rank": 1,
+  "today": true
+ },
+ {
+  "slug": "NASDAQ100",
+  "sym": "NASDAQ100",
+  "ko": "나스닥100",
+  "market": "nasdaq",
+  "date": "2026-11-17",
+  "verdict": "상승",
+  "votes": "52개 모델 중 40개가 상승",
+  "rank": 2,
   "today": true
  },
  {
@@ -70,21 +81,21 @@
   "sym": "STRATEGY",
   "ko": "스트래티지",
   "market": "nasdaq",
-  "date": "2026-11-14",
+  "date": "2026-11-17",
   "verdict": "상승",
-  "votes": "52개 모델 중 31개가 상승",
-  "rank": 2,
+  "votes": "52개 모델 중 40개가 상승",
+  "rank": 3,
   "today": true
  },
  {
-  "slug": "BITCOIN_ETF_FIDELITY",
-  "sym": "BITCOIN_ETF_FIDELITY",
-  "ko": "비트코인 현물 피델리티",
+  "slug": "CISCO",
+  "sym": "CISCO",
+  "ko": "시스코",
   "market": "nasdaq",
-  "date": "2026-11-14",
+  "date": "2026-11-17",
   "verdict": "상승",
-  "votes": "52개 모델 중 26개가 상승",
-  "rank": 3,
+  "votes": "52개 모델 중 41개가 상승",
+  "rank": 4,
   "today": true
  },
  {
@@ -92,20 +103,9 @@
   "sym": "BITMINE",
   "ko": "비트마인",
   "market": "nasdaq",
-  "date": "2026-11-14",
+  "date": "2026-11-17",
   "verdict": "상승",
-  "votes": "52개 모델 중 32개가 상승",
-  "rank": 4,
-  "today": true
- },
- {
-  "slug": "BITCOIN_ETF_ISHARES",
-  "sym": "BITCOIN_ETF_ISHARES",
-  "ko": "비트코인 현물 아이셰어즈",
-  "market": "nasdaq",
-  "date": "2026-11-14",
-  "verdict": "상승",
-  "votes": "52개 모델 중 25개가 상승",
+  "votes": "52개 모델 중 35개가 상승",
   "rank": 5,
   "today": true
  },
@@ -239,6 +239,28 @@
   "verdict": "하락",
   "votes": "52개 모델 중 상승 6 · 하락 42",
   "rank": null,
+  "today": false
+ },
+ {
+  "slug": "BITCOIN_ETF_FIDELITY",
+  "sym": "BITCOIN_ETF_FIDELITY",
+  "ko": "비트코인 현물 피델리티",
+  "market": "nasdaq",
+  "date": "2026-11-14",
+  "verdict": "상승",
+  "votes": "52개 모델 중 26개가 상승",
+  "rank": 3,
+  "today": false
+ },
+ {
+  "slug": "BITCOIN_ETF_ISHARES",
+  "sym": "BITCOIN_ETF_ISHARES",
+  "ko": "비트코인 현물 아이셰어즈",
+  "market": "nasdaq",
+  "date": "2026-11-14",
+  "verdict": "상승",
+  "votes": "52개 모델 중 25개가 상승",
+  "rank": 5,
   "today": false
  }
 ]
