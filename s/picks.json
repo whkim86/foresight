@@ -56,13 +56,13 @@
  },
  {
   "slug": "NVIDIA",
-  "sym": "NVIDIA",
+  "sym": "NVDA",
   "ko": "엔비디아",
   "market": "nasdaq",
   "date": "2026-11-17",
   "verdict": "상승",
-  "votes": "52개 모델 중 46개가 상승",
-  "rank": 1,
+  "votes": "52개 모델 중 상승 46 · 하락 5",
+  "rank": null,
   "today": true
  },
  {
