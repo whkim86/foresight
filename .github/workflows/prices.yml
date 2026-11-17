@@ -48,3 +48,12 @@ jobs:
           SUPABASE_URL: https://qtzmfuaqzutzvnulfdel.supabase.co
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           PYTHONIOENCODING: utf-8
+
+      # 룰 성적표 (운영자 '룰 성적표' 화면) — 원장 수집이 일부 실패해도 계산은 함
+      - name: 룰 성적표 계산
+        if: always()
+        run: python ingest/rules.py
+        env:
+          SUPABASE_URL: https://qtzmfuaqzutzvnulfdel.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          PYTHONIOENCODING: utf-8

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>룰 성적표 · AI 신호등</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=20261117h">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js?v=20261117h"></script>
+<script src="assets/app.js?v=20261117h"></script>
+<style>
+  .rt td,.rt th{vertical-align:top}
+  .rt .rname{font-weight:600;min-width:150px}
+  .rt .rname small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+  .rt .dir{border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600;white-space:nowrap}
+  .rt .hr{font-weight:600}
+  .rt .ex{font-size:12px;font-weight:600;white-space:nowrap}
+  .rt .ex.pos{color:#1E8A4C}.rt .ex.neg{color:#B86E00}
+  .rt tr.base td{color:var(--muted);font-size:12.5px}
+  .rt tr.grp td{border-top:2px solid var(--line-strong,#C3CBD8)}
+  .rt tr.star td:first-child{box-shadow:inset 3px 0 0 #1E8A4C}
+  .rt .today{font-size:12px;color:var(--muted);max-width:260px}
+  .s-up{background:#FCE4E5;color:#B3222D}.s-dn{background:#E4ECFB;color:#1D4FB0}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .s-up{background:#4A1D22;color:#FF9AA0}:root:not([data-theme="light"]) .s-dn{background:#1C2A4A;color:#9DBBFF}
+    :root:not([data-theme="light"]) .rt .ex.pos{color:#5FD08F}:root:not([data-theme="light"]) .rt .ex.neg{color:#FFB547}}
+  :root[data-theme="dark"] .s-up{background:#4A1D22;color:#FF9AA0}:root[data-theme="dark"] .s-dn{background:#1C2A4A;color:#9DBBFF}
+  :root[data-theme="dark"] .rt .ex.pos{color:#5FD08F}:root[data-theme="dark"] .rt .ex.neg{color:#FFB547}
+  .mk-tabs.seg{display:flex!important;flex-wrap:wrap;margin:4px 0 12px}.mk-tabs.seg button{flex:1 1 auto}
+  .win.seg{display:flex!important}.win.seg button{flex:1}
+</style>
+</head>
+<body>
+<script>
+(async function () {
+  const { sb, requireUser, renderHeader, esc, errText } = Portal;
+  const me = await requireUser();
+  if (!me) return;
+  if (!me.acc.isAdmin) { location.replace("index.html"); return; }
+  renderHeader(me);
+
+  const MK = [["coin", "코인(업비트)"], ["bithumb", "코인(빗썸)"], ["nasdaq", "나스닥"], ["kospi", "코스피200"]];
+  const WIN = [["5y", "5년"], ["1y", "1년"], ["90d", "90일"]];
+  let mk = "coin", win = "5y", reports = {};
+
+  const main = document.createElement("main");
+  main.className = "page";
+  document.body.appendChild(main);
+  main.innerHTML = `
+    <section class="on-night">
+      <h1>운영자</h1>
+      <nav class="board-tabs" style="margin-top:14px"><a href="admin.html">입금 · 회원</a><a href="accuracy.html">수집 · 적중률</a><a href="models.html">모델 성적</a><a href="patterns.html">패턴해석</a><a href="rules.html" aria-current="page">룰 성적표</a><a href="views.html">조회수</a><a href="analytics.html">방문 흐름</a><a href="ai.html">AI 해설</a></nav>
+    </section>
+    <section class="section">
+      <div class="board-head">
+        <div><h2>차트 지표 룰 성적표 <span class="badge gray" style="vertical-align:middle">운영자만 보기</span></h2>
+          <p class="hint" id="meta">룰이 켜진 날 종가에서 다음 거래일(D+1)·6거래일 뒤(D+6)에 룰 방향으로 갔는지 봐요. 회원 화면에는 숫자를 보여주지 않아요</p></div>
+        <div class="seg win" style="width:240px" role="tablist">${WIN.map(([k, t]) => `<button type="button" data-win="${k}" aria-selected="${k === win}">${t}</button>`).join("")}</div>
+      </div>
+      <div class="mk-tabs seg" role="tablist" style="width:auto;max-width:520px">${MK.map(([k, t]) => `<button type="button" data-mk="${k}" aria-selected="${k === mk}">${t}</button>`).join("")}</div>
+      <div id="rt" class="stack"></div>
+      <p class="hint" style="font-size:12.5px;line-height:1.75">
+        <b>적중률</b>: 상승 룰은 종가가 오르면, 하락 룰은 내리면 적중이에요(그대로면 빼요). <b>기준선</b>은 같은 기간 전체 종목·전체 날의 '오른 비율'이에요.<br>
+        <b>초과 등락</b>: 룰이 켜진 날, 같은 날 같은 시장 <u>전체 종목 평균</u>보다 룰 방향으로 얼마나 더 움직였는지(%p, 건당 평균)예요. 시장 전체가 오른 날엔 상승 룰이 저절로 맞아 보이므로 룰의 실력은 이 칸으로 봐요. 초록(+)이면 전체보다 나았어요.<br>
+        초록 줄 표시는 D+1·D+6 초과 등락이 모두 +0.1%p 이상이고 건수가 100건 이상인 룰이에요 (범돌이 친구 후보).<br>
+        <b>모델 결합</b> 룰은 예측 기록(predictions)이 있는 날만이라 건수가 적어요. 빗썸은 예측 기록 표에 없어 차트 룰만 나와요.<br>
+        계산: ingest/rules.py · 매일 가격 원장 수집 뒤 · 지표는 회원 화면 '차트 지표 해석'과 같아요 (일봉 20·60일선, 볼린저 20일 ±2σ, RSI 14일).
+      </p>
+    </section>`;
+
+  const fmtP = (x) => (x * 100).toFixed(1) + "%";
+  const fmtPP = (x) => (x >= 0 ? "+" : "") + (x * 100).toFixed(2) + "%p";
+  const exSpan = (x, title) => x == null ? "" : `<span class="ex ${x > 0.0005 ? "pos" : x < -0.0005 ? "neg" : ""}" title="${title}">${fmtPP(x)}</span>`;
+  const cell = (w, h) => {
+    const n = h === 1 ? w.n : w.n6, hit = w["hit" + h];
+    if (!n || hit == null) return `<td class="num muted">—</td>`;
+    return `<td class="num"><span class="hr">${fmtP(hit)}</span> <span class="muted">${n.toLocaleString()}건</span><br>${exSpan(w["ex" + h], "같은 날 전체 종목 대비 룰 방향 초과 등락 (건당 평균)")}</td>`;
+  };
+
+  async function load() {
+    const { data, error } = await sb.from("admin_reports").select("key,data,updated_at").like("key", "rules:%");
+    if (error) {
+      const msg = /admin_reports/.test(error.message || "") ? "supabase/stage38.sql 을 먼저 실행해 주세요." : errText(error);
+      document.getElementById("rt").innerHTML = `<div class="msg error">${esc(msg)}</div>`; return;
+    }
+    reports = Object.fromEntries((data || []).map((r) => [r.key.slice(6), r]));
+    render();
+  }
+
+  function render() {
+    const box = document.getElementById("rt"), r = reports[mk];
+    if (!r) { box.innerHTML = `<div class="card"><div class="empty">아직 계산된 결과가 없어요. 가격 원장 수집(GitHub Actions '가격 원장 수집') 뒤에 채워져요.</div></div>`; return; }
+    const d = r.data, b = d.base[win];
+    document.getElementById("meta").textContent = `${MK.find((x) => x[0] === mk)[1]} · ${d.symbols}종목 · 기준일 ${d.as_of} · 계산 ${d.generated.replace("T", " ")}` + (d.pred_rows ? ` · 예측 기록 ${d.pred_rows.toLocaleString()}건` : "");
+    const star = (w) => w.n >= 100 && w.ex1 >= 0.001 && w.ex6 >= 0.001;
+    const rows = (grp) => d.rules.filter((x) => x.group === grp).map((x, i) => {
+      const w = x.w[win];
+      return `<tr class="${i === 0 ? "grp" : ""} ${star(w) ? "star" : ""}">
+        <td class="rname">${esc(x.name)}<small>${esc(x.desc)}</small></td>
+        <td><span class="dir ${x.dir > 0 ? "s-up" : "s-dn"}">${x.dir > 0 ? "상승" : "하락"}</span></td>
+        ${cell(w, 1)}${cell(w, 6)}<td class="num">${w.days.toLocaleString()}일</td>
+        <td class="today">${x.today_n ? `<b>${x.today_n}</b> · ${x.today.slice(0, 12).map(esc).join(", ")}${x.today_n > 12 ? " …" : ""}` : "—"}</td></tr>`;
+    }).join("");
+    const head = `<thead><tr><th>룰</th><th>방향</th><th class="num">D+1</th><th class="num">D+6</th><th class="num">켜진 날</th><th>오늘 켜진 종목</th></tr></thead>`;
+    const baseRow = `<tr class="base"><td colspan="2">기준선 · 전체 종목 전체 날</td><td class="num">오른 비율 ${fmtP(b.hit1)}<br>평균 ${fmtPP(b.avg1).replace("%p", "%")}</td><td class="num">오른 비율 ${b.hit6 == null ? "—" : fmtP(b.hit6)}<br>평균 ${b.avg6 == null ? "—" : fmtPP(b.avg6).replace("%p", "%")}</td><td class="num">${b.days.toLocaleString()}일</td><td></td></tr>`;
+    const model = d.rules.some((x) => x.group === "model" && x.w[win].n);
+    box.innerHTML = `<div class="card table-wrap" style="padding:10px 12px"><div class="market-head" style="margin:2px 0 8px">차트 지표 룰</div>
+      <table class="list rt">${head}<tbody>${baseRow}${rows("chart")}</tbody></table></div>` +
+      `<div class="card table-wrap" style="padding:10px 12px"><div class="market-head" style="margin:2px 0 8px">모델 판정 + 지표 (예측 보조)</div>` +
+      (model ? `<table class="list rt">${head}<tbody>${rows("model")}</tbody></table>` : `<div class="empty">이 시장·기간에는 예측 기록과 겹치는 날이 아직 없어요</div>`) + `</div>`;
+  }
+
+  main.querySelectorAll("[data-win]").forEach((b) => b.addEventListener("click", () => {
+    win = b.dataset.win; main.querySelectorAll("[data-win]").forEach((x) => x.setAttribute("aria-selected", String(x === b))); render();
+  }));
+  main.querySelectorAll("[data-mk]").forEach((b) => b.addEventListener("click", () => {
+    mk = b.dataset.mk; main.querySelectorAll("[data-mk]").forEach((x) => x.setAttribute("aria-selected", String(x === b))); render();
+  }));
+  load();
+})();
+</script>
+</body>
+</html>
