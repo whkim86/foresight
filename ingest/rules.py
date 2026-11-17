@@ -197,19 +197,19 @@ def load_predictions(market):
     """predictions 표: (종목, 기준 종가 날짜) → 판정. 빗썸 등 표에 없는 시장은 빈 값"""
     if LOCAL or not SUPA:
         return []
-    rows, start = [], 0
+    rows, start, PAGE = [], 0, 1000  # Supabase 는 한 번에 최대 1000줄
     while True:
         q = (f"{SUPA}/rest/v1/predictions?select=symbol,base_date,verdict&market=eq.{market}"
              f"&verdict=in.(up,dn)&base_date=not.is.null&order=pred_date")
         try:
-            b = http("GET", q, headers={"Range": f"{start}-{start + 9999}", "Range-Unit": "items"})
+            b = http("GET", q, headers={"Range": f"{start}-{start + PAGE - 1}", "Range-Unit": "items"})
         except urllib.error.HTTPError:
             return rows
         part = json.loads(b)
         rows += part
-        if len(part) < 10000:
+        if len(part) < PAGE:
             return rows
-        start += 10000
+        start += PAGE
 
 
 # ---------- 채점 ----------
