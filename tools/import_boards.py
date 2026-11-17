@@ -34,7 +34,7 @@ EXTRA_JS = {
     ("coin", "priority"): ["ask-ai.js"],  # BTC 아래 'AI에게 물어보기' (프리미엄)
 }
 ALL_JS = ["dual-signal.js", "names.js", "history.js"]  # 모든 보드에 붙임 (names.js: 심볼 옆 한글명, history.js: 지난 예측 보기)
-CHART_JS = ["pattern-note.js"]  # 가격 차트 보드에 붙임 (AI 패턴해석 주석)
+CHART_JS = ["pattern-note.js", "long-chart.js"]  # 가격 차트 보드에 붙임 (AI 패턴해석 주석, 긴 기간·캔들·보조지표 보기)
 # 가격 차트: 모델이 많을 때(15개 초과, 예: 52개) 기본은 '중앙값 선 + 25~75% 범위'만 보이고 개별 모델 선은 골라서 켜기.
 # 중앙값·범위는 판정과 같게 항상 전체 모델 기준. 원본 코드 조각이 바뀌면 오류로 알려줌
 CHART_PATCHES = [
@@ -277,13 +277,15 @@ HISTORY_PATCHES = {
 DUAL_CHART_PATCH = ("b.textContent=(v==='stale'||v==='hold')?VLAB[v]:'D+1 '+VLAB[v];",
                     "b.textContent=(v==='stale'||v==='hold')?VLAB[v]:'D+1 '+VLAB[v];\n"
                     "    if(window.portalDual) window.portalDual(root,name,v,cur.pd,P.a);\n"
-                    "    if(window.portalPattern) window.portalPattern(root,co,P.a);")
+                    "    if(window.portalPattern) window.portalPattern(root,co,P.a);
+"
+                    "    if(window.portalLong) window.portalLong(P,co,cur.pd);")
 
 OUT = Path(__file__).resolve().parent.parent / "boards"
 TOKEN = os.environ.get("SOURCE_TOKEN")
 
 # CSS·JS 주소 뒤 ?v= 값. 브라우저 캐시 때문에 디자인·코드를 바꾸면 모든 html 의 ?v= 와 함께 올려야 바로 반영됨
-ASSET_VERSION = "20261117d"
+ASSET_VERSION = "20261117e"
 
 LOAD_ERR ="데이터를 불러오지 못했어요. 새로고침하거나 로그인·이용 기간을 확인해 주세요"
 

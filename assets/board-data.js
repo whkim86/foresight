@@ -5,7 +5,9 @@
   const cfg = window.PORTAL_CONFIG;
 
   // 포털 밖에서 이 페이지를 직접 열면 포털 화면으로 보냄 (빗썸처럼 탭 안 거래소면 그 탭으로)
-  if (window.top === window) {
+  // 내 컴퓨터 시험용: localhost 에서 ?src=dev 면 로그인 없이 _dev/ 폴더의 복사본을 씀 (_dev 는 저장소에 올리지 않음)
+  const DEV = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) && /[?&]src=dev/.test(location.search);
+  if (window.top === window && !DEV) {
     let q = `m=${board.market}`;
     for (const [tab, m] of Object.entries(cfg.MARKETS)) {
       const x = (m.exchanges || []).find((e) => e.data === board.market);
@@ -17,6 +19,13 @@
 
   const sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
   window.portalSb = sb; // 같은 페이지의 추가 기능(ask-ai.js 등)이 함께 씀
+  if (DEV) {
+    const devStore = { from: () => ({ download: async (p) => {
+      const r = await fetch("../_dev/" + p);
+      return r.ok ? { data: await r.blob() } : { data: null, error: { message: "dev 404" } };
+    } }) };
+    window.portalSb = Object.assign(Object.create(sb), { storage: devStore });
+  }
 
   // 가격 차트의 예측 모델 이름: Pred1 → '모델 A' (config.js MODEL_LABELS)
   window.portalModelName = function (v) {
@@ -45,6 +54,7 @@
   // 원래 대시보드의 fetch('같은 폴더 CSV') 자리에 들어감. fetch 와 같은 Response 를 돌려줌
   // 가격 차트는 압축본(latest.csv.gz)을 먼저, 없으면 예전 latest.csv
   window.portalFetch = async function () {
+    if (DEV) return fetch(`../_dev/${board.market}/${board.kind}/latest.csv`);
     const dir = `${board.market}/${board.kind}`;
     const store = sb.storage.from("forecasts");
     let { data, error } = board.kind === "chart" ? await store.download(`${dir}/latest.csv.gz`) : { error: true };
