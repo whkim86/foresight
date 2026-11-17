@@ -1,5 +1,5 @@
 // 가격 차트의 '긴 기간' 보기 — 기간(2주~5년)·라인/캔들·보조지표 (차트 개편 3단계, 2026-11-17)
-//  · '예측 중심'(기본)을 고르면 원래 화면(모델 52개 선·중앙값·고점/저점) 그대로
+//  · 기본은 2주 새 차트. '예측 모델 선 보기'를 누르면 원래 화면(모델 52개 선·중앙값·고점/저점) 그대로
 //  · 기간을 고르면 그 자리에 TradingView Lightweight Charts 로 가격 원장(ingest/prices.py, <시장>/prices/) + 예측 중앙값·25~75% 범위
 //  · 원본 화면이 종목을 그릴 때 portalLong(P, co, pd) 를 부름 (자리는 tools/import_boards.py 가 넣음)
 //  · 고른 설정은 브라우저에 저장 (longChart.v1). 미리보기 화면(boards/chart_preview.html)과 계산 방식이 같음
@@ -7,9 +7,9 @@
   const board = window.PORTAL_BOARD;
   if (!board || board.kind !== "chart") return;
   const LIB = "https://cdn.jsdelivr.net/npm/lightweight-charts@5.0.9/dist/lightweight-charts.standalone.production.js";
-  const PERIODS = [[0, "예측 중심"], [14, "2주"], [31, "1달"], [92, "3달"], [183, "6달"], [366, "1년"], [1830, "5년"]];
-  const KEY = "longChart.v1";
-  let pref = { period: 0, type: "candle", ma: [20], bb: false, fib: false, sub: "vol" };
+  const PERIODS = [[14, "2주"], [31, "1달"], [92, "3달"], [183, "6달"], [366, "1년"], [1830, "5년"]];
+  const KEY = "longChart.v2";  // v2: 기본을 2주 새 차트로 (2026-11-17 사용자 요청)
+  let pref = { period: 14, type: "candle", ma: [20], bb: false, fib: false, sub: "vol" };
   try { Object.assign(pref, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(pref)); } catch (e) {} };
 
@@ -23,6 +23,7 @@
   .lc-cap{font-size:12.5px;color:var(--muted);min-width:52px}
   .lc-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);background:transparent;border-radius:999px;padding:3px 11px 3px 9px;font-size:12.5px;font-weight:500}
   .lc-chip i{width:14px;height:3px;border-radius:2px;display:inline-block}
+  .lc-model{font-weight:600;border-color:var(--ink)}
   .lc-chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
   .lc-box{position:relative;height:440px}
   .lc-chart{position:absolute;inset:0}
@@ -103,7 +104,8 @@
     bar.className = "lc-bar";
     bar.innerHTML =
       '<div class="lc-row"><span class="lc-cap">기간</span><div class="seg lc-per" role="group" aria-label="기간">' +
-      PERIODS.map(([d, t]) => `<button type="button" data-p="${d}">${t}</button>`).join("") + "</div></div>" +
+      PERIODS.map(([d, t]) => `<button type="button" data-p="${d}">${t}</button>`).join("") + "</div>" +
+      '<button type="button" class="lc-chip lc-model" data-p="0" title="최근 2주 실제값과 예측 모델 52개의 선을 하나씩 켜고 끄며 봐요">예측 모델 선 보기</button></div>' +
       '<div class="lc-more"><div class="lc-row"><span class="lc-cap">차트</span><div class="seg" role="group" aria-label="차트 종류"><button type="button" data-t="line">라인</button><button type="button" data-t="candle">캔들</button></div></div>' +
       '<div class="lc-row"><span class="lc-cap">겹쳐 보기</span>' +
       [5, 15, 20, 60, 120].map((n, i) => `<button type="button" class="lc-chip" data-ma="${n}"><i style="background:var(--ma${n})"></i>${i ? n : "이동평균 5"}</button>`).join("") +
@@ -114,7 +116,7 @@
     const box = document.createElement("div");
     box.className = "lc-wrap";
     box.innerHTML = '<div class="lc-box"><div class="lc-chart"></div><div class="lc-leg"></div><div class="lc-empty">불러오는 중…</div></div>' +
-      '<p class="lc-fine"></p><p class="lc-fine">오른쪽 음영 구간이 예측이에요: 굵은 점선은 모델 중앙값, 옅은 띠는 모델 25~75% 범위예요. 1년·5년은 주봉이에요. 끌어서 지난 기간도 볼 수 있어요. 모델별 선·고점·저점은 \'예측 중심\'에서 봐요. 보조지표는 과거 가격으로 계산한 참고값이에요. 차트: TradingView Lightweight Charts™</p>';
+      '<p class="lc-fine"></p><p class="lc-fine">오른쪽 음영 구간이 예측이에요: 굵은 점선은 모델 중앙값, 옅은 띠는 모델 25~75% 범위예요. 1년·5년은 주봉이에요. 끌어서 지난 기간도 볼 수 있어요. 모델별 선·고점·저점은 \'예측 모델 선 보기\'에서 봐요. 보조지표는 과거 가격으로 계산한 참고값이에요. 차트: TradingView Lightweight Charts™</p>';
     const top = card.querySelector(".chart-top");
     top.insertAdjacentElement("afterend", bar);
     P.el.chart.insertAdjacentElement("afterend", box);
@@ -174,7 +176,7 @@
         const last = bars[bars.length - 1];
         if (!last || h.time > last.time) bars.push({ time: h.time, open: last ? last.close : h.c, high: Math.max(h.h, h.l, h.c), low: Math.min(h.h, h.l, h.c), close: h.c, value: 0, est: true });
       });
-      if (bars.length < 2) { L.el.empty.textContent = "이 종목은 아직 쌓인 가격 기록이 없어요. '예측 중심'으로 봐 주세요."; L.data = null; return; }
+      if (bars.length < 2) { L.el.empty.textContent = "이 종목은 아직 쌓인 가격 기록이 없어요. '예측 모델 선 보기'로 봐 주세요."; L.data = null; return; }
       const byDay = {};
       co.modelNames.forEach((m) => co.models[m].forEach((p) => { const t = isoFromMD(p.date, ref); if (t && isFinite(p.c)) (byDay[t] || (byDay[t] = [])).push(p.c); }));
       const lastT = bars[bars.length - 1].time;
@@ -188,7 +190,7 @@
       draw(P);
     } catch (e) {
       console.error(e);
-      L.el.empty.textContent = "긴 기간 가격을 불러오지 못했어요. '예측 중심'으로 보거나 잠시 뒤 다시 시도해 주세요.";
+      L.el.empty.textContent = "긴 기간 가격을 불러오지 못했어요. '예측 모델 선 보기'로 보거나 잠시 뒤 다시 시도해 주세요.";
     }
   }
 
