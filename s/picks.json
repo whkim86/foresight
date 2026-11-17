@@ -56,46 +56,13 @@
  },
  {
   "slug": "NVIDIA",
-  "sym": "NVDA",
+  "sym": "NVIDIA",
   "ko": "엔비디아",
   "market": "nasdaq",
-  "date": "2026-11-17",
+  "date": "2026-11-18",
   "verdict": "상승",
-  "votes": "52개 모델 중 상승 46 · 하락 5",
-  "rank": null,
-  "today": true
- },
- {
-  "slug": "NASDAQ100",
-  "sym": "NASDAQ100",
-  "ko": "나스닥100",
-  "market": "nasdaq",
-  "date": "2026-11-17",
-  "verdict": "상승",
-  "votes": "52개 모델 중 40개가 상승",
-  "rank": 2,
-  "today": true
- },
- {
-  "slug": "STRATEGY",
-  "sym": "STRATEGY",
-  "ko": "스트래티지",
-  "market": "nasdaq",
-  "date": "2026-11-17",
-  "verdict": "상승",
-  "votes": "52개 모델 중 40개가 상승",
-  "rank": 3,
-  "today": true
- },
- {
-  "slug": "CISCO",
-  "sym": "CISCO",
-  "ko": "시스코",
-  "market": "nasdaq",
-  "date": "2026-11-17",
-  "verdict": "상승",
-  "votes": "52개 모델 중 41개가 상승",
-  "rank": 4,
+  "votes": "52개 모델 중 34개가 상승",
+  "rank": 1,
   "today": true
  },
  {
@@ -103,9 +70,42 @@
   "sym": "BITMINE",
   "ko": "비트마인",
   "market": "nasdaq",
-  "date": "2026-11-17",
+  "date": "2026-11-18",
   "verdict": "상승",
-  "votes": "52개 모델 중 35개가 상승",
+  "votes": "52개 모델 중 36개가 상승",
+  "rank": 2,
+  "today": true
+ },
+ {
+  "slug": "NASDAQ100",
+  "sym": "NASDAQ100",
+  "ko": "나스닥100",
+  "market": "nasdaq",
+  "date": "2026-11-18",
+  "verdict": "상승",
+  "votes": "52개 모델 중 34개가 상승",
+  "rank": 3,
+  "today": true
+ },
+ {
+  "slug": "NASDAQ",
+  "sym": "NASDAQ",
+  "ko": "나스닥",
+  "market": "nasdaq",
+  "date": "2026-11-18",
+  "verdict": "상승",
+  "votes": "52개 모델 중 30개가 상승",
+  "rank": 4,
+  "today": true
+ },
+ {
+  "slug": "MERCADOLIBRE",
+  "sym": "MERCADOLIBRE",
+  "ko": "메르카도리브레",
+  "market": "nasdaq",
+  "date": "2026-11-18",
+  "verdict": "상승",
+  "votes": "52개 모델 중 23개가 상승",
   "rank": 5,
   "today": true
  },
@@ -239,6 +239,28 @@
   "verdict": "하락",
   "votes": "52개 모델 중 상승 6 · 하락 42",
   "rank": null,
+  "today": false
+ },
+ {
+  "slug": "STRATEGY",
+  "sym": "STRATEGY",
+  "ko": "스트래티지",
+  "market": "nasdaq",
+  "date": "2026-11-17",
+  "verdict": "상승",
+  "votes": "52개 모델 중 40개가 상승",
+  "rank": 3,
+  "today": false
+ },
+ {
+  "slug": "CISCO",
+  "sym": "CISCO",
+  "ko": "시스코",
+  "market": "nasdaq",
+  "date": "2026-11-17",
+  "verdict": "상승",
+  "votes": "52개 모델 중 41개가 상승",
+  "rank": 4,
   "today": false
  },
  {
