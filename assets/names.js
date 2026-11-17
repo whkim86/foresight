@@ -169,11 +169,24 @@
         const q = document.getElementById("q");
         if (!q || !document.querySelector("button[data-coin]")) return;
         clearInterval(t);
-        if ([...document.querySelectorAll(".pname")].some((h) => h.firstChild && h.firstChild.nodeValue === sym)) return;  // 이미 맨 위에 보이는 대표 종목
+        // 고른 종목의 차트를 화면 맨 위로: 기준 종목(BTC·SK하이닉스 등)이면 그 칸을, 아니면 아래 '종목' 칸(차트를 검색 목록 위로)을 맨 앞으로 옮김
+        const toTop = (sec, note) => {
+          if (!sec || !sec.parentNode) return;
+          sec.parentNode.insertBefore(sec, sec.parentNode.firstElementChild);
+          const p = sec.querySelector(".sec-head p");
+          if (p && note) p.textContent = note;
+          window.scrollTo(0, 0);
+        };
+        const main = [...document.querySelectorAll(".pname")].find((h) => h.firstChild && h.firstChild.nodeValue === sym && !h.closest("#pAlt"));
+        if (main) { toTop(main.closest("section"), "고른 종목 · 다른 기준 종목과 종목 검색은 아래에 있어요"); return; }
         fire(q, sym);
         setTimeout(() => {
           const b = [...document.querySelectorAll("button[data-coin]")].find((x) => x.getAttribute("data-coin") === sym);
-          if (b) b.click(); else fire(q, "");
+          if (!b) { fire(q, ""); return; }
+          b.click();
+          const alt = document.getElementById("pAlt"), sec = alt && alt.closest("section"), pk = sec && sec.querySelector(".picker");
+          if (pk) { sec.insertBefore(alt, pk); pk.style.marginTop = "16px"; }  // 차트를 검색 목록보다 위에
+          toTop(sec, "고른 종목 · 기준 종목은 아래에 있어요. 다른 종목은 차트 아래 검색에서 골라요");
         }, 50);
       }
     }, 250);

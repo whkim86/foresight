@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]          # 클로드폴더
 SITE_DIR = Path(__file__).resolve().parents[1]      # foresight
 OUT = SITE_DIR / "s"
 SITE = "https://www.ai-sinhodeung.co.kr"
-VER = "20261117h"   # 페이지가 쓰는 style.css·app.js 캐시 버전 (다른 html 과 같게)
+VER = "20261118a"   # 페이지가 쓰는 style.css·app.js 캐시 버전 (다른 html 과 같게)
 KST = dt.timezone(dt.timedelta(hours=9))
 
 # 시장 → 화면 이름·대시보드 주소·가격 단위
