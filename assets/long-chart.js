@@ -157,25 +157,32 @@
     else if (periodChanged) P.draw();  // 숨겨져 있던 원래 그래프를 지금 폭으로 다시
   }
 
+  // 일봉: 가격 원장 + 원장보다 새로운 실제값(예측 CSV). 지난 예측을 보는 중이면 그 예측 시점까지만 (그 뒤는 after)
+  async function daily(co, sym) {
+    const src = await loadPrices(sym);
+    const ref = src ? new Date(src.d[src.d.length - 1] + "T00:00:00Z") : new Date();
+    const hist = co.hist.map((h) => ({ time: isoFromMD(h.date, ref), c: h.c, h: h.h, l: h.l })).filter((h) => h.time);
+    const base = hist.length ? hist[hist.length - 1].time : null;
+    let bars = src ? src.d.map((d, i) => ({ time: d, open: src.o[i], high: src.h[i], low: src.l[i], close: src.c[i], value: src.v[i] })) : [];
+    let after = [];
+    if (base && co.after && co.after.length) { after = bars.filter((b) => b.time > base); bars = bars.filter((b) => b.time <= base); }
+    // 시가가 없어 전날 종가로 대신 (est)
+    hist.forEach((h) => {
+      const last = bars[bars.length - 1];
+      if (!last || h.time > last.time) bars.push({ time: h.time, open: last ? last.close : h.c, high: Math.max(h.h, h.l, h.c), low: Math.min(h.h, h.l, h.c), close: h.c, value: 0, est: true });
+    });
+    return { src, ref, bars, after };
+  }
+
   // 원래 화면의 예측(co.models)·실제값(co.hist) + 가격 원장
   async function load(P) {
-    const L = P.lc, co = P.lcCo, pd = P.lcPd, sym = P.coin;
+    const L = P.lc, co = P.lcCo, sym = P.coin;
     L.el.empty.hidden = false; L.el.empty.textContent = "불러오는 중…";
     try {
-      const [, src] = await Promise.all([loadLib(), loadPrices(sym)]);
+      const [, dd] = await Promise.all([loadLib(), daily(co, sym)]);
       if (P.coin !== sym) return;
-      const today = new Date(), ref = src ? new Date(src.d[src.d.length - 1] + "T00:00:00Z") : today;
-      const hist = co.hist.map((h) => ({ time: isoFromMD(h.date, ref), c: h.c, h: h.h, l: h.l })).filter((h) => h.time);
-      const base = hist.length ? hist[hist.length - 1].time : null;
-      let bars = src ? src.d.map((d, i) => ({ time: d, open: src.o[i], high: src.h[i], low: src.l[i], close: src.c[i], value: src.v[i] })) : [];
-      // 지난 예측을 보는 중이면, 그 예측 시점까지만 실제값을 그리고 그 뒤 실제값은 따로 굵은 선
-      let after = [];
-      if (base && co.after && co.after.length) { after = bars.filter((b) => b.time > base); bars = bars.filter((b) => b.time <= base); }
-      // 원장보다 새로운 실제값(예측 CSV)은 이어 붙임 — 시가가 없어 전날 종가로 대신
-      hist.forEach((h) => {
-        const last = bars[bars.length - 1];
-        if (!last || h.time > last.time) bars.push({ time: h.time, open: last ? last.close : h.c, high: Math.max(h.h, h.l, h.c), low: Math.min(h.h, h.l, h.c), close: h.c, value: 0, est: true });
-      });
+      const { src, ref, bars } = dd;
+      let after = dd.after;
       if (bars.length < 2) { L.el.empty.textContent = "이 종목은 아직 쌓인 가격 기록이 없어요. '예측 모델 선 보기'로 봐 주세요."; L.data = null; return; }
       const byDay = {};
       co.modelNames.forEach((m) => co.models[m].forEach((p) => { const t = isoFromMD(p.date, ref); if (t && isFinite(p.c)) (byDay[t] || (byDay[t] = [])).push(p.c); }));
@@ -297,6 +304,159 @@
     L.el.leg.innerHTML = h;
   }
 
+  /* ---------- 오른쪽 카드: 차트 지표 해석 (일봉 고정 · 20일·60일선 · RSI 14일 · 볼린저 20일 ±2σ) ---------- */
+  // 규칙 기반 문장. 강조할 부분은 굵게 + 밑줄(.ta-em, 상승 쪽 .u / 하락 쪽 .d). 점수: 반등·상승 쪽 +, 하락 쪽 -
+  const em = (t, c) => `<b class="ta-em${c ? " " + c : ""}">${t}</b>`;
+  function taRead(bars, verdict) {
+    const n = bars.length;
+    if (n < 30) return null;
+    const C = bars.map((b) => b.close), last = bars[n - 1], prev = bars[n - 2];
+    const ma5 = sma(C, 5), ma20 = sma(C, 20), ma60 = sma(C, 60);
+    const m5 = ma5[n - 1], m20 = ma20[n - 1], m60 = ma60[n - 1], c = last.close;
+    const out = [];
+    let score = 0;
+
+    // ① 추세: 20일·60일선 위치와 배열, 20일선 기울기
+    if (m60 != null) {
+      const above20 = c >= m20, above60 = c >= m60, slope = ma20[n - 6] ? m20 / ma20[n - 6] - 1 : 0;
+      let t;
+      if (m5 > m20 && m20 > m60) { t = `이동평균이 ${em("정배열(5>20>60일)", "u")}이라 상승 추세예요`; score += 1; }
+      else if (m5 < m20 && m20 < m60) { t = `이동평균이 ${em("역배열(5<20<60일)", "d")}이라 하락 추세예요`; score -= 1; }
+      else t = "이동평균이 엉켜 있어 뚜렷한 추세가 없어요";
+      t += `. 종가는 20일선 ${above20 ? "위" : "아래"}(${pct(c / m20 - 1)}), 60일선 ${above60 ? "위" : "아래"}(${pct(c / m60 - 1)})`;
+      t += Math.abs(slope) < 0.005 ? "이고 20일선은 평평해요." : slope > 0 ? "이고 20일선은 오르는 중이에요." : "이고 20일선은 내려가는 중이에요.";
+      if (above20 && !(C[n - 2] >= ma20[n - 2])) { t += ` 오늘 ${em("20일선을 위로 돌파", "u")}했어요.`; score += 1; }
+      if (!above20 && C[n - 2] >= ma20[n - 2]) { t += ` 오늘 ${em("20일선 아래로 이탈", "d")}했어요.`; score -= 1; }
+      out.push(["📈 추세", t]);
+    } else {
+      out.push(["📈 추세", `종가는 20일선 ${c >= m20 ? "위" : "아래"}(${pct(c / m20 - 1)})예요. 60일선은 기록이 짧아 아직 없어요.`]);
+    }
+
+    // ② 볼린저 밴드: 밴드 안 위치(%B)와 폭(최근 120일 중 순위)
+    const sd = stdev(C, 20, ma20), up = m20 + 2 * sd[n - 1], lo = m20 - 2 * sd[n - 1], pb = (c - lo) / (up - lo || 1);
+    const widths = []; for (let i = Math.max(19, n - 120); i < n; i++) if (ma20[i]) widths.push((4 * sd[i]) / ma20[i]);
+    const wr = widths.filter((w) => w <= widths[widths.length - 1]).length / widths.length;
+    let bt;
+    if (pb < 0) { bt = `종가가 ${em("하단 밴드 밖으로 내려갔어요", "d")}. 통계적으로 많이 내려온 자리라 ${em("되돌림 반등", "u")}이 나오기도 해요`; score += 1; }
+    else if (pb < 0.15) { bt = `종가가 ${em("하단 밴드 근처", "d")}예요. 밴드 아래쪽은 반등이 자주 나오는 자리예요`; score += 0.5; }
+    else if (pb > 1) { bt = `종가가 ${em("상단 밴드 위로 올라갔어요", "u")}. 강한 상승이지만 ${em("단기 과열", "d")}일 수 있어요`; score -= 0.5; }
+    else if (pb > 0.85) bt = `종가가 ${em("상단 밴드 근처", "u")}예요. 힘이 강하지만 저항을 받기 쉬운 자리예요`;
+    else bt = `종가가 밴드 안 ${pb >= 0.5 ? "위쪽" : "아래쪽"}(위치 ${Math.round(pb * 100)}%)에 있어요`;
+    if (wr <= 0.15) bt += `. 밴드 폭이 최근 6달 중 ${em("가장 좁은 편")}이라 곧 큰 움직임이 나올 수 있어요.`;
+    else if (wr >= 0.85) bt += `. 밴드 폭이 최근 6달 중 ${em("가장 넓은 편")}이라 변동성이 큰 구간이에요.`;
+    else bt += ".";
+    out.push(["🎯 볼린저", bt]);
+
+    // ③ RSI 14일
+    const R = rsi(C, 14), r = R[n - 1], r3 = R[n - 4];
+    if (r != null) {
+      let rt = `RSI ${Math.round(r)}`;
+      if (r < 30) { rt += `로 ${em("침체 구간(30 아래)", "u")}이에요. 많이 판 상태라 반등 신호로 봐요`; score += 1; }
+      else if (r > 70) { rt += `로 ${em("과열 구간(70 위)", "d")}이에요. 많이 산 상태라 쉬어 갈 수 있어요`; score -= 1; }
+      else if (r < 45) rt += "로 약세 쪽이에요";
+      else if (r > 55) rt += "로 강세 쪽이에요";
+      else rt += "로 중립이에요";
+      if (r3 != null) rt += r - r3 > 5 ? `. 최근 3일 ${em("올라오는 중", "u")}이에요.` : r3 - r > 5 ? `. 최근 3일 ${em("내려가는 중", "d")}이에요.` : ".";
+      // 다이버전스: 최근 20일 중 오늘 가격이 최저인데 RSI 는 그 전 저점보다 높음 → 상승 다이버전스
+      const lowIdx = (from) => { let k = from; for (let i = from; i < n - 3; i++) if (C[i] < C[k]) k = i; return k; };
+      const k = lowIdx(n - 20);
+      if (c <= Math.min(...C.slice(n - 20)) && R[k] != null && r > R[k] + 3 && k < n - 3) { rt += ` 가격은 새 저점인데 RSI는 덜 내려가 ${em("상승 다이버전스", "u")}가 보여요.`; score += 1; }
+      out.push(["🌡 RSI", rt]);
+    }
+
+    // ④ 거래량: 20일 평균 대비, 최근 3일 오른 날·내린 날 거래량
+    if (bars.slice(-25).some((b) => b.value > 0)) {
+      const vb = bars.filter((b) => !b.est), vn = vb.length;
+      const avg = vb.slice(-21, -1).reduce((s, b) => s + b.value, 0) / 20, lv = vb[vn - 1].value, ratio = avg ? lv / avg : 0;
+      let upV = 0, dnV = 0;
+      vb.slice(-3).forEach((b, i, a) => { const pc = i ? a[i - 1].close : vb[vn - 4].close; if (b.close >= pc) upV += b.value; else dnV += b.value; });
+      let vt = `${vb[vn - 1].time.slice(5)} 거래량은 20일 평균의 ${ratio.toFixed(1)}배`;
+      vt += ratio >= 2 ? `로 ${em("크게 늘었어요")}` : ratio >= 1.3 ? "로 늘었어요" : ratio <= 0.6 ? "로 한산해요" : "로 평소 수준이에요";
+      if (dnV > upV * 1.8) { vt += `. 최근 3일은 ${em("내린 날 거래가 몰려", "d")} 파는 힘이 강했어요.`; score -= 0.5; }
+      else if (upV > dnV * 1.8) { vt += `. 최근 3일은 ${em("오른 날 거래가 몰려", "u")} 사는 힘이 강했어요.`; score += 0.5; }
+      else vt += ".";
+      if (last.est) vt += " (마지막 날 거래량은 아직 집계 전)";
+      out.push(["📊 거래량", vt]);
+    }
+
+    // ⑤ 봉 모양: 마지막 봉(시가가 있는 날만), 연속 봉
+    const cb = bars.filter((b) => !b.est), m = cb.length, b1 = cb[m - 1], b0 = cb[m - 2];
+    const body = (b) => Math.abs(b.close - b.open), rng = (b) => b.high - b.low || 1e-12;
+    const upW = (b) => b.high - Math.max(b.open, b.close), loW = (b) => Math.min(b.open, b.close) - b.low;
+    const avgBody = cb.slice(-21, -1).reduce((s, b) => s + body(b), 0) / 20;
+    const downTrend = b1.close < (ma20[bars.indexOf(b1)] || b1.close), upTrend = !downTrend;
+    let ct = null;
+    if (b0 && b0.close < b0.open && b1.close > b1.open && b1.close >= b0.open && b1.open <= b0.close) {
+      if (downTrend) { ct = `하락 흐름에서 ${em("상승 장악형", "u")}(전날 음봉을 감싸는 양봉)이 나왔어요. 반등 신호로 봐요`; score += 1; }
+      else { ct = `${em("상승 장악형", "u")}(전날 음봉을 감싸는 양봉)이에요. 오르는 흐름이 이어지는 모양이에요`; score += 0.5; } }
+    else if (b0 && b0.close > b0.open && b1.close < b1.open && b1.open >= b0.close && b1.close <= b0.open) {
+      if (upTrend) { ct = `상승 흐름에서 ${em("하락 장악형", "d")}(전날 양봉을 감싸는 음봉)이 나왔어요. 꺾임 신호로 봐요`; score -= 1; }
+      else { ct = `${em("하락 장악형", "d")}(전날 양봉을 감싸는 음봉)이에요. 짧은 반등이 꺾이고 내리는 흐름이 이어지는 모양이에요`; score -= 0.5; } }
+    else if (loW(b1) >= 2 * body(b1) && upW(b1) <= Math.max(body(b1), rng(b1) * 0.1) && downTrend) { ct = `${em("망치형", "u")}(긴 아랫꼬리)이 나왔어요. 아래에서 사는 힘이 들어온 모양이에요`; score += 1; }
+    else if (upW(b1) >= 2 * body(b1) && loW(b1) <= Math.max(body(b1), rng(b1) * 0.1) && upTrend) { ct = `${em("유성형", "d")}(긴 윗꼬리)이 나왔어요. 위에서 파는 힘이 나온 모양이에요`; score -= 1; }
+    else if (body(b1) <= rng(b1) * 0.1) ct = `${em("도지")}(시가≈종가)가 나왔어요. 사고파는 힘이 팽팽해 방향을 고르는 중이에요`;
+    else if (body(b1) >= avgBody * 1.8) ct = b1.close > b1.open ? `평소보다 ${em("큰 양봉", "u")}이에요` : `평소보다 ${em("큰 음봉", "d")}이에요`;
+    let run = 0; const dir = Math.sign(b1.close - b1.open);
+    for (let i = m - 1; i >= 0 && dir && Math.sign(cb[i].close - cb[i].open) === dir; i--) run++;
+    if (run >= 3) ct = (ct ? ct + ". " : "") + (dir > 0 ? `${em(run + "일 연속 양봉", "u")}이에요` : `${em(run + "일 연속 음봉", "d")}이에요`);
+    if (!ct) ct = "특별한 모양 없이 보통 크기의 봉이에요";
+    out.push(["🕯 봉 모양", ct + `. (${b1.time.slice(5)} 봉 기준)`]);
+
+    // ⑥ 가까운 저항·지지: 최근 20일 고점·저점
+    const w20 = bars.slice(-20), hi = Math.max(...w20.map((b) => b.high)), lo20 = Math.min(...w20.map((b) => b.low));
+    out.push(["🧱 지지·저항", `최근 20일 고점 ${em(fmt(hi))}(${pct(hi / c - 1)}), 저점 ${em(fmt(lo20))}(${pct(lo20 / c - 1)})이에요.`]);
+
+    // 종합: 지표 점수와 모델 판정 비교
+    const side = score >= 1.5 ? "u" : score <= -1.5 ? "d" : "m";
+    const vTxt = { up: "상승", dn: "하락", mx: "혼돈" }[verdict];
+    const trDn = m60 != null && m5 < m20 && m20 < m60, trUp = m60 != null && m5 > m20 && m20 > m60;
+    const oversold = (r != null && r < 30) || pb < 0.15, overbought = (r != null && r > 70) || pb > 1;
+    let sum;
+    if (side === "m" && trDn && oversold) sum = `차트 지표는 ${em("하락 추세 속 과매도", "d")}예요. 단기 반등이 나올 수 있는 자리지만 추세는 아직 하락이에요`;
+    else if (side === "m" && trUp && overbought) sum = `차트 지표는 ${em("상승 추세 속 과열", "u")}이에요. 힘은 강하지만 쉬어 갈 수 있는 자리예요`;
+    else sum = `차트 지표는 ${em({ u: "반등·상승 쪽", d: "하락 쪽", m: "엇갈림" }[side], side === "m" ? "" : side)}이에요`;
+    if (vTxt) {
+      if ((verdict === "up" && side === "u") || (verdict === "dn" && side === "d")) sum += `. 모델 D+1 판정(${vTxt})과 ${em("같은 방향", side)}이에요.`;
+      else if ((verdict === "up" && side === "d") || (verdict === "dn" && side === "u")) sum += `. 모델 D+1 판정(${vTxt})과 ${em("반대 방향")}이라 더 조심해서 봐요.`;
+      else sum += `. 모델 D+1 판정은 ${vTxt}이에요.`;
+    }
+    if (side === "u" && m60 != null && c < m60 && m20 < m60) sum += " 다만 큰 추세는 아직 하락이라 반등이 짧을 수 있어요.";
+    if (side === "d" && m60 != null && c > m60 && m20 > m60) sum += " 다만 큰 추세는 아직 상승이라 눌림일 수 있어요.";
+    return { items: out, sum, asOf: last.time };
+  }
+
+  const taCss = document.createElement("style");
+  taCss.textContent = `.ta-em{font-weight:700;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1.5px}
+  .ta-em.u{color:var(--up-text);text-decoration-color:var(--up)}.ta-em.d{color:var(--dn-ink);text-decoration-color:var(--dn)}
+  .ta-list{list-style:none;padding:0;margin:6px 0 0;display:flex;flex-direction:column;gap:8px}
+  .ta-list li{font-size:14.5px;line-height:1.65}.ta-list .k{display:inline-block;font-weight:600;margin-right:6px}
+  .ta-sum{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--fc-bg);font-size:14.5px;line-height:1.65}
+  .ta-fine{font-size:12px;color:var(--muted);margin-top:8px}`;
+  document.head.appendChild(taCss);
+
+  async function taRender(P) {
+    const co = P.lcCo, sym = P.coin, read = P.el.read;
+    if (!read) return;
+    let sec = read.querySelector(".ta-sec");
+    try {
+      const dd = await daily(co, sym);
+      if (P.coin !== sym) return;
+      const t = taRead(dd.bars, P.a && P.a.verdict);
+      sec = read.querySelector(".ta-sec");  // 기다리는 사이 카드가 다시 그려졌을 수 있음
+      if (!sec) {
+        sec = document.createElement("div");
+        sec.className = "read-sec ta-sec";
+        const rule = read.querySelector("details.rule");
+        if (rule) read.insertBefore(sec, rule); else read.appendChild(sec);
+      }
+      if (!t) { sec.hidden = true; return; }
+      sec.hidden = false;
+      sec.innerHTML = `<h4>차트 지표 해석 · 일봉 (${t.asOf.slice(5)} 기준)</h4><ul class="ta-list">` +
+        t.items.map(([k, v]) => `<li><span class="k">${k}</span>${v}</li>`).join("") + `</ul><p class="ta-sum">🤝 ${t.sum}</p>` +
+        `<p class="ta-fine">20일·60일 이동평균, 볼린저 밴드(20일, ±2σ), RSI 14일로 계산한 규칙 기반 참고 해석이에요. 투자 권유가 아니에요.</p>`;
+    } catch (e) { if (sec) sec.hidden = true; }
+  }
+
   // 원본 화면이 종목을 고를 때마다 부름
   window.portalLong = function (P, co, pd) {
     setup(P);
@@ -305,6 +465,7 @@
     P.lc.data = null;  // 지난 예측 보기 등으로 같은 종목이라도 예측이 바뀔 수 있음
     sync(P);
     if (pref.period > 0) load(P);
+    setTimeout(() => taRender(P), 0);  // 오른쪽 카드는 원본이 이 뒤에 다시 그리므로 그다음에 붙임
   };
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => (window.portalPanels || []).forEach((P) => P.lc && draw(P)));
 })();
