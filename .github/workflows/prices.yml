@@ -1,0 +1,50 @@
+name: 가격 원장 수집
+
+# 종목별 일봉 5년치를 Supabase Storage(<시장>/prices/) 에 쌓음 — ingest/prices.py
+# 차트 화면은 이 원장(긴 기간·시가·거래량) 뒤에 예측 CSV 의 최근 실제값을 이어 붙이므로, 몇 시간 늦어도 화면은 최신
+# 처음 한 번은 Actions 탭에서 수동 실행(전체 시장)으로 5년치를 채움 (약 15~20분)
+on:
+  schedule:
+    - cron: "40 16 * * *"        # KST 01:40 빗썸 (0시 봉 확정 뒤)
+    - cron: "50 23 * * *"        # KST 08:50 나스닥 (미국장 마감 뒤)
+    - cron: "40 0 * * *"         # KST 09:40 업비트 (9시 봉 확정 뒤)
+    - cron: "30 7 * * *"         # KST 16:30 코스피 (15:30 마감 뒤)
+  workflow_dispatch:
+    inputs:
+      market:
+        description: "시장 (비우면 전체: coin bithumb nasdaq kospi)"
+        required: false
+        default: ""
+      full:
+        description: "기존 파일 무시하고 5년치 다시 받기"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prices
+  cancel-in-progress: false
+
+jobs:
+  prices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: 일봉 수집 · 저장
+        run: |
+          ARGS=""
+          for m in ${{ inputs.market }}; do ARGS="$ARGS --market $m"; done
+          if [ "${{ inputs.full }}" = "true" ]; then ARGS="$ARGS --full"; fi
+          python ingest/prices.py $ARGS
+        env:
+          SUPABASE_URL: https://qtzmfuaqzutzvnulfdel.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          PYTHONIOENCODING: utf-8
