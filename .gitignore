@@ -11,3 +11,6 @@ Thumbs.db
 csv_backup/
 *.csv
 !robots.txt
+
+# 차트 미리보기 시험용 로컬 데이터 (올리지 않음)
+_dev/
