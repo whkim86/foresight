@@ -110,47 +110,36 @@
   "today": true
  },
  {
-  "slug": "TIGER반도체TOP10",
-  "sym": "TIGER반도체TOP10",
+  "slug": "한전기술",
+  "sym": "한전기술",
   "ko": "",
   "market": "kospi",
-  "date": "2026-11-18",
+  "date": "2026-11-19",
   "verdict": "상승",
   "votes": "52개 모델 중 38개가 상승",
   "rank": 1,
   "today": true
  },
  {
-  "slug": "한전기술",
-  "sym": "한전기술",
+  "slug": "TIGER미국SP500",
+  "sym": "TIGER미국SP500",
   "ko": "",
   "market": "kospi",
-  "date": "2026-11-18",
-  "verdict": "상승",
-  "votes": "52개 모델 중 40개가 상승",
+  "date": "2026-11-19",
+  "verdict": "혼돈",
+  "votes": "52개 모델 의견이 갈렸어요",
   "rank": 2,
   "today": true
  },
  {
-  "slug": "DB하이텍",
-  "sym": "DB하이텍",
+  "slug": "기아",
+  "sym": "기아",
   "ko": "",
   "market": "kospi",
-  "date": "2026-11-18",
-  "verdict": "상승",
-  "votes": "52개 모델 중 38개가 상승",
-  "rank": 3,
-  "today": true
- },
- {
-  "slug": "한화생명",
-  "sym": "한화생명",
-  "ko": "",
-  "market": "kospi",
-  "date": "2026-11-18",
+  "date": "2026-11-19",
   "verdict": "혼돈",
   "votes": "52개 모델 의견이 갈렸어요",
-  "rank": 4,
+  "rank": 3,
   "today": true
  },
  {
@@ -158,9 +147,20 @@
   "sym": "현대로템",
   "ko": "",
   "market": "kospi",
-  "date": "2026-11-18",
+  "date": "2026-11-19",
   "verdict": "상승",
-  "votes": "52개 모델 중 35개가 상승",
+  "votes": "52개 모델 중 34개가 상승",
+  "rank": 4,
+  "today": true
+ },
+ {
+  "slug": "TIGER반도체TOP10",
+  "sym": "TIGER반도체TOP10",
+  "ko": "",
+  "market": "kospi",
+  "date": "2026-11-19",
+  "verdict": "상승",
+  "votes": "52개 모델 중 32개가 상승",
   "rank": 5,
   "today": true
  },
@@ -169,9 +169,9 @@
   "sym": "KOSPI",
   "ko": "코스피",
   "market": "index",
-  "date": "2026-11-18",
+  "date": "2026-11-19",
   "verdict": "상승",
-  "votes": "52개 모델 중 상승 25 · 하락 8",
+  "votes": "52개 모델 중 상승 22 · 하락 26",
   "rank": null,
   "today": true
  },
@@ -180,9 +180,9 @@
   "sym": "KOSDAQ",
   "ko": "코스닥",
   "market": "index",
-  "date": "2026-11-18",
+  "date": "2026-11-19",
   "verdict": "상승",
-  "votes": "52개 모델 중 상승 16 · 하락 32",
+  "votes": "52개 모델 중 상승 9 · 하락 37",
   "rank": null,
   "today": true
  },
@@ -239,6 +239,28 @@
   "verdict": "하락",
   "votes": "52개 모델 중 상승 6 · 하락 42",
   "rank": null,
+  "today": false
+ },
+ {
+  "slug": "DB하이텍",
+  "sym": "DB하이텍",
+  "ko": "",
+  "market": "kospi",
+  "date": "2026-11-18",
+  "verdict": "상승",
+  "votes": "52개 모델 중 38개가 상승",
+  "rank": 3,
+  "today": false
+ },
+ {
+  "slug": "한화생명",
+  "sym": "한화생명",
+  "ko": "",
+  "market": "kospi",
+  "date": "2026-11-18",
+  "verdict": "혼돈",
+  "votes": "52개 모델 의견이 갈렸어요",
+  "rank": 4,
   "today": false
  },
  {
@@ -338,17 +360,6 @@
   "verdict": "상승",
   "votes": "52개 모델 중 33개가 상승",
   "rank": 3,
-  "today": false
- },
- {
-  "slug": "기아",
-  "sym": "기아",
-  "ko": "",
-  "market": "kospi",
-  "date": "2026-11-17",
-  "verdict": "혼돈",
-  "votes": "52개 모델 의견이 갈렸어요",
-  "rank": 5,
   "today": false
  },
  {
