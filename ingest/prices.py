@@ -33,6 +33,7 @@ KST = timezone(timedelta(hours=9))
 BUCKET = "forecasts"
 YEARS_DAYS = 5 * 366 + 5          # 보관 기간
 REFRESH_DAYS = 14                 # 매일 다시 받는 최근 구간
+SPLIT_TOL = 0.03                  # 겹치는 날 종가 차이가 이보다 크면 병합·분할로 보고 5년치 다시 받음
 RECHECK_HOURS = 3                 # 휴장일 등으로 새 봉이 없을 때 다시 확인하는 간격
 HERE = Path(__file__).resolve().parent
 TICKERS = json.loads((HERE / "price_tickers.json").read_text(encoding="utf-8"))
@@ -253,6 +254,15 @@ def update_symbol(market, sym, fname, have_last, cut, full=False):
         new = fetch_yahoo(TICKERS[market][sym], since)
     else:
         new = fetch_exchange(src, sym, since)
+    resplit = False
+    if src == "yahoo" and old and old.get("d") and new:
+        # 주식 병합·분할 감지: 야후는 과거 가격을 새 비율로 다시 계산 → 겹치는 가장 오래된 날 종가가 3% 넘게 다르면 5년치를 다시 받음
+        oc = dict(zip(old["d"], old["c"]))
+        both = [r for r in new if r[0] in oc and oc[r[0]]]
+        if both and abs(both[0][4] / oc[both[0][0]] - 1) > SPLIT_TOL:
+            print(f"  [{market}/prices] {sym}: {both[0][0]} 종가 {oc[both[0][0]]} → {rnd(both[0][4])} (병합·분할 추정) → 5년치 다시 받음")
+            new = fetch_yahoo(TICKERS[market][sym], start_full)
+            old, resplit = None, True
     merged = {}
     if old and old.get("d"):
         for i, d in enumerate(old["d"]):
@@ -268,7 +278,7 @@ def update_symbol(market, sym, fname, have_last, cut, full=False):
          "d": [r[0] for r in keep], "o": [rnd(r[1]) for r in keep], "h": [rnd(r[2]) for r in keep],
          "l": [rnd(r[3]) for r in keep], "c": [rnd(r[4]) for r in keep], "v": [rnd(r[5]) for r in keep]}
     save_series(path, s)
-    return sym, keep[-1][0], f"{len(keep)}일" + (" (새로 채움)" if not old else "")
+    return sym, keep[-1][0], f"{len(keep)}일" + (" (병합·분할 반영)" if resplit else " (새로 채움)" if not old else "")
 
 
 def run_market(market, only=None, full=False, force=False):
