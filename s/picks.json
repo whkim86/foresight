@@ -242,6 +242,17 @@
   "today": false
  },
  {
+  "slug": "TESLA",
+  "sym": "TSLA",
+  "ko": "테슬라",
+  "market": "nasdaq",
+  "date": "2026-11-18",
+  "verdict": "상승",
+  "votes": "52개 모델 중 상승 40 · 하락 6",
+  "rank": null,
+  "today": true
+ },
+ {
   "slug": "DB하이텍",
   "sym": "DB하이텍",
   "ko": "",
