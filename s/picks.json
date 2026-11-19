@@ -224,11 +224,11 @@
   "sym": "ETH",
   "ko": "이더리움",
   "market": "upbit",
-  "date": "2026-11-16",
-  "verdict": "상승",
-  "votes": "52개 모델 중 상승 38 · 하락 8",
+  "date": "2026-11-19",
+  "verdict": "혼돈",
+  "votes": "52개 모델 중 상승 31 · 하락 12",
   "rank": null,
-  "today": false
+  "today": true
  },
  {
   "slug": "SP500",
