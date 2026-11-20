@@ -32,6 +32,33 @@
   .lc-leg .u{color:var(--up-text)}.lc-leg .d{color:var(--dn-ink)}
   .lc-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:20px;z-index:4;background:var(--surface)}
   .lc-fine{font-size:12.5px;color:var(--muted);margin-top:8px}
+.lc-fsb{margin-left:auto}
+  html.lc-fs-lock{overflow:hidden}
+  .chart-card.lc-fs{position:fixed;inset:0;z-index:9999;margin:0;border-radius:0;border:0;max-width:none;width:100vw;height:100vh;height:100dvh;overflow:auto;
+    background:var(--surface);padding:12px 14px;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr);gap:6px}
+  .chart-card.lc-fs>*:not(.chart-top):not(.lc-bar):not(.lc-wrap){display:none!important}
+  .chart-card.lc-fs .chart-top{margin:0}
+  .chart-card.lc-fs .lc-bar{margin:0}
+  .chart-card.lc-fs .lc-wrap{display:flex;flex-direction:column;min-height:0}
+  .chart-card.lc-fs .lc-box{flex:1;height:auto;min-height:300px}
+  .chart-card.lc-fs .lc-fine{display:none}
+  .chart-card.lc-fs .lc-row{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;padding-bottom:2px}
+  .chart-card.lc-fs .lc-row>*,.chart-card.lc-fs .seg{flex:none}
+  .chart-card.lc-fs .seg{display:inline-flex;flex-wrap:nowrap}
+  .chart-card.lc-fs .lc-fsb{position:fixed;top:10px;right:12px;z-index:10;background:var(--ink);color:var(--paper)}
+  .chart-card.lc-fs .chart-top{padding-right:150px}
+  @media (min-width:1000px),(orientation:landscape) and (min-width:640px){
+    .chart-card.lc-fs .lc-row{flex-wrap:wrap;overflow:visible}
+    .chart-card.lc-fs .seg{flex-wrap:wrap}
+    .chart-card.lc-fs{grid-template-columns:minmax(0,1fr) clamp(220px,24vw,290px);grid-template-rows:auto minmax(0,1fr);padding:14px 18px;gap:8px 18px}
+    .chart-card.lc-fs .chart-top{grid-column:1/-1}
+    .chart-card.lc-fs .lc-bar{grid-column:2;grid-row:2;align-self:start;gap:14px;overflow:auto;max-height:100%}
+    .chart-card.lc-fs .lc-wrap{grid-column:1;grid-row:2}
+    .chart-card.lc-fs .lc-row{gap:7px}
+    .chart-card.lc-fs .lc-cap{width:100%;font-weight:600}
+    .chart-card.lc-fs .lc-fsb{position:static;margin-left:0;order:-1;width:100%;justify-content:center}
+    .chart-card.lc-fs .chart-top{padding-right:0}
+  }
   @media (max-width:560px){.lc-box{height:370px}.lc-bar{gap:5px}.lc-row{gap:5px 6px}.lc-cap{min-width:0;font-size:12px}
     .lc-bar .seg button{padding:4px 8px}.lc-chip{padding:2px 9px 2px 7px}}`;
   document.head.appendChild(style);
@@ -116,7 +143,7 @@
     bar.innerHTML =
       '<div class="lc-row"><span class="lc-cap">기간</span><div class="seg lc-per" role="group" aria-label="기간">' +
       PERIODS.map(([d, t]) => `<button type="button" data-p="${d}">${t}</button>`).join("") + "</div>" +
-      '<button type="button" class="lc-chip lc-model" data-p="0" title="최근 2주 실제값과 예측 모델 52개의 선을 하나씩 켜고 끄며 봐요">예측 모델 선 보기</button></div>' +
+      '<button type="button" class="lc-chip lc-model" data-p="0" title="최근 2주 실제값과 예측 모델 52개의 선을 하나씩 켜고 끄며 봐요">예측 모델 선 보기</button><button type="button" class="lc-chip lc-fsb" data-fs="1" title="차트를 화면 가득 크게 봐요 (Esc 로 닫기)">⛶ 전체화면</button></div>' +
       '<div class="lc-more"><div class="lc-row"><span class="lc-cap">차트</span><div class="seg" role="group" aria-label="차트 종류"><button type="button" data-t="line">라인</button><button type="button" data-t="candle">캔들</button></div></div>' +
       '<div class="lc-row"><span class="lc-cap">겹쳐 보기</span>' +
       [5, 15, 20, 60, 120].map((n, i) => `<button type="button" class="lc-chip" data-ma="${n}"><i style="background:var(--ma${n})"></i>${i ? n : "이동평균 5"}</button>`).join("") +
@@ -135,6 +162,7 @@
     P.lc = { bar, box, el: { chart: box.querySelector(".lc-chart"), leg: box.querySelector(".lc-leg"), empty: box.querySelector(".lc-empty"), note: box.querySelector(".lc-fine") }, chart: null, S: {}, data: null };
     bar.addEventListener("click", (ev) => {
       const b = ev.target.closest("button"); if (!b) return;
+      if (b.dataset.fs) { fullscreen(P); return; }
       if (b.dataset.p !== undefined) pref.period = +b.dataset.p;
       else if (b.dataset.t) pref.type = b.dataset.t;
       else if (b.dataset.ma) { const n = +b.dataset.ma, i = pref.ma.indexOf(n); if (i >= 0) pref.ma.splice(i, 1); else pref.ma.push(n); pref.ma.sort((a, c) => a - c); }
@@ -147,6 +175,24 @@
     return P.lc;
   }
 
+  // 전체화면 (2026-11-21): 차트 카드를 화면 가득. 넓은 화면은 선택 버튼을 오른쪽, 좁은 화면은 위쪽
+  function fsOn(P) { return P.root.querySelector(".chart-card").classList.contains("lc-fs"); }
+  function fullscreen(P, off) {
+    const card = P.root.querySelector(".chart-card");
+    const on = off ? false : !fsOn(P);
+    if (on) {
+      card.classList.add("lc-fs"); document.documentElement.classList.add("lc-fs-lock");
+      if (card.requestFullscreen) card.requestFullscreen().catch(() => {});
+    } else {
+      card.classList.remove("lc-fs"); document.documentElement.classList.remove("lc-fs-lock");
+      if (document.fullscreenElement === card) document.exitFullscreen().catch(() => {});
+    }
+    const b = P.lc.bar.querySelector("[data-fs]"); b.setAttribute("aria-pressed", on); b.textContent = on ? "✕ 전체화면 닫기" : "⛶ 전체화면";
+    setTimeout(() => { if (P.lc.data && pref.period > 0) draw(P); }, 200);  // 아래 칸 높이 비율을 새 크기로
+  }
+  document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement) (window.portalPanels || []).forEach((Q) => { if (Q.lc && fsOn(Q)) fullscreen(Q, true); }); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") (window.portalPanels || []).forEach((Q) => { if (Q.lc && fsOn(Q)) fullscreen(Q, true); }); });
+
   function sync(P) {
     const L = P.lc, long = pref.period > 0;
     L.bar.querySelectorAll("[data-p]").forEach((b) => b.setAttribute("aria-pressed", +b.dataset.p === pref.period));
@@ -155,6 +201,8 @@
     L.bar.querySelectorAll("[data-o]").forEach((b) => b.setAttribute("aria-pressed", !!pref[b.dataset.o]));
     L.bar.querySelectorAll("[data-s]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.s === (pref.sub || "")));
     L.bar.querySelector(".lc-more").hidden = !long;
+    L.bar.querySelector("[data-fs]").hidden = !long;
+    if (!long && fsOn(P)) fullscreen(P, true);
     L.box.hidden = !long;
     // 원래 화면 부분: 종가·고점·저점 전환, 모델 범례, 그래프
     P.el.chart.hidden = long;
@@ -460,7 +508,7 @@
     }
     if (side === "u" && m60 != null && c < m60 && m20 < m60) sum += " 다만 큰 추세는 아직 하락이라 반등이 짧을 수 있어요.";
     if (side === "d" && m60 != null && c > m60 && m20 > m60) sum += " 다만 큰 추세는 아직 상승이라 눌림일 수 있어요.";
-    return { items: out, sum, asOf: last.time };
+    return { items: out, sum, asOf: last.time, side, trDn, trUp, oversold, overbought };
   }
 
   const taCss = document.createElement("style");
@@ -480,6 +528,7 @@
       const dd = await daily(co, sym);
       if (P.coin !== sym) return;
       const t = taRead(dd.bars, P.a && P.a.verdict);
+      P.taT = t;
       sec = read.querySelector(".ta-sec");  // 기다리는 사이 카드가 다시 그려졌을 수 있음
       if (!sec) {
         sec = document.createElement("div");
@@ -518,6 +567,7 @@
     try {
       const rj = await loadRules(sym);
       if (P.coin !== sym) return;
+      P.rjLast = rj && rj.card ? rj : null;
       sec = read.querySelector(".cr-sec");
       if (!rj || !rj.card) { if (sec) sec.hidden = true; return; }
       if (!sec) {
@@ -550,11 +600,74 @@
         html += `<p class="cr-combo">🤖 ${s}</p>`;
       }
       if ((c.notes || []).length || c.market) html += `<ul class="ta-list" style="margin-top:10px">${(c.notes || []).concat(c.market ? [c.market] : []).map((n) => `<li>${escH(n)}</li>`).join("")}</ul>`;
-      html += `<p class="ta-fine">추세선·패턴·기본 점검표 7개·시장 상태를 규칙대로 센 점수예요 (차트 점수 = 모양 40 + 점검표 42 + 시장 18, AI 포함 = 차트×0.8 + AI 판정 20·10·0, 70↑ 강 · 40~69 중 · 40↓ 약). 앞으로 오를 확률이 아니며 투자 권유가 아니에요. 차트 위 선은 '긴 기간' 보기에서 '📐 차트 분석'으로 켜고 끌 수 있어요.</p>`;
+      html += `<p class="ta-fine">추세선·패턴·기본 점검표 7개·시장 상태를 규칙대로 센 점수예요 (차트 점수 = 모양 40 + 점검표 42 + 시장 18, AI 포함 = 차트×0.8 + AI 판정 20·10·0, 70↑ 강 · 40~69 중 · 40↓ 약). 차트 분석은 D+1 예측과 별개로 큰 흐름·모양·목표 구간·위험 구간을 보는 보조 정보예요. 앞으로 오를 확률이 아니며 투자 권유가 아니에요. 차트 위 선은 '긴 기간' 보기에서 '📐 차트 분석'으로 켜고 끌 수 있어요.</p>`;
       sec.innerHTML = html;
       sec.hidden = false;
     } catch (e) { if (sec) sec.hidden = true; }
   }
+
+  // 오른쪽 판단 카드 한 줄 + 차트 위 한눈에 요약 (2026-11-21). 차트 분석은 보조 정보: 큰 흐름·모양·목표·위험 구간
+  const exCss = document.createElement("style");
+  exCss.textContent = `.cr-one{margin-top:10px;padding:8px 11px;border-left:3px solid #7C4DFF;background:var(--fc-bg);border-radius:8px;font-size:13.5px;line-height:1.6}
+  .lc-sum{margin:4px 0 12px;padding:10px 13px;border-radius:10px;background:var(--fc-bg);font-size:14.5px;line-height:1.65}
+  .lc-sum b.h{margin-right:6px}`;
+  document.head.appendChild(exCss);
+  function chartFacts(rj) {
+    if (!rj) return null;
+    const c = rj.close, lv = rj.card.levels || [], sc = rj.card.score || {};
+    const goal1 = lv.filter((x) => x.kind === "goal" && x.price > c).sort((a, b) => a.price - b.price)[0];
+    const risk = lv.find((x) => x.kind === "risk");
+    const done = (sc.patterns || []).find((p) => p.side === "up" && p.status === "완성");
+    const broke = rj.ep1 && c >= rj.ep1;
+    return { c, pat: rj.card.pattern || "뚜렷한 모양 없음", goal1, risk, done, broke, ep1: rj.ep1, gap: rj.ep1 ? rj.ep1 / c - 1 : null };
+  }
+  function oneLine(P) {
+    const read = P.el.read, sec = read && read.querySelector(".read-sec");
+    if (!sec) return;
+    let el = sec.querySelector(".cr-one");
+    const f = chartFacts(P.rjLast);
+    if (!f) { if (el) el.remove(); return; }
+    let t;
+    if (f.done) t = `${em(f.done.name + " 완성", "u")} 모양이에요.` + (f.goal1 ? ` 위로는 목표 ① ${fmt(f.goal1.price)}을 봐요.` : "");
+    else if (f.broke) t = `${escH(f.pat)} 저항선을 ${em("넘어선 자리", "u")}예요.` + (f.goal1 ? ` 다음 목표 ① ${fmt(f.goal1.price)}.` : "");
+    else if (f.ep1) t = `${em(escH(f.pat), "")} 저항선 아래예요. 흐름이 바뀌려면 ${fmt(f.ep1)} 위 마감(지금보다 ${pct(f.gap)})이 먼저예요.`;
+    else t = `지금 모양: ${escH(f.pat)}.`;
+    if (f.risk) t += ` ${fmt(f.risk.price)} 아래로 내려가면 ${em("조심할 자리", "d")}예요.`;
+    if (!el) { el = document.createElement("p"); el.className = "cr-one"; sec.appendChild(el); }
+    el.innerHTML = "📐 차트로 보면: " + t;
+  }
+  const ieyo = (w) => { const ch = w.replace(/[^가-힣]+$/, "").slice(-1).charCodeAt(0) - 0xac00; return ch >= 0 && ch % 28 ? "이에요" : "예요"; };
+  function summary(P) {
+    const card = P.root.querySelector(".chart-card"), meta = P.el.meta;
+    if (!card || !meta) return;
+    let el = card.querySelector(".lc-sum");
+    const a = P.a || {}, t = P.taT, f = chartFacts(P.rjLast), parts = [];
+    let s1 = "";
+    if (a.verdict === "up" || a.verdict === "dn" || a.verdict === "mx") {
+      const vw = { up: "상승", dn: "하락", mx: "혼돈" }[a.verdict];
+      s1 = `AI 예측은 내일 ${em(vw, a.verdict === "up" ? "u" : a.verdict === "dn" ? "d" : "")}`;
+      const d6 = a.path && a.path[5];
+      if (isFinite(d6)) s1 += `, 6일 뒤 중앙값 ${em(pct(d6), d6 >= 0 ? "u" : "d")}`;
+    }
+    if (t) {
+      const ta = t.trDn && t.oversold ? "하락 추세 속 과매도" : t.trUp && t.overbought ? "상승 추세 속 과열" : t.side === "u" ? "반등·상승 쪽" : t.side === "d" ? (t.trDn ? "하락 추세" : "하락 쪽") : t.trDn ? "하락 추세(신호는 엇갈림)" : t.trUp ? "상승 추세(신호는 엇갈림)" : "엇갈림";
+      s1 += (s1 ? "이고, " : "") + `차트 지표는 ${ta}${ieyo(ta)}.`;
+    } else if (s1) s1 += "이에요.";
+    if (s1) parts.push(s1);
+    if (f) {
+      let s2 = "차트로는 ";
+      if (f.done) s2 += `${f.done.name} 완성 자리라` + (f.goal1 ? ` 목표 ① ${fmt(f.goal1.price)}을 보고` : "");
+      else if (f.broke) s2 += "저항선을 넘어선 자리라" + (f.goal1 ? ` 목표 ① ${fmt(f.goal1.price)}을 보고` : "");
+      else if (f.ep1) s2 += `${f.pat} 저항선 아래라 ${fmt(f.ep1)} 위로 마감해야 흐름이 바뀌고`;
+      else s2 += `${f.pat} 모양이고`;
+      s2 = f.risk ? s2 + `, ${fmt(f.risk.price)} 아래로 내려가면 조심할 자리예요.` : `차트로는 ${f.pat} 모양이에요.`;
+      parts.push(s2);
+    }
+    if (!parts.length) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement("p"); el.className = "lc-sum"; meta.insertAdjacentElement("afterend", el); }
+    el.innerHTML = `<b class="h">🧭 한눈에</b>${parts.join(" ")}`;
+  }
+  function extras(P) { try { oneLine(P); summary(P); } catch (e) { /* 보조 표시라 실패해도 화면은 그대로 */ } }
 
   // 원본 화면이 종목을 고를 때마다 부름
   window.portalLong = function (P, co, pd) {
@@ -564,7 +677,8 @@
     P.lc.data = null;  // 지난 예측 보기 등으로 같은 종목이라도 예측이 바뀔 수 있음
     sync(P);
     if (pref.period > 0) load(P);
-    setTimeout(() => taRender(P).then(() => rulesRender(P)), 0);  // 오른쪽 카드는 원본이 이 뒤에 다시 그리므로 그다음에 붙임 (차트 분석은 지표 해석 아래)
+    P.taT = null; P.rjLast = null;
+    setTimeout(() => taRender(P).then(() => rulesRender(P)).then(() => extras(P)), 0);  // 오른쪽 카드는 원본이 이 뒤에 다시 그리므로 그다음에 붙임 (차트 분석은 지표 해석 아래)
   };
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => (window.portalPanels || []).forEach((P) => P.lc && draw(P)));
 })();
