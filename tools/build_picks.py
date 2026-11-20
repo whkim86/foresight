@@ -30,7 +30,7 @@ MK = {
     "kospi": dict(label="코스피200", dash="m=kospi", unit="원", kind="종목"),
     "index": dict(label="코스피 지수", dash="m=kospi", unit="", kind="지수"),
 }
-FOCUS_MK = {"coin": "upbit", "us": "nasdaq", "kr": "kospi"}
+FOCUS_MK = {"coin": "upbit", "us": "nasdaq", "kr": "kospi", "stock": "kospi", "index": "nasdaq"}  # 11/20 stock·index 빠져 '코인' 으로 나오던 것 고침
 INDEX_SLUG = {"코스피": ("KOSPI", "코스피"), "코스닥": ("KOSDAQ", "코스닥")}
 DISALLOW = ["admin.html", "analytics.html", "accuracy.html", "models.html", "patterns.html", "views.html", "ai.html",
             "mypage.html", "write.html", "dashboard.html", "boards/"]
@@ -212,6 +212,21 @@ HEAD = """<!doctype html>
 .pk-item small {{ display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }}
 .pk-note {{ font-size: 12px; color: var(--faint); line-height: 1.6; text-align: center; }}
 .v-up {{ color: var(--up); }} .v-mx {{ color: var(--mx-ink); }} .v-dn {{ color: var(--dn); }}
+.ca {{ display: none; flex-direction: column; gap: 14px; }}
+.ca.open {{ display: flex; }}
+.ca img {{ width: 100%; height: auto; border-radius: 10px; border: 1px solid #E6E9F0; display: block; }}
+.ca-pat {{ background: #F4F6FA; border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--sub); line-height: 1.6; }}
+.ca-pat b {{ color: var(--ink); font-size: 16px; }}
+.ca-lv {{ display: grid; gap: 6px; }}
+.ca-lv div {{ display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 12px; border-radius: 10px; border-left: 4px solid; background: #FAFBFD; }}
+.ca-lv b {{ font-size: 14.5px; }} .ca-lv span {{ font-weight: 700; font-variant-numeric: tabular-nums; }}
+.ca-lv small {{ grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; }}
+.ca-lv .goal {{ border-color: #1E9E6A; }} .ca-lv .goal b, .ca-lv .goal span {{ color: #1E9E6A; }}
+.ca-lv .watch {{ border-color: #7C4DFF; }} .ca-lv .watch b, .ca-lv .watch span {{ color: #7C4DFF; }}
+.ca-lv .risk {{ border-color: #E5484D; }} .ca-lv .risk b, .ca-lv .risk span {{ color: #E5484D; }}
+.ca ul {{ margin: 0; padding-left: 18px; color: var(--sub); font-size: 14px; line-height: 1.7; }}
+.ca-combo {{ border: 1.5px solid #C99700; background: #FFF9E6; border-radius: 10px; padding: 12px 14px; font-size: 14.5px; line-height: 1.6; }}
+.ca-combo b {{ color: #8A6A00; }}
 </style>
 <script type="application/ld+json">{ld}</script>
 </head>
@@ -263,6 +278,52 @@ def mmdd(date):
     return f"{int(date[5:7])}/{int(date[8:10])}"
 
 
+def analysis_html(p, unit):
+    """차트 분석 (chart_rules/web_card.py 가 만든 s/<종목>/chart.json · chart.webp) — 2026-11-20 사용자 승인
+    공개 화면 표현: 돌파 확인 자리 / 지지 확인 자리 / 위험 구간 / 목표 구간 (매수·손절·성적 숫자 안 씀)"""
+    jp = OUT / p["slug"] / "chart.json"
+    if not jp.exists():
+        return ""
+    try:
+        js = json.loads(jp.read_text(encoding="utf-8"))
+    except ValueError:
+        return ""
+    u = unit or ""
+    lv = "".join(f'<div class="{esc(x["kind"])}"><b>{esc(x["label"])}</b><span>{fmt_price(x["price"], u)}</span>'
+                 f'<small>{esc(x["note"])}</small></div>' for x in js.get("levels", []))
+    notes = "".join(f"<li>{esc(n)}</li>" for n in js.get("notes", []) + ([js["market"]] if js.get("market") else []))
+    combo = f'<div class="ca-combo"><b>🤖 AI 예측과 같이 보면</b><br>{esc(js["combo"])}</div>' if js.get("combo") else ""
+    nm = esc(name_of(p))
+    return f"""
+  <section class="card pk-cta">
+    <b style="font-size:17px">📐 차트로 보면 어떤 자리일까?</b>
+    <button class="btn big" type="button" onclick="var c=document.getElementById('ca');c.classList.toggle('open');this.textContent=c.classList.contains('open')?'차트 분석 접기':'📐 차트 분석 보기';if(c.classList.contains('open')){{c.scrollIntoView({{behavior:'smooth'}});try{{Portal.track('pick_chart')}}catch(e){{}}}}">📐 차트 분석 보기</button>
+    <p>추세선·지지선·피보나치·거래가 몰린 가격대를 자동으로 그려서, 앞으로 볼 자리를 정리했어요</p>
+  </section>
+
+  <section class="card ca" id="ca">
+    <h3 style="margin:0">{nm} 차트 분석 <small style="color:var(--muted);font-weight:400;font-size:13px">{mmdd(js["date"])} 종가 {fmt_price(js["close"], u)} 기준</small></h3>
+    <a href="chart.webp?v={esc(js["date"])}" target="_blank" rel="noopener"><img src="chart.webp?v={esc(js["date"])}" alt="{nm} 차트 분석: 저항선·지지선·앞으로 볼 자리" loading="lazy"></a>
+    <small style="color:var(--muted);font-size:12px;margin-top:-8px">그림을 누르면 크게 볼 수 있어요</small>
+    <div class="ca-pat">지금 모양: <b>{esc(js.get("pattern", "-"))}</b><br>{esc(js.get("pattern_help", ""))}</div>
+    {combo}
+    <div><h4 style="margin:0 0 8px">앞으로 볼 자리</h4><div class="ca-lv">{lv}</div></div>
+    <div><h4 style="margin:0 0 6px">해석</h4><ul>{notes}</ul></div>
+    <p class="pk-note" style="text-align:left">차트 모양을 규칙대로 자동 분석한 참고 자료예요. 특정 가격에 사고팔라는 권유가 아니며, 가격이 어느 자리에 있는지 보는 용도로만 써 주세요.</p>
+  </section>
+"""
+
+
+def make_analysis(p):
+    """종목마다 차트 분석 그림·해석 만들기 (실패해도 페이지는 그대로)"""
+    try:
+        sys.path.insert(0, str(ROOT / "chart_rules"))
+        import web_card
+        return web_card.make_for_pick(p, OUT / p["slug"], name_of(p))
+    except Exception as e:  # noqa: BLE001
+        return f"실패 {type(e).__name__}: {str(e)[:80]}"
+
+
 def page(p):
     up = "../../"
     m = MK[p["market"]]
@@ -303,6 +364,7 @@ def page(p):
     <div class="pk-legend"><span><i style="background:#12182B"></i>실제 종가</span><span><i style="background:{col}"></i>모델 예측 중앙값</span><span><i style="background:{col};height:8px;opacity:.2"></i>모델 25~75% 범위</span></div>
   </section>
 
+{analysis_html(p, m['unit'])}
   <section class="card pk-cta">
     <b style="font-size:17px">{esc(nm)}의 모델별 6일 차트와 전체 순위</b>
     <a class="btn big red" href="{signup}" data-member="{up}{esc(nxt)}" data-member-text="{esc(nm)} 차트 바로 보기">7일 무료로 전체 차트 보기</a>
@@ -384,9 +446,11 @@ def main():
     # 예전에 만든 페이지도 목록에 남김 (데이터 폴더에서 빠져도 페이지는 유지)
     manifest_path = OUT / "picks.json"
     old = {p["slug"]: p for p in json.loads(manifest_path.read_text(encoding="utf-8"))} if manifest_path.exists() else {}
+    made = {}
     for p in picks:
         d = OUT / p["slug"]
         d.mkdir(exist_ok=True)
+        made[p["slug"]] = make_analysis(p)
         (d / "index.html").write_text(page(p), encoding="utf-8")
     keep = {p["slug"]: p for p in picks}
     for slug, p in old.items():
@@ -399,7 +463,7 @@ def main():
     (SITE_DIR / "sitemap.xml").write_text(sitemap(allp), encoding="utf-8")
     (SITE_DIR / "robots.txt").write_text(robots(), encoding="utf-8")
     today = [p["slug"] for p in allp if p.get("today")]
-    print(json.dumps({"pages": len(allp), "today": today}, ensure_ascii=False))
+    print(json.dumps({"pages": len(allp), "today": today, "chart": made}, ensure_ascii=False))
 
 
 if __name__ == "__main__":

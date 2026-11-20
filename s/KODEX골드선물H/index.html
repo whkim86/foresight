@@ -38,6 +38,21 @@
 .pk-item small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
 .pk-note { font-size: 12px; color: var(--faint); line-height: 1.6; text-align: center; }
 .v-up { color: var(--up); } .v-mx { color: var(--mx-ink); } .v-dn { color: var(--dn); }
+.ca { display: none; flex-direction: column; gap: 14px; }
+.ca.open { display: flex; }
+.ca img { width: 100%; height: auto; border-radius: 10px; border: 1px solid #E6E9F0; display: block; }
+.ca-pat { background: #F4F6FA; border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--sub); line-height: 1.6; }
+.ca-pat b { color: var(--ink); font-size: 16px; }
+.ca-lv { display: grid; gap: 6px; }
+.ca-lv div { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 12px; border-radius: 10px; border-left: 4px solid; background: #FAFBFD; }
+.ca-lv b { font-size: 14.5px; } .ca-lv span { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ca-lv small { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; }
+.ca-lv .goal { border-color: #1E9E6A; } .ca-lv .goal b, .ca-lv .goal span { color: #1E9E6A; }
+.ca-lv .watch { border-color: #7C4DFF; } .ca-lv .watch b, .ca-lv .watch span { color: #7C4DFF; }
+.ca-lv .risk { border-color: #E5484D; } .ca-lv .risk b, .ca-lv .risk span { color: #E5484D; }
+.ca ul { margin: 0; padding-left: 18px; color: var(--sub); font-size: 14px; line-height: 1.7; }
+.ca-combo { border: 1.5px solid #C99700; background: #FFF9E6; border-radius: 10px; padding: 12px 14px; font-size: 14.5px; line-height: 1.6; }
+.ca-combo b { color: #8A6A00; }
 </style>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "KODEX골드선물H 전망 11/20 · AI 52개 모델 6일 예측 | AI 신호등", "description": "11/20 기준 KODEX골드선물H 다음 거래일 AI 판정은 '혼돈'. 52개 모델 의견이 갈렸어요. 6일 뒤 예측 중앙값 +6.2%. 52개 예측 모델의 6일 가격 흐름을 신호등으로 정리했어요.", "dateModified": "2026-11-20", "inLanguage": "ko", "url": "https://www.ai-sinhodeung.co.kr/s/KODEX%EA%B3%A8%EB%93%9C%EC%84%A0%EB%AC%BCH/", "publisher": {"@type": "Organization", "name": "AI 신호등", "url": "https://www.ai-sinhodeung.co.kr"}}</script>
 </head>
@@ -81,6 +96,24 @@
   <text x="506" y="290" font-size="15" fill="#8A93A6" text-anchor="end">11-25</text>
 </svg>
     <div class="pk-legend"><span><i style="background:#12182B"></i>실제 종가</span><span><i style="background:#C99700"></i>모델 예측 중앙값</span><span><i style="background:#C99700;height:8px;opacity:.2"></i>모델 25~75% 범위</span></div>
+  </section>
+
+
+  <section class="card pk-cta">
+    <b style="font-size:17px">📐 차트로 보면 어떤 자리일까?</b>
+    <button class="btn big" type="button" onclick="var c=document.getElementById('ca');c.classList.toggle('open');this.textContent=c.classList.contains('open')?'차트 분석 접기':'📐 차트 분석 보기';if(c.classList.contains('open')){c.scrollIntoView({behavior:'smooth'});try{Portal.track('pick_chart')}catch(e){}}">📐 차트 분석 보기</button>
+    <p>추세선·지지선·피보나치·거래가 몰린 가격대를 자동으로 그려서, 앞으로 볼 자리를 정리했어요</p>
+  </section>
+
+  <section class="card ca" id="ca">
+    <h3 style="margin:0">KODEX골드선물H 차트 분석 <small style="color:var(--muted);font-weight:400;font-size:13px">11/20 종가 19,750원 기준</small></h3>
+    <a href="chart.webp?v=2026-11-20" target="_blank" rel="noopener"><img src="chart.webp?v=2026-11-20" alt="KODEX골드선물H 차트 분석: 저항선·지지선·앞으로 볼 자리" loading="lazy"></a>
+    <small style="color:var(--muted);font-size:12px;margin-top:-8px">그림을 누르면 크게 볼 수 있어요</small>
+    <div class="ca-pat">지금 모양: <b>확산형</b><br>위아래 폭이 넓어지는 불안정한 모양 — 방향이 정해질 때까지 기다려요</div>
+    <div class="ca-combo"><b>🤖 AI 예측과 같이 보면</b><br>다음 거래일 AI 판정 &#x27;혼돈&#x27;. AI 6일 예측 중앙값은 +6.2%(22,137)로, 저항선(25,538)까지는 못 미쳐요 → 당분간은 돌파보다 아래 지지 자리를 지키는지 보는 구간이에요.</div>
+    <div><h4 style="margin:0 0 8px">앞으로 볼 자리</h4><div class="ca-lv"><div class="goal"><b>목표 구간 ③</b><span>41,812원</span><small>피보 1.618</small></div><div class="goal"><b>목표 구간 ②</b><span>32,125원</span><small>전고점</small></div><div class="goal"><b>목표 구간 ①</b><span>27,141원</span><small>패턴 높이</small></div><div class="watch"><b>돌파 확인 자리</b><span>26,304원</span><small>종가가 저항선보다 3% 넘게 위에서 마감 (돌파 뒤 24,772 아래로 다시 마감하면 돌파 실패)</small></div><div class="watch"><b>지지 확인 자리</b><span>25,538원</span><small>돌파 뒤 저항선이 받쳐 주는지</small></div><div class="risk"><b>위험 구간</b><span>19,372원</span><small>지금 가격 아래 지지선. 이 아래로 마감하면 하락 흐름이 이어질 수 있어요 — 깨지면 다음 지지 17,260까지 열려 있어요</small></div></div></div>
+    <div><h4 style="margin:0 0 6px">해석</h4><ul><li>지금 가격은 저항선보다 29% 아래예요. 아직 돌파를 말하기엔 거리가 있어요.</li><li>직전 큰 상승(16,450 → 32,125)의 0.79만큼 내려왔어요. 0.618 아래는 흐름이 바뀌었을 수 있는 구간이에요.</li><li>아래에서 받쳐 줄 자리: 19,372 / 17,260</li><li>코스피 지수 상태: 60일선 아래 역배열 → 시장 전체가 약해서 돌파가 나와도 한 번 더 확인이 필요해요</li></ul></div>
+    <p class="pk-note" style="text-align:left">차트 모양을 규칙대로 자동 분석한 참고 자료예요. 특정 가격에 사고팔라는 권유가 아니며, 가격이 어느 자리에 있는지 보는 용도로만 써 주세요.</p>
   </section>
 
   <section class="card pk-cta">

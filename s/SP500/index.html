@@ -38,6 +38,21 @@
 .pk-item small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
 .pk-note { font-size: 12px; color: var(--faint); line-height: 1.6; text-align: center; }
 .v-up { color: var(--up); } .v-mx { color: var(--mx-ink); } .v-dn { color: var(--dn); }
+.ca { display: none; flex-direction: column; gap: 14px; }
+.ca.open { display: flex; }
+.ca img { width: 100%; height: auto; border-radius: 10px; border: 1px solid #E6E9F0; display: block; }
+.ca-pat { background: #F4F6FA; border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--sub); line-height: 1.6; }
+.ca-pat b { color: var(--ink); font-size: 16px; }
+.ca-lv { display: grid; gap: 6px; }
+.ca-lv div { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 12px; border-radius: 10px; border-left: 4px solid; background: #FAFBFD; }
+.ca-lv b { font-size: 14.5px; } .ca-lv span { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ca-lv small { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; }
+.ca-lv .goal { border-color: #1E9E6A; } .ca-lv .goal b, .ca-lv .goal span { color: #1E9E6A; }
+.ca-lv .watch { border-color: #7C4DFF; } .ca-lv .watch b, .ca-lv .watch span { color: #7C4DFF; }
+.ca-lv .risk { border-color: #E5484D; } .ca-lv .risk b, .ca-lv .risk span { color: #E5484D; }
+.ca ul { margin: 0; padding-left: 18px; color: var(--sub); font-size: 14px; line-height: 1.7; }
+.ca-combo { border: 1.5px solid #C99700; background: #FFF9E6; border-radius: 10px; padding: 12px 14px; font-size: 14.5px; line-height: 1.6; }
+.ca-combo b { color: #8A6A00; }
 </style>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "S&P500(SPX) 전망 11/14 · AI 52개 모델 6일 예측 | AI 신호등", "description": "11/14 기준 S&P500(SPX) 다음 거래일 AI 판정은 '하락'. 52개 모델 중 상승 6 · 하락 42. 6일 뒤 예측 중앙값 -0.6%. 52개 예측 모델의 6일 가격 흐름을 신호등으로 정리했어요.", "dateModified": "2026-11-14", "inLanguage": "ko", "url": "https://www.ai-sinhodeung.co.kr/s/SP500/", "publisher": {"@type": "Organization", "name": "AI 신호등", "url": "https://www.ai-sinhodeung.co.kr"}}</script>
 </head>
@@ -46,13 +61,13 @@
   <a class="brand" href="../../index.html"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><b><span class="ai">AI</span>신호등</b></a>
   <nav class="nav">
     <a href="../../s/">오늘의 무료 종목</a>
-    <a class="btn sm cta-top" href="../../login.html?next=dashboard.html%3Fm%3Dcoin%26ex%3Dupbit%26v%3Dchart%26s%3DSPX#signup">무료로 시작하기</a>
+    <a class="btn sm cta-top" href="../../login.html?next=dashboard.html%3Fm%3Dnasdaq%26v%3Dchart%26s%3DSPX#signup">무료로 시작하기</a>
   </nav>
 </header>
 
 <main class="pk">
   <section class="pk-hero on-night">
-    <small>코인 · 업비트 · 11/14 예측 · AI 모델 52개</small>
+    <small>미국 주식 · 11/14 예측 · AI 모델 52개</small>
     <h1>S&amp;P500(SPX) 전망</h1>
   </section>
 
@@ -67,7 +82,7 @@
 
   <section class="card">
     <h3 style="margin-bottom:6px">6일 예측 흐름</h3>
-    <p class="hint" style="margin:0 0 10px;font-size:13px">기준가 7,562원 · 6일 뒤 예측 중앙값 <b class="v-dn">-0.6%</b></p>
+    <p class="hint" style="margin:0 0 10px;font-size:13px">기준가 7,562$ · 6일 뒤 예측 중앙값 <b class="v-dn">-0.6%</b></p>
     <svg viewBox="0 0 520 300" role="img" aria-label="최근 8일 종가와 앞으로 6일 예측 범위" class="pk-chart">
   <line x1="277.1" y1="30" x2="277.1" y2="266" stroke="#C5CAD6" stroke-dasharray="4 4"/>
   <polygon points="277.1,123.4 315.2,134.9 353.4,99.0 391.5,94.8 429.7,73.3 467.8,65.1 506.0,56.7 506.0,201.6 467.8,219.0 429.7,153.9 391.5,176.0 353.4,156.5 315.2,171.7 277.1,123.4" fill="#2463EB" fill-opacity=".14"/>
@@ -83,10 +98,28 @@
     <div class="pk-legend"><span><i style="background:#12182B"></i>실제 종가</span><span><i style="background:#2463EB"></i>모델 예측 중앙값</span><span><i style="background:#2463EB;height:8px;opacity:.2"></i>모델 25~75% 범위</span></div>
   </section>
 
+
+  <section class="card pk-cta">
+    <b style="font-size:17px">📐 차트로 보면 어떤 자리일까?</b>
+    <button class="btn big" type="button" onclick="var c=document.getElementById('ca');c.classList.toggle('open');this.textContent=c.classList.contains('open')?'차트 분석 접기':'📐 차트 분석 보기';if(c.classList.contains('open')){c.scrollIntoView({behavior:'smooth'});try{Portal.track('pick_chart')}catch(e){}}">📐 차트 분석 보기</button>
+    <p>추세선·지지선·피보나치·거래가 몰린 가격대를 자동으로 그려서, 앞으로 볼 자리를 정리했어요</p>
+  </section>
+
+  <section class="card ca" id="ca">
+    <h3 style="margin:0">S&amp;P500(SPX) 차트 분석 <small style="color:var(--muted);font-weight:400;font-size:13px">11/19 종가 7,176$ 기준</small></h3>
+    <a href="chart.webp?v=2026-11-19" target="_blank" rel="noopener"><img src="chart.webp?v=2026-11-19" alt="S&amp;P500(SPX) 차트 분석: 저항선·지지선·앞으로 볼 자리" loading="lazy"></a>
+    <small style="color:var(--muted);font-size:12px;margin-top:-8px">그림을 누르면 크게 볼 수 있어요</small>
+    <div class="ca-pat">지금 모양: <b>박스권</b><br>위아래 벽 사이를 오가는 모양 — 위쪽 벽 돌파 여부가 관건이에요</div>
+    <div class="ca-combo"><b>🤖 AI 예측과 같이 보면</b><br>다음 거래일 AI 판정 &#x27;하락&#x27;. AI 6일 예측 중앙값은 -0.6%(7,514)로, 저항선(7,911)까지는 못 미쳐요 → 당분간은 돌파보다 아래 지지 자리를 지키는지 보는 구간이에요.</div>
+    <div><h4 style="margin:0 0 8px">앞으로 볼 자리</h4><div class="ca-lv"><div class="goal"><b>목표 구간 ③</b><span>11,844$</span><small>피보 3.618</small></div><div class="goal"><b>목표 구간 ②</b><span>10,316$</span><small>피보 2.618</small></div><div class="goal"><b>목표 구간 ①</b><span>8,789$</span><small>피보 1.618</small></div><div class="watch"><b>돌파 확인 자리</b><span>8,148$</span><small>종가가 저항선보다 3% 넘게 위에서 마감 (돌파 뒤 7,673 아래로 다시 마감하면 돌파 실패)</small></div><div class="watch"><b>지지 확인 자리</b><span>7,911$</span><small>돌파 뒤 저항선이 받쳐 주는지</small></div><div class="risk"><b>위험 구간</b><span>6,792$</span><small>지금 가격 아래 지지선. 이 아래로 마감하면 하락 흐름이 이어질 수 있어요 — 깨지면 다음 지지 6,598까지 열려 있어요</small></div></div></div>
+    <div><h4 style="margin:0 0 6px">해석</h4><ul><li>지금 가격은 저항선보다 10% 아래예요. 아직 돌파를 말하기엔 거리가 있어요.</li><li>직전 큰 상승의 0.44만큼만 되돌린 상태 — 0.618 안이라 상승 흐름 속 조정으로 봐요.</li><li>아래에서 받쳐 줄 자리: 6,792 / 6,598</li><li>나스닥100 지수 상태: 60일선 아래 역배열 → 시장 전체가 약해서 돌파가 나와도 한 번 더 확인이 필요해요</li></ul></div>
+    <p class="pk-note" style="text-align:left">차트 모양을 규칙대로 자동 분석한 참고 자료예요. 특정 가격에 사고팔라는 권유가 아니며, 가격이 어느 자리에 있는지 보는 용도로만 써 주세요.</p>
+  </section>
+
   <section class="card pk-cta">
     <b style="font-size:17px">S&amp;P500(SPX)의 모델별 6일 차트와 전체 순위</b>
-    <a class="btn big red" href="../../login.html?next=dashboard.html%3Fm%3Dcoin%26ex%3Dupbit%26v%3Dchart%26s%3DSPX#signup" data-member="../../dashboard.html?m=coin&amp;ex=upbit&amp;v=chart&amp;s=SPX" data-member-text="S&amp;P500(SPX) 차트 바로 보기">7일 무료로 전체 차트 보기</a>
-    <p>닉네임·이메일만으로 가입 · 카드 등록 없음 · 가입하면 바로 이 코인 차트로 이동해요</p>
+    <a class="btn big red" href="../../login.html?next=dashboard.html%3Fm%3Dnasdaq%26v%3Dchart%26s%3DSPX#signup" data-member="../../dashboard.html?m=nasdaq&amp;v=chart&amp;s=SPX" data-member-text="S&amp;P500(SPX) 차트 바로 보기">7일 무료로 전체 차트 보기</a>
+    <p>닉네임·이메일만으로 가입 · 카드 등록 없음 · 가입하면 바로 이 종목 차트로 이동해요</p>
   </section>
 
   <a class="btn ghost" href="../../s/" style="align-self:center">오늘 무료로 공개된 다른 종목 보기 →</a>
