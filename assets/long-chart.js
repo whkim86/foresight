@@ -144,7 +144,7 @@
       '<div class="lc-row"><span class="lc-cap">기간</span><div class="seg lc-per" role="group" aria-label="기간">' +
       PERIODS.map(([d, t]) => `<button type="button" data-p="${d}">${t}</button>`).join("") + "</div>" +
       '<button type="button" class="lc-chip lc-model" data-p="0" title="최근 2주 실제값과 예측 모델 52개의 선을 하나씩 켜고 끄며 봐요">예측 모델 선 보기</button><button type="button" class="lc-chip lc-fsb" data-fs="1" title="차트를 화면 가득 크게 봐요 (Esc 로 닫기)">⛶ 전체화면</button></div>' +
-      '<div class="lc-more"><div class="lc-row"><span class="lc-cap">차트</span><div class="seg" role="group" aria-label="차트 종류"><button type="button" data-t="line">라인</button><button type="button" data-t="candle">캔들</button></div></div>' +
+      '<div class="lc-more"><div class="lc-row"><span class="lc-cap">차트</span><div class="seg" role="group" aria-label="차트 종류"><button type="button" data-t="line">라인</button><button type="button" data-t="candle">캔들</button></div><button type="button" class="lc-chip" data-o="log" title="가격 축을 비율(로그)로 바꿔요. 오르내린 폭이 큰 종목에서 추세선이 고점·저점에 곧게 맞아요">로그 축</button></div>' +
       '<div class="lc-row"><span class="lc-cap">겹쳐 보기</span>' +
       [5, 15, 20, 60, 120].map((n, i) => `<button type="button" class="lc-chip" data-ma="${n}"><i style="background:var(--ma${n})"></i>${i ? n : "이동평균 5"}</button>`).join("") +
       '<button type="button" class="lc-chip" data-o="bb"><i style="background:var(--bb)"></i>볼린저 밴드</button>' +
@@ -295,6 +295,7 @@
       S.main = chart.addSeries(LW.LineSeries, { priceFormat: PF, color: ink, lineWidth: 2, priceLineVisible: false });
       S.main.setData(bars.map((b) => ({ time: b.time, value: b.close })).concat(fut));
     }
+    if (pref.log) S.main.priceScale().applyOptions({ mode: LW.PriceScaleMode.Logarithmic });  // 로그 축은 위 가격 칸만 (2026-11-21)
     pref.ma.forEach((n) => { line(css("--ma" + n)).setData(W(sma(closes, n))); });
     if (pref.bb) {
       const m = sma(closes, 20), sd = stdev(closes, 20, m);
@@ -333,11 +334,13 @@
         line(css("--macd"), o, 1).setData(W(mac));
         line(css("--sig"), o, 1).setData(W(sig));
       }
+      if (pref.log) try { chart.priceScale("right", 1).applyOptions({ mode: LW.PriceScaleMode.Normal }); } catch (e) { /* 아래 칸 없음 */ }
       const panes = chart.panes(); if (panes[1]) panes[1].setHeight(Math.round(L.el.chart.clientHeight * 0.26));
     }
     if (RJ) {  // 📐 차트 분석 선·태그·예상 흐름
       const pt = (a) => ({ time: a[0], value: a[1] });
-      const ok = (arr) => arr.filter((a) => a && a[0]).map(pt).sort((x, y) => (x.time < y.time ? -1 : 1));
+      const haveT = new Set(bars.map((b) => b.time));  // 주봉일 때는 봉이 있는 날·앞날만 (없는 날짜가 끼면 축이 벌어짐)
+      const ok = (arr) => arr.filter((a, i) => a && a[0] && (!wk || i === 0 || i === arr.length - 1 || haveT.has(a[0]) || a[0] > lastT)).map(pt).sort((x, y) => (x.time < y.time ? -1 : 1));
       const rl = (color, o) => line(color, Object.assign({ lineWidth: 2 }, o || {}));
       rl("#7C4DFF", { lineWidth: 2.5 }).setData(ok(RJ.res));
       if (RJ.sup && RJ.sup.length) rl("#1E9E6A", { lineStyle: LW.LineStyle.Dashed }).setData(ok(RJ.sup));
