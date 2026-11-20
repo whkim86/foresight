@@ -53,6 +53,16 @@
 .ca ul { margin: 0; padding-left: 18px; color: var(--sub); font-size: 14px; line-height: 1.7; }
 .ca-combo { border: 1.5px solid #C99700; background: #FFF9E6; border-radius: 10px; padding: 12px 14px; font-size: 14.5px; line-height: 1.6; }
 .ca-combo b { color: #8A6A00; }
+.ca-score { border: 1px solid #E6E9F0; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.ca-scs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.ca-sc { background: #FAFBFD; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ca-sc small { width: 100%; color: var(--muted); font-size: 12px; }
+.ca-sc b { font-size: 28px; line-height: 1; }
+.ca-sc span { color: #fff; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+.ca-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ca-chip { background: #F4F6FA; border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--ink); }
+.ca ul.ca-ck { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 10px; font-size: 13.5px; }
+.ca ul.ca-warn { list-style: none; padding: 0; color: #B4232A; font-size: 13.5px; }
 </style>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "코스피(KOSPI) 전망 11/20 · AI 52개 모델 6일 예측 | AI 신호등", "description": "11/20 기준 코스피(KOSPI) 다음 거래일 AI 판정은 '상승'. 52개 모델 중 상승 26 · 하락 20. 6일 뒤 예측 중앙값 +1.6%. 52개 예측 모델의 6일 가격 흐름을 신호등으로 정리했어요.", "dateModified": "2026-11-20", "inLanguage": "ko", "url": "https://www.ai-sinhodeung.co.kr/s/KOSPI/", "publisher": {"@type": "Organization", "name": "AI 신호등", "url": "https://www.ai-sinhodeung.co.kr"}}</script>
 </head>
@@ -101,18 +111,29 @@
 
   <section class="card pk-cta">
     <b style="font-size:17px">📐 차트로 보면 어떤 자리일까?</b>
+    <p style="font-size:15px;color:var(--ink)">📊 차트 신호 점수 <b style="color:#8A93A6">34점 · 약</b> · AI 포함 <b style="color:#C99700">47점 · 중</b></p>
     <button class="btn big" type="button" onclick="var c=document.getElementById('ca');c.classList.toggle('open');this.textContent=c.classList.contains('open')?'차트 분석 접기':'📐 차트 분석 보기';if(c.classList.contains('open')){c.scrollIntoView({behavior:'smooth'});try{Portal.track('pick_chart')}catch(e){}}">📐 차트 분석 보기</button>
     <p>추세선·지지선·피보나치·거래가 몰린 가격대를 자동으로 그려서, 앞으로 볼 자리를 정리했어요</p>
   </section>
 
   <section class="card ca" id="ca">
-    <h3 style="margin:0">코스피(KOSPI) 차트 분석 <small style="color:var(--muted);font-weight:400;font-size:13px">11/20 종가 4,921 기준</small></h3>
+    <h3 style="margin:0">코스피(KOSPI) 차트 분석 <small style="color:var(--muted);font-weight:400;font-size:13px">11/20 종가 4,901 기준</small></h3>
     <a href="chart.webp?v=2026-11-20" target="_blank" rel="noopener"><img src="chart.webp?v=2026-11-20" alt="코스피(KOSPI) 차트 분석: 저항선·지지선·앞으로 볼 자리" loading="lazy"></a>
     <small style="color:var(--muted);font-size:12px;margin-top:-8px">그림을 누르면 크게 볼 수 있어요</small>
     <div class="ca-pat">지금 모양: <b>수렴</b><br>가격 폭이 좁아지는 중 — 빠져나오는 방향을 확인해요</div>
+    
+    <div class="ca-score">
+      <h4 style="margin:0 0 8px">📊 차트 신호 점검</h4>
+      <div class="ca-scs"><div class="ca-sc"><small>차트만 본 점수</small><b style="color:#8A93A6">34</b><span style="background:#8A93A6">약</span></div><div class="ca-sc"><small>AI 예측까지 넣은 점수</small><b style="color:#C99700">47</b><span style="background:#C99700">중</span></div></div>
+      <div class="ca-chips"><span class="ca-chip">⚪ 수렴 · 형성 중</span></div>
+      <ul class="ca-ck"><li>▫️ 반전 첫 신호(저점 상승)</li><li>▫️ 전고 돌파(추세 완성)</li><li>▫️ 거래량 1.5배</li><li>▫️ 상승 다이버전스</li><li>✅ 하락 다이버전스 없음</li><li>✅ 큰 상승(깃대) +50%</li><li>▫️ 되돌림 0.618 안</li></ul>
+      <ul class="ca-warn"><li>⚠️ 시장: 60일선 아래 역배열</li></ul>
+      <small style="color:var(--muted);font-size:12px">모양 10/40 · 점검표 12/42 · 시장 12/18 · AI 넣은 점수 = 차트×0.8 + AI 판정(상승 20·혼돈 10·하락 0) · 70↑ 강 · 40~69 중 · 40↓ 약<br>
+      조건이 몇 개 맞는지 센 점수예요. 앞으로 오를 확률이 아니에요.</small>
+    </div>
     <div class="ca-combo"><b>🤖 AI 예측과 같이 보면</b><br>다음 거래일 AI 판정 &#x27;상승&#x27;. AI 6일 예측 중앙값은 +1.6%(5,222)로, 저항선(7,102)까지는 못 미쳐요 → 당분간은 돌파보다 아래 지지 자리를 지키는지 보는 구간이에요.</div>
     <div><h4 style="margin:0 0 8px">앞으로 볼 자리</h4><div class="ca-lv"><div class="goal"><b>목표 구간 ③</b><span>13,408</span><small>피보 1.618</small></div><div class="goal"><b>목표 구간 ②</b><span>9,386</span><small>전고점</small></div><div class="goal"><b>목표 구간 ①</b><span>7,587</span><small>패턴 높이</small></div><div class="watch"><b>돌파 확인 자리</b><span>7,315</span><small>종가가 저항선보다 3% 넘게 위에서 마감 (돌파 뒤 6,888 아래로 다시 마감하면 돌파 실패)</small></div><div class="watch"><b>지지 확인 자리</b><span>7,102</span><small>돌파 뒤 저항선이 받쳐 주는지</small></div><div class="risk"><b>위험 구간</b><span>4,604</span><small>지금 가격 아래 지지선. 이 아래로 마감하면 하락 흐름이 이어질 수 있어요 — 깨지면 다음 지지 3,851까지 열려 있어요</small></div></div></div>
-    <div><h4 style="margin:0 0 6px">해석</h4><ul><li>지금 가격은 저항선보다 44% 아래예요. 아직 돌파를 말하기엔 거리가 있어요.</li><li>직전 큰 상승(2,877 → 9,386)의 0.69만큼 내려왔어요. 0.618 아래는 흐름이 바뀌었을 수 있는 구간이에요.</li><li>아래에서 받쳐 줄 자리: 4,604 / 3,851</li><li>코스피 지수 상태: 60일선 아래 역배열 → 시장 전체가 약해서 돌파가 나와도 한 번 더 확인이 필요해요</li></ul></div>
+    <div><h4 style="margin:0 0 6px">해석</h4><ul><li>지금 가격은 저항선보다 45% 아래예요. 아직 돌파를 말하기엔 거리가 있어요.</li><li>직전 큰 상승(2,877 → 9,386)의 0.69만큼 내려왔어요. 0.618 아래는 흐름이 바뀌었을 수 있는 구간이에요.</li><li>아래에서 받쳐 줄 자리: 4,604 / 3,851</li><li>코스피 지수 상태: 60일선 아래 역배열 → 시장 전체가 약해서 돌파가 나와도 한 번 더 확인이 필요해요</li></ul></div>
     <p class="pk-note" style="text-align:left">차트 모양을 규칙대로 자동 분석한 참고 자료예요. 특정 가격에 사고팔라는 권유가 아니며, 가격이 어느 자리에 있는지 보는 용도로만 써 주세요.</p>
   </section>
 

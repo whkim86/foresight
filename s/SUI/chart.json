@@ -50,5 +50,34 @@
  ],
  "market": "비트코인 상태: 특별한 경고 없음",
  "combo": "다음 거래일 AI 판정 '혼돈'. AI 6일 예측 중앙값은 +8.9%(1,052)로, 저항선(1,616)까지는 못 미쳐요 → 당분간은 돌파보다 아래 지지 자리를 지키는지 보는 구간이에요.",
+ "score": {
+  "chart": 40,
+  "chart_grade": "중",
+  "with_ai": 42,
+  "with_ai_grade": "중",
+  "parts": {
+   "shape": 10,
+   "checklist": 12,
+   "market": 18
+  },
+  "checklist": {
+   "반전 첫 신호(저점 상승)": true,
+   "전고 돌파(추세 완성)": false,
+   "거래량 1.5배": false,
+   "상승 다이버전스": false,
+   "하락 다이버전스 없음": true,
+   "큰 상승(깃대) +100%": false,
+   "되돌림 0.618 안": false
+  },
+  "warnings": [],
+  "patterns": [
+   {
+    "name": "확산형",
+    "status": "형성 중",
+    "side": "neutral",
+    "note": "저항선 1,616 돌파 대기"
+   }
+  ]
+ },
  "pick_date": "2026-11-20"
 }

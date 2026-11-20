@@ -49,5 +49,36 @@
  ],
  "market": "비트코인 상태: 특별한 경고 없음",
  "combo": "다음 거래일 AI 판정 '혼돈'. AI 6일 예측 범위 위쪽(9,342)이 돌파 확인 자리(9,227)까지 닿아요 → 이번 주 돌파 시도 가능성을 지켜볼 만해요.",
+ "score": {
+  "chart": 30,
+  "chart_grade": "약",
+  "with_ai": 34,
+  "with_ai_grade": "약",
+  "parts": {
+   "shape": 0,
+   "checklist": 12,
+   "market": 18
+  },
+  "checklist": {
+   "반전 첫 신호(저점 상승)": true,
+   "전고 돌파(추세 완성)": false,
+   "거래량 1.5배": false,
+   "상승 다이버전스": false,
+   "하락 다이버전스 없음": true,
+   "큰 상승(깃대) +100%": false,
+   "되돌림 0.618 안": false
+  },
+  "warnings": [
+   "하락 추세선 형성 중"
+  ],
+  "patterns": [
+   {
+    "name": "하락 추세선",
+    "status": "형성 중",
+    "side": "down",
+    "note": "저항선 8,958 돌파 대기"
+   }
+  ]
+ },
  "pick_date": "2026-11-20"
 }

@@ -227,6 +227,16 @@ HEAD = """<!doctype html>
 .ca ul {{ margin: 0; padding-left: 18px; color: var(--sub); font-size: 14px; line-height: 1.7; }}
 .ca-combo {{ border: 1.5px solid #C99700; background: #FFF9E6; border-radius: 10px; padding: 12px 14px; font-size: 14.5px; line-height: 1.6; }}
 .ca-combo b {{ color: #8A6A00; }}
+.ca-score {{ border: 1px solid #E6E9F0; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }}
+.ca-scs {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }}
+.ca-sc {{ background: #FAFBFD; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }}
+.ca-sc small {{ width: 100%; color: var(--muted); font-size: 12px; }}
+.ca-sc b {{ font-size: 28px; line-height: 1; }}
+.ca-sc span {{ color: #fff; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }}
+.ca-chips {{ display: flex; flex-wrap: wrap; gap: 6px; }}
+.ca-chip {{ background: #F4F6FA; border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--ink); }}
+.ca ul.ca-ck {{ list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 10px; font-size: 13.5px; }}
+.ca ul.ca-warn {{ list-style: none; padding: 0; color: #B4232A; font-size: 13.5px; }}
 </style>
 <script type="application/ld+json">{ld}</script>
 </head>
@@ -294,9 +304,34 @@ def analysis_html(p, unit):
     notes = "".join(f"<li>{esc(n)}</li>" for n in js.get("notes", []) + ([js["market"]] if js.get("market") else []))
     combo = f'<div class="ca-combo"><b>🤖 AI 예측과 같이 보면</b><br>{esc(js["combo"])}</div>' if js.get("combo") else ""
     nm = esc(name_of(p))
+    # 차트 신호 점검표·점수 (2026-11-20 사용자 승인: 0~100 + 강·중·약, AI 뺀 점수·넣은 점수 둘 다)
+    sc = js.get("score")
+    score_html, teaser = "", ""
+    if sc:
+        gc = {"강": "#E5484D", "중": "#C99700", "약": "#8A93A6"}
+        badge = lambda lab, v, g: (f'<div class="ca-sc"><small>{lab}</small><b style="color:{gc.get(g, "#12182B")}">{v}</b>'  # noqa: E731
+                                   f'<span style="background:{gc.get(g, "#8A93A6")}">{g}</span></div>')
+        side_ic = {"up": "🟢", "down": "🔴", "neutral": "⚪"}
+        pats = "".join(f'<span class="ca-chip">{side_ic.get(x["side"], "⚪")} {esc(x["name"])} · {esc(x["status"])}</span>' for x in sc["patterns"]) \
+            or '<span class="ca-chip">⚪ 뚜렷한 모양 없음</span>'
+        ck = "".join(f'<li>{"✅" if v else "▫️"} {esc(k)}</li>' for k, v in sc["checklist"].items())
+        warn = "".join(f"<li>⚠️ {esc(w)}</li>" for w in sc["warnings"])
+        score_html = f"""
+    <div class="ca-score">
+      <h4 style="margin:0 0 8px">📊 차트 신호 점검</h4>
+      <div class="ca-scs">{badge("차트만 본 점수", sc["chart"], sc["chart_grade"])}{badge("AI 예측까지 넣은 점수", sc["with_ai"], sc["with_ai_grade"]) if sc.get("with_ai") is not None else ""}</div>
+      <div class="ca-chips">{pats}</div>
+      <ul class="ca-ck">{ck}</ul>
+      {f'<ul class="ca-warn">{warn}</ul>' if warn else ""}
+      <small style="color:var(--muted);font-size:12px">모양 {sc["parts"]["shape"]}/40 · 점검표 {sc["parts"]["checklist"]}/42 · 시장 {sc["parts"]["market"]}/18 · AI 넣은 점수 = 차트×0.8 + AI 판정(상승 20·혼돈 10·하락 0) · 70↑ 강 · 40~69 중 · 40↓ 약<br>
+      조건이 몇 개 맞는지 센 점수예요. 앞으로 오를 확률이 아니에요.</small>
+    </div>"""
+        teaser = f'<p style="font-size:15px;color:var(--ink)">📊 차트 신호 점수 <b style="color:{gc.get(sc["chart_grade"])}">{sc["chart"]}점 · {sc["chart_grade"]}</b>' + \
+                 (f' · AI 포함 <b style="color:{gc.get(sc["with_ai_grade"])}">{sc["with_ai"]}점 · {sc["with_ai_grade"]}</b>' if sc.get("with_ai") is not None else "") + "</p>"
     return f"""
   <section class="card pk-cta">
     <b style="font-size:17px">📐 차트로 보면 어떤 자리일까?</b>
+    {teaser}
     <button class="btn big" type="button" onclick="var c=document.getElementById('ca');c.classList.toggle('open');this.textContent=c.classList.contains('open')?'차트 분석 접기':'📐 차트 분석 보기';if(c.classList.contains('open')){{c.scrollIntoView({{behavior:'smooth'}});try{{Portal.track('pick_chart')}}catch(e){{}}}}">📐 차트 분석 보기</button>
     <p>추세선·지지선·피보나치·거래가 몰린 가격대를 자동으로 그려서, 앞으로 볼 자리를 정리했어요</p>
   </section>
@@ -306,6 +341,7 @@ def analysis_html(p, unit):
     <a href="chart.webp?v={esc(js["date"])}" target="_blank" rel="noopener"><img src="chart.webp?v={esc(js["date"])}" alt="{nm} 차트 분석: 저항선·지지선·앞으로 볼 자리" loading="lazy"></a>
     <small style="color:var(--muted);font-size:12px;margin-top:-8px">그림을 누르면 크게 볼 수 있어요</small>
     <div class="ca-pat">지금 모양: <b>{esc(js.get("pattern", "-"))}</b><br>{esc(js.get("pattern_help", ""))}</div>
+    {score_html}
     {combo}
     <div><h4 style="margin:0 0 8px">앞으로 볼 자리</h4><div class="ca-lv">{lv}</div></div>
     <div><h4 style="margin:0 0 6px">해석</h4><ul>{notes}</ul></div>
