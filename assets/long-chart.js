@@ -9,7 +9,7 @@
   const LIB = "https://cdn.jsdelivr.net/npm/lightweight-charts@5.0.9/dist/lightweight-charts.standalone.production.js";
   const PERIODS = [[14, "2주"], [31, "1달"], [92, "3달"], [183, "6달"], [366, "1년"], [1830, "5년"]];
   const KEY = "longChart.v2";  // v2: 기본을 2주 새 차트로 (2026-11-17 사용자 요청)
-  let pref = { period: 14, type: "candle", ma: [20], bb: false, fib: false, sub: "vol" };
+  let pref = { period: 14, type: "candle", ma: [20], bb: false, fib: false, sub: "vol", rules: true };  // rules: 📐 차트 분석 (2026-11-20 처음부터 켬)
   try { Object.assign(pref, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(pref)); } catch (e) {} };
 
@@ -56,6 +56,17 @@
   }
 
   /* ---------- 계산 ---------- */
+  // 📐 차트 분석 데이터 (비공개 계산기 whkim86/chart-rules → <시장>/rules/, 2026-11-20 B안)
+  let rIdxP = null;
+  const rules = {};
+  function loadRules(sym) {
+    if (!rIdxP) rIdxP = getText(`${board.market}/rules/index.json`).then(JSON.parse).catch(() => ({ files: {} }));
+    return rules[sym] || (rules[sym] = rIdxP.then((idx) => {
+      const f = idx.files && idx.files[sym];
+      return f ? getText(`${board.market}/rules/${f}`).then(JSON.parse) : null;
+    }).catch(() => null));
+  }
+
   function isoFromMD(md, ref) {
     const m = String(md).match(/(\d{1,2})\s*-\s*(\d{1,2})/); if (!m) return null;
     let best = null;
@@ -110,7 +121,8 @@
       '<div class="lc-row"><span class="lc-cap">겹쳐 보기</span>' +
       [5, 15, 20, 60, 120].map((n, i) => `<button type="button" class="lc-chip" data-ma="${n}"><i style="background:var(--ma${n})"></i>${i ? n : "이동평균 5"}</button>`).join("") +
       '<button type="button" class="lc-chip" data-o="bb"><i style="background:var(--bb)"></i>볼린저 밴드</button>' +
-      '<button type="button" class="lc-chip" data-o="fib"><i style="background:var(--fib)"></i>피보나치 되돌림</button></div>' +
+      '<button type="button" class="lc-chip" data-o="fib"><i style="background:var(--fib)"></i>피보나치 되돌림</button>' +
+      '<button type="button" class="lc-chip" data-o="rules" title="저항선·지지선·앞으로 볼 자리·예상 흐름을 자동으로 그려요"><i style="background:#7C4DFF"></i>📐 차트 분석</button></div>' +
       '<div class="lc-row"><span class="lc-cap">아래 칸</span><div class="seg" role="group" aria-label="아래 칸 지표">' +
       '<button type="button" data-s="">없음</button><button type="button" data-s="vol">거래량</button><button type="button" data-s="rsi">RSI</button><button type="button" data-s="macd">MACD</button></div></div></div>';
     const box = document.createElement("div");
@@ -179,7 +191,8 @@
     const L = P.lc, co = P.lcCo, sym = P.coin;
     L.el.empty.hidden = false; L.el.empty.textContent = "불러오는 중…";
     try {
-      const [, dd] = await Promise.all([loadLib(), daily(co, sym)]);
+      const [, dd, rj] = await Promise.all([loadLib(), daily(co, sym), loadRules(sym)]);
+      L.rules = rj;
       if (P.coin !== sym) return;
       const { src, ref, bars } = dd;
       let after = dd.after;
@@ -217,6 +230,10 @@
     const wk = pref.period > 200, bars = wk ? weekly(D.bars) : D.bars, closes = bars.map((b) => b.close);
     const up = css("--up"), dn = css("--dn"), ink = css("--ink"), fc = D.fc;
     const W = (arr) => bars.map((b, i) => (arr[i] === null ? { time: b.time } : { time: b.time, value: arr[i] }));
+    // 📐 차트 분석: 켜져 있고, 데이터가 있고, 지난 예측 보기가 아닐 때만
+    const RJ = pref.rules && L.rules && L.rules.res && !D.after.length ? L.rules : null;
+    const lastT = bars[bars.length - 1].time;
+    const fut = RJ ? (RJ.fut || []).filter((t) => t > lastT).map((t) => ({ time: t })) : [];  // 앞날 빈 칸 (예상 흐름이 눌리지 않게)
 
     if (fc.length) {  // 예측 구간 음영
       S.bg = chart.addSeries(LW.HistogramSeries, { priceScaleId: "lcbg", color: css("--fc-bg"), priceLineVisible: false, lastValueVisible: false });
@@ -225,10 +242,10 @@
     }
     if (pref.type === "candle") {
       S.main = chart.addSeries(LW.CandlestickSeries, { priceFormat: PF, upColor: up, downColor: dn, borderUpColor: up, borderDownColor: dn, wickUpColor: up, wickDownColor: dn, priceLineVisible: false });
-      S.main.setData(bars.map((b) => ({ time: b.time, open: b.open, high: b.high, low: b.low, close: b.close })));
+      S.main.setData(bars.map((b) => ({ time: b.time, open: b.open, high: b.high, low: b.low, close: b.close })).concat(fut));
     } else {
       S.main = chart.addSeries(LW.LineSeries, { priceFormat: PF, color: ink, lineWidth: 2, priceLineVisible: false });
-      S.main.setData(bars.map((b) => ({ time: b.time, value: b.close })));
+      S.main.setData(bars.map((b) => ({ time: b.time, value: b.close })).concat(fut));
     }
     pref.ma.forEach((n) => { line(css("--ma" + n)).setData(W(sma(closes, n))); });
     if (pref.bb) {
@@ -270,8 +287,29 @@
       }
       const panes = chart.panes(); if (panes[1]) panes[1].setHeight(Math.round(L.el.chart.clientHeight * 0.26));
     }
+    if (RJ) {  // 📐 차트 분석 선·태그·예상 흐름
+      const pt = (a) => ({ time: a[0], value: a[1] });
+      const ok = (arr) => arr.filter((a) => a && a[0]).map(pt).sort((x, y) => (x.time < y.time ? -1 : 1));
+      const rl = (color, o) => line(color, Object.assign({ lineWidth: 2 }, o || {}));
+      rl("#7C4DFF", { lineWidth: 2.5 }).setData(ok(RJ.res));
+      if (RJ.sup && RJ.sup.length) rl("#1E9E6A", { lineStyle: LW.LineStyle.Dashed }).setData(ok(RJ.sup));
+      rl("#1E9E6A", { lineStyle: LW.LineStyle.LargeDashed }).setData(ok(RJ.up));
+      rl("#E5484D", { lineStyle: LW.LineStyle.LargeDashed }).setData(ok(RJ.dn));
+      const TC = { goal: ["#1E9E6A", 0], watch: ["#7C4DFF", 0], watch2: ["#7C4DFF", 2], risk: ["#E5484D", 0] };
+      const hiShown = Math.max(...bars.slice(-Math.max(10, Math.round(pref.period * 0.7))).map((b) => b.high));
+      (RJ.tags || []).forEach((g, j) => {
+        if (g.k === "goal" && j > 0 && g.p > hiShown * 1.6) return;  // 너무 먼 목표 ②③은 뺌
+        const [col, st] = TC[g.k] || ["#8A93A6", 0];
+        S.main.createPriceLine({ price: g.p, color: col, lineWidth: 2, lineStyle: st, axisLabelVisible: true, title: g.t });
+      });
+      if (!wk && LW.createSeriesMarkers && RJ.touches) {
+        const have = new Set(bars.map((b) => b.time));
+        LW.createSeriesMarkers(S.main, RJ.touches.filter((t) => have.has(t)).map((t) => ({ time: t, position: "aboveBar", shape: "circle", color: "#7C4DFF", size: 0.6 })));
+      }
+    }
     // 보이는 기간
-    const end = fc.length ? fc[fc.length - 1].time : D.after.length ? D.after[D.after.length - 1].time : bars[bars.length - 1].time;
+    let end = fc.length ? fc[fc.length - 1].time : D.after.length ? D.after[D.after.length - 1].time : bars[bars.length - 1].time;
+    if (RJ && RJ.up && RJ.up.length && pref.period <= 366) { const ue = RJ.up[RJ.up.length - 1][0]; if (ue > end) end = ue; }
     const from = new Date(Date.parse(D.bars[D.bars.length - 1].time) - pref.period * 864e5).toISOString().slice(0, 10);
     let shown = bars.filter((b) => b.time >= from); if (shown.length < 2) shown = bars.slice(-5);
     chart.timeScale().setVisibleRange({ from: shown[0].time, to: end });
@@ -457,6 +495,67 @@
     } catch (e) { if (sec) sec.hidden = true; }
   }
 
+  // 📐 차트 신호 점검 (오른쪽 카드, '차트 지표 해석' 아래) — 무료 페이지와 같은 계산, AI 포함 점수·AI 한 줄은 여기서 계산
+  const crCss = document.createElement("style");
+  crCss.textContent = `.cr-scs{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:8px 0}
+  .cr-sc{background:var(--fc-bg);border-radius:10px;padding:8px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cr-sc small{width:100%;color:var(--muted);font-size:12px}.cr-sc b{font-size:26px;line-height:1}
+  .cr-sc span{color:#fff;font-size:12.5px;font-weight:700;border-radius:999px;padding:2px 9px}
+  .cr-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.cr-chip{background:var(--fc-bg);border-radius:999px;padding:3px 10px;font-size:13px}
+  .cr-list{list-style:none;padding:0;margin:6px 0 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:2px 10px;font-size:13.5px}
+  .cr-warn{list-style:none;padding:0;margin:6px 0 0;color:var(--dn-ink);font-size:13.5px}
+  .cr-lv{display:flex;flex-direction:column;gap:5px;margin-top:8px}.cr-lv div{display:flex;justify-content:space-between;gap:8px;border-left:4px solid;padding:5px 9px;border-radius:8px;background:var(--fc-bg);font-size:13.5px}
+  .cr-lv .goal{border-color:#1E9E6A}.cr-lv .watch{border-color:#7C4DFF}.cr-lv .risk{border-color:#E5484D}.cr-lv b{font-variant-numeric:tabular-nums}
+  .cr-combo{margin-top:10px;padding:10px 12px;border-radius:10px;border:1.5px solid #C99700;font-size:14px;line-height:1.6}`;
+  document.head.appendChild(crCss);
+  const GC = { 강: "#E5484D", 중: "#C99700", 약: "#8A93A6" };
+  const grade = (x) => (x >= 70 ? "강" : x >= 40 ? "중" : "약");
+  const escH = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (x) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[x]);
+  async function rulesRender(P) {
+    const sym = P.coin, read = P.el.read;
+    if (!read) return;
+    let sec = read.querySelector(".cr-sec");
+    try {
+      const rj = await loadRules(sym);
+      if (P.coin !== sym) return;
+      sec = read.querySelector(".cr-sec");
+      if (!rj || !rj.card) { if (sec) sec.hidden = true; return; }
+      if (!sec) {
+        sec = document.createElement("div");
+        sec.className = "read-sec cr-sec";
+        const after = read.querySelector(".ta-sec"), rule = read.querySelector("details.rule");
+        if (after && after.nextSibling) read.insertBefore(sec, after.nextSibling); else if (rule) read.insertBefore(sec, rule); else read.appendChild(sec);
+      }
+      const c = rj.card, sc = c.score, v = P.a && P.a.verdict;
+      const vw = v === "up" || v === "상승" ? "상승" : v === "dn" || v === "하락" ? "하락" : v ? "혼돈" : null;
+      let html = `<h4>📐 차트 분석 · 신호 점검 (${escH(rj.date.slice(5))} 기준)</h4>`;
+      html += `<p style="margin:6px 0 0">지금 모양: <b>${escH(c.pattern || "-")}</b> <span style="color:var(--muted);font-size:13px">${escH(c.pattern_help || "")}</span></p>`;
+      if (sc) {
+        const ai = vw ? Math.round(sc.chart * 0.8 + { 상승: 20, 혼돈: 10, 하락: 0 }[vw]) : null;
+        const badge = (lab, x) => `<div class="cr-sc"><small>${lab}</small><b style="color:${GC[grade(x)]}">${x}</b><span style="background:${GC[grade(x)]}">${grade(x)}</span></div>`;
+        html += `<div class="cr-scs">${badge("차트만 본 점수", sc.chart)}${ai != null ? badge(`AI 예측까지 넣은 점수 (판정 ${vw})`, ai) : ""}</div>`;
+        const ic = { up: "🟢", down: "🔴", neutral: "⚪" };
+        html += `<div class="cr-chips">${(sc.patterns || []).map((p) => `<span class="cr-chip">${ic[p.side] || "⚪"} ${escH(p.name)} · ${escH(p.status)}</span>`).join("") || '<span class="cr-chip">⚪ 뚜렷한 모양 없음</span>'}</div>`;
+        html += `<ul class="cr-list">${Object.entries(sc.checklist || {}).map(([k, x]) => `<li>${x ? "✅" : "▫️"} ${escH(k)}</li>`).join("")}</ul>`;
+        if (sc.warnings && sc.warnings.length) html += `<ul class="cr-warn">${sc.warnings.map((w) => `<li>⚠️ ${escH(w)}</li>`).join("")}</ul>`;
+      }
+      html += `<div class="cr-lv">${(c.levels || []).map((x) => `<div class="${x.kind}"><span>${escH(x.label)} <small style="color:var(--muted)">${escH(x.note)}</small></span><b>${fmt(x.price)}</b></div>`).join("")}</div>`;
+      // AI 6일 예측과 같이 보면 (무료 페이지와 같은 규칙)
+      const L = P.lc, fcv = L && L.data && L.data.sym === sym ? L.data.fc : null;
+      if (fcv && fcv.length && rj.ep1) {
+        const lastF = fcv[fcv.length - 1];
+        const s = lastF.q3 >= rj.ep1 ? "AI 6일 예측 범위 위쪽이 돌파 확인 자리까지 닿아요 → 이번 주 돌파 시도를 지켜볼 만해요."
+          : lastF.med >= rj.line * 0.97 ? "AI 6일 예측 중앙값이 저항선 근처까지 와요 → 저항선에서 막히는지 넘는지가 관건이에요."
+          : `AI 6일 예측 중앙값(${fmt(lastF.med)})으로는 저항선(${fmt(rj.line)})까지 못 미쳐요 → 당분간은 아래 지지 자리를 지키는지 보는 구간이에요.`;
+        html += `<p class="cr-combo">🤖 ${s}</p>`;
+      }
+      if ((c.notes || []).length || c.market) html += `<ul class="ta-list" style="margin-top:10px">${(c.notes || []).concat(c.market ? [c.market] : []).map((n) => `<li>${escH(n)}</li>`).join("")}</ul>`;
+      html += `<p class="ta-fine">추세선·패턴·기본 점검표 7개·시장 상태를 규칙대로 센 점수예요 (차트 점수 = 모양 40 + 점검표 42 + 시장 18, AI 포함 = 차트×0.8 + AI 판정 20·10·0, 70↑ 강 · 40~69 중 · 40↓ 약). 앞으로 오를 확률이 아니며 투자 권유가 아니에요. 차트 위 선은 '긴 기간' 보기에서 '📐 차트 분석'으로 켜고 끌 수 있어요.</p>`;
+      sec.innerHTML = html;
+      sec.hidden = false;
+    } catch (e) { if (sec) sec.hidden = true; }
+  }
+
   // 원본 화면이 종목을 고를 때마다 부름
   window.portalLong = function (P, co, pd) {
     setup(P);
@@ -465,7 +564,7 @@
     P.lc.data = null;  // 지난 예측 보기 등으로 같은 종목이라도 예측이 바뀔 수 있음
     sync(P);
     if (pref.period > 0) load(P);
-    setTimeout(() => taRender(P), 0);  // 오른쪽 카드는 원본이 이 뒤에 다시 그리므로 그다음에 붙임
+    setTimeout(() => taRender(P).then(() => rulesRender(P)), 0);  // 오른쪽 카드는 원본이 이 뒤에 다시 그리므로 그다음에 붙임 (차트 분석은 지표 해석 아래)
   };
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => (window.portalPanels || []).forEach((P) => P.lc && draw(P)));
 })();

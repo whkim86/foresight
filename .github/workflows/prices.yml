@@ -57,3 +57,25 @@ jobs:
           SUPABASE_URL: https://qtzmfuaqzutzvnulfdel.supabase.co
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           PYTHONIOENCODING: utf-8
+
+      # 📐 회원 대시보드 '차트 분석' (계산기는 비공개 저장소 whkim86/chart-rules — 읽기 전용 토큰, 2026-11-20)
+      #   원장 기준일이 바뀐 시장만 다시 계산 → forecasts/<시장>/rules/ (이용권 있는 탭만 읽힘)
+      - name: 차트 분석 계산기 받기
+        if: always()
+        uses: actions/checkout@v5
+        with:
+          repository: whkim86/chart-rules
+          token: ${{ secrets.CHART_RULES_TOKEN }}
+          path: _chart_rules
+
+      - name: 차트 분석 계산
+        if: always()
+        run: |
+          pip install --quiet numpy==2.1.3
+          ARGS=""
+          for m in ${{ inputs.market }}; do ARGS="$ARGS --market $m"; done
+          python _chart_rules/build_dash.py $ARGS
+        env:
+          SUPABASE_URL: https://qtzmfuaqzutzvnulfdel.supabase.co
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          PYTHONIOENCODING: utf-8
