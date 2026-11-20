@@ -191,11 +191,11 @@
   "sym": "BTC",
   "ko": "비트코인",
   "market": "upbit",
-  "date": "2026-11-18",
-  "verdict": "상승",
-  "votes": "52개 모델 중 상승 51 · 하락 1",
+  "date": "2026-11-20",
+  "verdict": "혼돈",
+  "votes": "52개 모델 중 상승 27 · 하락 15",
   "rank": null,
-  "today": false
+  "today": true
  },
  {
   "slug": "SK하이닉스",
