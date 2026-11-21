@@ -93,6 +93,11 @@
       return f ? getText(`${board.market}/rules/${f}`).then(JSON.parse) : null;
     }).catch(() => null));
   }
+  // 종목 고르기 '🧩 패턴순' 정렬용 (2026-11-22): index.json 의 pat = {종목: [점수, "상승 깃발 완성", [경고]]}
+  window.portalRulesIndex = function () {
+    if (!rIdxP) rIdxP = getText(`${board.market}/rules/index.json`).then(JSON.parse).catch(() => ({ files: {} }));
+    return rIdxP;
+  };
 
   function isoFromMD(md, ref) {
     const m = String(md).match(/(\d{1,2})\s*-\s*(\d{1,2})/); if (!m) return null;
@@ -353,9 +358,31 @@
         const [col, st] = TC[g.k] || ["#8A93A6", 0];
         S.main.createPriceLine({ price: g.p, color: col, lineWidth: 2, lineStyle: st, axisLabelVisible: true, title: g.t });
       });
+      // 🧩 새 패턴 (상승 4종): 완성 = 실선, 완성 직전 = 점선 + 목표·손절 가격선 (2026-11-22)
+      const NP = ((RJ.card || {}).newpat || {}).items || [];
+      const npOn = NP.filter((x) => x.state !== "아님");
+      const npCol = (lab) => (/상단|BP/.test(lab) ? "#E5484D" : /하단/.test(lab) ? "#3B6FE0" : "#C99700");
+      npOn.forEach((x) => {
+        (x.lines || []).forEach((g) => {
+          if (!g[0] || !g[2] || g[0] >= g[2]) return;  // 두 점 선 (주봉이어도 처음·끝 점은 그대로 둠)
+          const pts = [[g[0], g[1]], [g[2], g[3]]];
+          rl(npCol(g[5]), { lineWidth: 2, lineStyle: x.state === "완성" ? LW.LineStyle.Solid : LW.LineStyle.Dotted }).setData(ok(pts));
+        });
+      });
+      const npBest = npOn.sort((a, b) => (a.state === b.state ? 0 : a.state === "완성" ? -1 : 1))[0];
+      if (npBest) {
+        const sh = npBest.name.replace("과장 상승 다이버전스", "과장 다이버").replace("3 Tight Closes", "3TC");
+        if (npBest.target) S.main.createPriceLine({ price: npBest.target, color: "#1E9E6A", lineWidth: 1, lineStyle: LW.LineStyle.Dotted, axisLabelVisible: true, title: `${sh} 목표` });
+        if (npBest.stop) S.main.createPriceLine({ price: npBest.stop, color: "#E5484D", lineWidth: 1, lineStyle: LW.LineStyle.Dotted, axisLabelVisible: true, title: `${sh} 손절` });
+        if (npBest.state === "완성 직전" && npBest.trigger) S.main.createPriceLine({ price: npBest.trigger, color: "#C99700", lineWidth: 1, lineStyle: LW.LineStyle.Dashed, axisLabelVisible: true, title: `${sh} 완성 자리` });
+      }
       if (!wk && LW.createSeriesMarkers && RJ.touches) {
         const have = new Set(bars.map((b) => b.time));
         const mk = RJ.touches.filter((t) => have.has(t)).map((t) => ({ time: t, position: "aboveBar", shape: "circle", color: "#7C4DFF", size: 0.6 }));
+        npOn.forEach((x) => {
+          const t = x.state === "완성" ? x.since : lastT;
+          if (have.has(t)) mk.push({ time: t, position: "belowBar", shape: "arrowUp", color: x.state === "완성" ? "#E5484D" : "#C99700", text: `${x.name} ${x.state}`, size: 1.2 });
+        });
         (RJ.patmarks || []).filter((m) => have.has(m.d)).forEach((m) => {  // 패턴 자리: 왼어깨·머리·오른어깨, 컵, W·M (2026-11-21)
           const col = m.side === "up" ? "#E5484D" : m.side === "down" ? "#3B6FE0" : "#C99700";
           mk.push({ time: m.d, position: m.pos === "below" ? "belowBar" : "aboveBar", shape: m.pos === "below" ? "arrowUp" : "arrowDown", color: col, text: m.t, size: 1 });
@@ -571,6 +598,28 @@
   const GC = { 강: "#E5484D", 중: "#C99700", 약: "#8A93A6" };
   const grade = (x) => (x >= 70 ? "강" : x >= 40 ? "중" : "약");
   const escH = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (x) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[x]);
+  // 🧩 매매 패턴 4종 (목표·손절 5년 검증에서 통한 것) + 돌파 직전 경고 (2026-11-22, 형님_차트분석법.md 29)
+  const npCss = document.createElement("style");
+  npCss.textContent = `.cr-np .done{background:#E5484D;border-color:#E5484D!important;color:#fff}.cr-np .done b{color:#fff!important}
+  .cr-np .near{border-color:#C99700!important;background:color-mix(in srgb,#C99700 14%,var(--fc-bg))}.cr-np .near b{color:#A87E00!important}
+  .cr-npd{list-style:none;padding:0;margin:6px 0 0;font-size:13.5px;line-height:1.6}.cr-npd li{margin:3px 0}`;
+  document.head.appendChild(npCss);
+  const shortD = (s) => (s ? `${+s.slice(5, 7)}/${+s.slice(8, 10)}` : "");
+  function newpatHtml(np) {
+    if (!np || !np.items) return "";
+    const on = np.items.filter((x) => x.state !== "아님");
+    let h = `<p style="margin:12px 0 4px;font-weight:600">🧩 매매 패턴 <small style="font-weight:400;color:var(--muted)">목표·손절 5년 검증에서 통한 4가지</small></p><div class="cr-grid cr-np">`;
+    h += np.items.map((x) => `<div class="${x.state === "완성" ? "done" : x.state === "완성 직전" ? "near" : "off"}"><span>${escH(x.name)}</span><b>${escH(x.state)}</b></div>`).join("") + "</div>";
+    if (on.length) {
+      h += `<ul class="cr-npd">${on.map((x) => {
+        const head = x.state === "완성" ? `🔴 <b>${escH(x.name)} 완성</b> (${shortD(x.since)}${x.ago ? `, ${x.ago}봉 전` : ", 오늘"})`
+          : `🟡 <b>${escH(x.name)} 완성 직전</b>` + (x.trigger ? ` — ${fmt(x.trigger)} 위로 마감하면 완성` : x.wait ? ` — 이 저점이 ${x.wait}봉 더 안 깨지면 완성` : "");
+        return `<li>${head}<br><small style="color:var(--muted)">${escH(x.text || "")}${x.target ? ` · 목표 ${fmt(x.target)}` : ""}${x.stop ? ` · 손절 ${fmt(x.stop)}` : ""}</small></li>`;
+      }).join("")}</ul>`;
+    }
+    if ((np.warn || []).length) h += `<ul class="cr-warn"><li>⚠️ 돌파 직전 경고: 최근 10봉 안 ${np.warn.map(escH).join(", ")} — 5년 검증에서 이런 때 나온 돌파는 손익비가 크게 낮았어요</li></ul>`;
+    return h;
+  }
   async function rulesRender(P) {
     const sym = P.coin, read = P.el.read;
     if (!read) return;
@@ -601,6 +650,7 @@
           const gc = { up: "#E5484D", down: "#3B6FE0", neutral: "#C99700" };
           html += `<p style="margin:10px 0 4px;font-weight:600">🔎 패턴 점검</p><div class="cr-grid">${c.grid.map((g) => `<div class="${g.side === "off" ? "off" : ""}" style="${gc[g.side] ? "border-color:" + gc[g.side] : ""}"><span>${escH(g.name)}</span><b style="color:${gc[g.side] || "var(--muted)"}">${escH(g.word.replace(" (형성 중)", ""))}</b></div>`).join("")}</div>`;
         }
+        html += newpatHtml(c.newpat);
         html += `<ul class="cr-list">${Object.entries(sc.checklist || {}).map(([k, x]) => `<li>${x ? "✅" : "▫️"} ${escH(k)}</li>`).join("")}</ul>`;
         if (sc.warnings && sc.warnings.length) html += `<ul class="cr-warn">${sc.warnings.map((w) => `<li>⚠️ ${escH(w)}</li>`).join("")}</ul>`;
       }
@@ -634,7 +684,15 @@
     const risk = lv.find((x) => x.kind === "risk");
     const done = (sc.patterns || []).find((p) => p.side === "up" && p.status === "완성");
     const broke = rj.ep1 && c >= rj.ep1;
-    return { c, pat: rj.card.pattern || "뚜렷한 모양 없음", goal1, risk, done, broke, ep1: rj.ep1, gap: rj.ep1 ? rj.ep1 / c - 1 : null };
+    const npi = ((rj.card.newpat || {}).items || []).filter((x) => x.state !== "아님").sort((a, b) => (a.state === b.state ? 0 : a.state === "완성" ? -1 : 1));
+    return { c, pat: rj.card.pattern || "뚜렷한 모양 없음", goal1, risk, done, broke, ep1: rj.ep1, gap: rj.ep1 ? rj.ep1 / c - 1 : null,
+      np: npi[0] || null, npWarn: (rj.card.newpat || {}).warn || [] };
+  }
+  function npLine(x) {  // 🧩 매매 패턴 한 줄 (완성 / 완성 직전)
+    if (!x) return "";
+    const tg = (x.target ? ` 목표 ${fmt(x.target)}` : "") + (x.stop ? `${x.target ? "," : ""} 손절 ${fmt(x.stop)}` : "");
+    if (x.state === "완성") return `🧩 ${em(x.name + " 완성", "u")}(${shortD(x.since)})!` + (tg ? ` 패턴 기준${tg}.` : "");
+    return `🧩 ${em(x.name + " 완성 직전", "")}` + (x.trigger ? ` — ${fmt(x.trigger)} 위로 마감하면 완성` : x.wait ? ` — 저점이 ${x.wait}봉 더 버티면 완성` : "") + (tg ? ` (${tg.trim()}).` : ".");
   }
   function oneLine(P) {
     const read = P.el.read, sec = read && read.querySelector(".read-sec");
@@ -648,6 +706,7 @@
     else if (f.ep1) t = `${em(escH(f.pat), "")} 저항선 아래예요. 흐름이 바뀌려면 ${fmt(f.ep1)} 위 마감(지금보다 ${pct(f.gap)})이 먼저예요.`;
     else t = `지금 모양: ${escH(f.pat)}.`;
     if (f.risk) t += ` ${fmt(f.risk.price)} 아래로 내려가면 ${em("조심할 자리", "d")}예요.`;
+    if (f.np) t += " " + npLine(f.np);
     if (!el) { el = document.createElement("p"); el.className = "cr-one"; sec.appendChild(el); }
     el.innerHTML = "📐 차트로 보면: " + t;
   }
@@ -676,7 +735,9 @@
       else if (f.ep1) s2 += `${f.pat} 저항선 아래라 ${fmt(f.ep1)} 위로 마감해야 흐름이 바뀌고`;
       else s2 += `${f.pat} 모양이고`;
       s2 = f.risk ? s2 + `, ${fmt(f.risk.price)} 아래로 내려가면 조심할 자리예요.` : `차트로는 ${f.pat} 모양이에요.`;
+      if (f.np) parts.push(npLine(f.np));
       parts.push(s2);
+      if (f.npWarn.length && (f.ep1 && f.gap < 0.05)) parts.push(`⚠️ 다만 최근 ${escH(f.npWarn[0])}가 있어 돌파가 나와도 조심해서 봐요.`);
     }
     if (!parts.length) { if (el) el.remove(); return; }
     if (!el) { el = document.createElement("p"); el.className = "lc-sum"; meta.insertAdjacentElement("afterend", el); }

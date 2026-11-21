@@ -415,13 +415,18 @@ function setPred(pd){
 }
 function altNames(){ var ms={}; CFG.mains.forEach(function(m){ms[m]=1}); var r=[]; cur.D.coins.forEach(function(co,k){ if(!ms[k]) r.push(k); }); return r; }
 var VORDER={up:0,mx:1,dn:2,hold:3,stale:4};
+/* 🧩 패턴순 (2026-11-22): long-chart.js 가 읽는 rules/index.json 의 pat = {종목:[점수,'상승 깃발 완성',[경고]]} */
+var PAT={}, PATP=null;
+function loadPat(){ if(!PATP&&window.portalRulesIndex){ PATP=window.portalRulesIndex().then(function(i){PAT=(i&&i.pat)||{}; if(cur) renderPicker();}).catch(function(){}); } }
 function altList(){
   var q=state.q.trim().toUpperCase();
   return altNames().filter(function(k){
     var v=cur.an.get(k).verdict;
+    if(state.filter==='pat') return !!PAT[k];
     if(state.filter!=='all'&&v!==state.filter) return false;
     return !q||k.toUpperCase().indexOf(q)>=0||(window.portalNameHit&&window.portalNameHit(k,q));
   }).sort(function(x,y){
+    if(state.filter==='pat') return PAT[y][0]-PAT[x][0];
     var ax=cur.an.get(x), ay=cur.an.get(y);
     if(VORDER[ax.verdict]!==VORDER[ay.verdict]) return VORDER[ax.verdict]-VORDER[ay.verdict];
     if(ax.verdict==='up') return ay.med1-ax.med1;
@@ -703,11 +708,12 @@ function renderAll(){
 }
 function renderPicker(){
   var c=counts(), F=[['all','전체'],['up','상승'],['mx','혼돈'],['dn','하락'],['hold','보류'],['stale','지연']];
+  loadPat(); c.pat=altNames().filter(function(k){return PAT[k]}).length; F.push(['pat','🧩 패턴']);
   $('#flt').innerHTML=F.filter(function(f){return f[0]==='all'||c[f[0]]>0}).map(function(f){return '<button data-f="'+f[0]+'" aria-pressed="'+(state.filter===f[0])+'">'+f[1]+' '+c[f[0]]+'</button>'}).join('');
   var list=altList();
   $('#coinlist').innerHTML=list.length?list.map(function(k){
     var v=cur.an.get(k).verdict;
-    return '<button class="cc '+v+'" data-coin="'+esc(k)+'" aria-pressed="'+(k===state.alt)+'">'+esc(k)+'</button>';
+    return '<button class="cc '+v+'" data-coin="'+esc(k)+'" aria-pressed="'+(k===state.alt)+'">'+esc(k)+(state.filter==='pat'&&PAT[k]?' <small>'+esc(PAT[k][1])+'</small>':'')+'</button>';
   }).join(''):'<span class="fine">조건에 맞는 '+CFG.noun+'이 없어요.</span>';
 }
 function selectAlt(name){
@@ -780,6 +786,6 @@ if(window.ResizeObserver){
 <script src="../assets/names.js?v=20261118a"></script>
 <script src="../assets/history.js?v=20261118a"></script>
 <script src="../assets/pattern-note.js?v=20261118a"></script>
-<script src="../assets/long-chart.js?v=20261121d"></script>
+<script src="../assets/long-chart.js?v=20261122a"></script>
 </body>
 </html>
