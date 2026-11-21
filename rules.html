@@ -45,7 +45,8 @@
 
   const MK = [["coin", "코인(업비트)"], ["bithumb", "코인(빗썸)"], ["nasdaq", "나스닥"], ["kospi", "코스피200"]];
   const WIN = [["5y", "5년"], ["1y", "1년"], ["90d", "90일"]];
-  let mk = "coin", win = "5y", reports = {};
+  const KIND = [["ind", "차트 지표 룰"], ["hyung", "📐 형님 룰"]];  // 2026-11-21 형님 룰 탭 (chart_rules/hyung_report.py)
+  let mk = "coin", win = "5y", kind = new URLSearchParams(location.search).get("t") === "hyung" ? "hyung" : "ind", reports = {}, hreports = {};
 
   const main = document.createElement("main");
   main.className = "page";
@@ -61,6 +62,7 @@
           <p class="hint" id="meta">룰이 켜진 날 종가에서 다음 거래일(D+1)·6거래일 뒤(D+6)에 룰 방향으로 갔는지 봐요. 회원 화면에는 숫자를 보여주지 않아요</p></div>
         <div class="seg win" style="width:240px" role="tablist">${WIN.map(([k, t]) => `<button type="button" data-win="${k}" aria-selected="${k === win}">${t}</button>`).join("")}</div>
       </div>
+      <div class="mk-tabs seg" role="tablist" style="width:auto;max-width:320px">${KIND.map(([k, t]) => `<button type="button" data-kind="${k}" aria-selected="${k === kind}">${t}</button>`).join("")}</div>
       <div class="mk-tabs seg" role="tablist" style="width:auto;max-width:520px">${MK.map(([k, t]) => `<button type="button" data-mk="${k}" aria-selected="${k === mk}">${t}</button>`).join("")}</div>
       <div id="rt" class="stack"></div>
       <p class="hint" style="font-size:12.5px;line-height:1.75">
@@ -82,17 +84,52 @@
   };
 
   async function load() {
-    const { data, error } = await sb.from("admin_reports").select("key,data,updated_at").like("key", "rules:%");
+    const { data, error } = await sb.from("admin_reports").select("key,data,updated_at").like("key", "rules%");
     if (error) {
       const msg = /admin_reports/.test(error.message || "") ? "supabase/stage38.sql 을 먼저 실행해 주세요." : errText(error);
       document.getElementById("rt").innerHTML = `<div class="msg error">${esc(msg)}</div>`; return;
     }
-    reports = Object.fromEntries((data || []).map((r) => [r.key.slice(6), r]));
+    reports = Object.fromEntries((data || []).filter((r) => r.key.startsWith("rules:")).map((r) => [r.key.slice(6), r]));
+    hreports = Object.fromEntries((data || []).filter((r) => r.key.startsWith("rules_hyung:")).map((r) => [r.key.slice(12), r]));
     render();
+  }
+
+  // ---------- 📐 형님 룰: 추세선 돌파 신호 채점 + 실제 매매(SL2+한도) 결과 ----------
+  function renderHyung(box) {
+    const r = hreports[mk];
+    if (!r) { box.innerHTML = `<div class="card"><div class="empty">아직 계산된 결과가 없어요. 가격 원장 수집 뒤 '차트 분석 계산' 단계 끝에 채워져요 (시장마다 하루 한 번).</div></div>`; return; }
+    const d = r.data, b = d.base[win] || {}, tr = (d.trades || {})[win] || {};
+    document.getElementById("meta").textContent = `${MK.find((x) => x[0] === mk)[1]} · ${d.symbols}종목 · 기준일 ${d.as_of} · 계산 ${String(d.generated || r.updated_at).replace("T", " ").slice(0, 19)} · 형님 룰(chart_rules)`;
+    const star = (w) => w.n >= 100 && w.ex1 >= 0.001 && w.ex6 >= 0.001;
+    const rows = d.rules.map((x, i) => {
+      const w = x.w[win];
+      return `<tr class="${star(w) ? "star" : ""}">
+        <td class="rname">${esc(x.name)}<small>${esc(x.desc)}</small></td>
+        <td><span class="dir ${x.dir > 0 ? "s-up" : "s-dn"}">${x.dir > 0 ? "상승" : "하락"}</span></td>
+        ${cell(w, 1)}${cell(w, 6)}<td class="num">${w.days.toLocaleString()}일</td>
+        <td class="today">${x.today_n ? `<b>${x.today_n}</b> · ${x.today.slice(0, 12).map(esc).join(", ")}${x.today_n > 12 ? " …" : ""}` : "—"}</td></tr>`;
+    }).join("");
+    const head = `<thead><tr><th>룰</th><th>방향</th><th class="num">D+1</th><th class="num">D+6</th><th class="num">켜진 날</th><th>오늘 켜진 종목</th></tr></thead>`;
+    const baseRow = `<tr class="base"><td colspan="2">기준선 · 전체 종목 전체 날</td><td class="num">오른 비율 ${b.hit1 == null ? "—" : fmtP(b.hit1)}<br>평균 ${b.avg1 == null ? "—" : fmtPP(b.avg1).replace("%p", "%")}</td><td class="num">오른 비율 ${b.hit6 == null ? "—" : fmtP(b.hit6)}<br>평균 ${b.avg6 == null ? "—" : fmtPP(b.avg6).replace("%p", "%")}</td><td class="num">${(b.days || 0).toLocaleString()}일</td><td></td></tr>`;
+    const pc = (x) => (x == null ? "—" : (x >= 0 ? "+" : "") + (x * 100).toFixed(1) + "%");
+    const kpi = (lab, v, sub) => `<div class="card kpi" style="padding:10px 12px"><span class="hint">${lab}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
+    const trHtml = tr.n ? `<div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-top:6px">
+        ${kpi("끝난 매매", tr.n.toLocaleString() + "건", `보유 중 ${tr.open || 0}건 (빼고 셈)`)}
+        ${kpi("이긴 비율", fmtP(tr.win), "수익으로 끝난 매매")}
+        ${kpi("평균 수익", pc(tr.avg), `중간값 ${pc(tr.med)}`)}
+        ${kpi("손익비 (PF)", tr.pf == null ? "—" : tr.pf.toFixed(2), "번 돈 합 ÷ 잃은 돈 합 · 1 넘으면 플러스")}
+        ${kpi("가장 좋았던 / 나빴던", `${pc(tr.best)} / ${pc(tr.worst)}`, "")}
+      </div>` : `<div class="empty">이 기간에 끝난 매매가 없어요</div>`;
+    box.innerHTML = `<div class="card" style="padding:10px 12px"><div class="market-head" style="margin:2px 0 4px">실제로 매매했다면 (점검 3개 이상 돌파 신호)</div>
+        <p class="hint" style="margin:0">신호 날 종가로 사고 · 리테스트 때 추가 매수 · 목표 ①②③에서 나눠 팔고 · 손절은 SL2+한도(리테스트 전 SL1, 주식 −5%·코인 −8% 한도) — 수수료 빼기 전 · 신호 날짜 기준 기간</p>${trHtml}</div>` +
+      `<div class="card table-wrap" style="padding:10px 12px"><div class="market-head" style="margin:2px 0 8px">신호 룰 채점 (차트 지표 룰과 같은 방식)</div>
+        <table class="list rt">${head}<tbody>${baseRow}${rows}</tbody></table>
+        <p class="hint" style="margin-top:6px;font-size:12.5px">점검 2개 이하·전체 줄은 비교용이에요. 형님 룰은 며칠~몇 주 끌고 가는 매매라 D+1·D+6 보다 위쪽 '실제로 매매했다면' 결과가 본 성적이에요. 패턴(헤드앤숄더·컵앤핸들 등) 하나하나의 5년 검증은 형님_차트분석법.md 25번에 있어요.</p></div>`;
   }
 
   function render() {
     const box = document.getElementById("rt"), r = reports[mk];
+    if (kind === "hyung") { renderHyung(box); return; }
     if (!r) { box.innerHTML = `<div class="card"><div class="empty">아직 계산된 결과가 없어요. 가격 원장 수집(GitHub Actions '가격 원장 수집') 뒤에 채워져요.</div></div>`; return; }
     const d = r.data, b = d.base[win];
     document.getElementById("meta").textContent = `${MK.find((x) => x[0] === mk)[1]} · ${d.symbols}종목 · 기준일 ${d.as_of} · 계산 ${d.generated.replace("T", " ")}` + (d.pred_rows ? ` · 예측 기록 ${d.pred_rows.toLocaleString()}건` : "");
@@ -116,6 +153,9 @@
 
   main.querySelectorAll("[data-win]").forEach((b) => b.addEventListener("click", () => {
     win = b.dataset.win; main.querySelectorAll("[data-win]").forEach((x) => x.setAttribute("aria-selected", String(x === b))); render();
+  }));
+  main.querySelectorAll("[data-kind]").forEach((b) => b.addEventListener("click", () => {
+    kind = b.dataset.kind; main.querySelectorAll("[data-kind]").forEach((x) => x.setAttribute("aria-selected", String(x === b))); render();
   }));
   main.querySelectorAll("[data-mk]").forEach((b) => b.addEventListener("click", () => {
     mk = b.dataset.mk; main.querySelectorAll("[data-mk]").forEach((x) => x.setAttribute("aria-selected", String(x === b))); render();
