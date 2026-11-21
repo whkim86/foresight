@@ -120,8 +120,18 @@
         ${kpi("손익비 (PF)", tr.pf == null ? "—" : tr.pf.toFixed(2), "번 돈 합 ÷ 잃은 돈 합 · 1 넘으면 플러스")}
         ${kpi("가장 좋았던 / 나빴던", `${pc(tr.best)} / ${pc(tr.worst)}`, "")}
       </div>` : `<div class="empty">이 기간에 끝난 매매가 없어요</div>`;
+    const tf = (d.trades_f || {})[win];
+    const fHtml = !d.trades_f ? "" : `<div class="card" style="padding:10px 12px"><div class="market-head" style="margin:2px 0 4px">🧭 국면 필터 적용하면</div>
+        <p class="hint" style="margin:0">${esc(d.filter_desc || "")} — 같은 매매 중 이 조건인 신호만 셈 (형님_차트분석법.md 28-2 검증)</p>` +
+      (tf && tf.n ? `<div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-top:6px">
+        ${kpi("끝난 매매", tf.n.toLocaleString() + "건", `필터 없음 ${(tr.n || 0).toLocaleString()}건`)}
+        ${kpi("이긴 비율", fmtP(tf.win), `필터 없음 ${tr.win == null ? "—" : fmtP(tr.win)}`)}
+        ${kpi("평균 수익", pc(tf.avg), `필터 없음 ${pc(tr.avg)}`)}
+        ${kpi("손익비 (PF)", tf.pf == null ? "—" : tf.pf.toFixed(2), `필터 없음 ${tr.pf == null ? "—" : tr.pf.toFixed(2)}`)}
+        ${kpi("가장 좋았던 / 나빴던", `${pc(tf.best)} / ${pc(tf.worst)}`, "")}
+      </div>` : `<div class="empty">이 기간엔 필터를 통과한 매매가 없어요</div>`) + `</div>`;
     box.innerHTML = `<div class="card" style="padding:10px 12px"><div class="market-head" style="margin:2px 0 4px">실제로 매매했다면 (점검 3개 이상 돌파 신호)</div>
-        <p class="hint" style="margin:0">신호 날 종가로 사고 · 리테스트 때 추가 매수 · 목표 ①②③에서 나눠 팔고 · 손절은 SL2+한도(리테스트 전 SL1, 주식 −5%·코인 −8% 한도) — 수수료 빼기 전 · 신호 날짜 기준 기간</p>${trHtml}</div>` +
+        <p class="hint" style="margin:0">신호 날 종가로 사고 · 리테스트 때 추가 매수 · 목표 ①②③에서 나눠 팔고 · 손절은 SL2+한도(리테스트 전 SL1, 주식 −5%·코인 −8% 한도) — 수수료 빼기 전 · 신호 날짜 기준 기간</p>${trHtml}</div>` + fHtml +
       `<div class="card table-wrap" style="padding:10px 12px"><div class="market-head" style="margin:2px 0 8px">신호 룰 채점 (차트 지표 룰과 같은 방식)</div>
         <table class="list rt">${head}<tbody>${baseRow}${rows}</tbody></table>
         <p class="hint" style="margin-top:6px;font-size:12.5px">점검 2개 이하·전체 줄은 비교용이에요. 형님 룰은 며칠~몇 주 끌고 가는 매매라 D+1·D+6 보다 위쪽 '실제로 매매했다면' 결과가 본 성적이에요. 패턴(헤드앤숄더·컵앤핸들 등) 하나하나의 5년 검증은 형님_차트분석법.md 25번에 있어요.</p></div>`;
