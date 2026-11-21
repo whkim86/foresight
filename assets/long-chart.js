@@ -595,7 +595,7 @@
         const ai = vw ? Math.round(sc.chart * 0.8 + { 상승: 20, 혼돈: 10, 하락: 0 }[vw]) : null;
         const badge = (lab, x) => `<div class="cr-sc"><small>${lab}</small><b style="color:${GC[grade(x)]}">${x}</b><span style="background:${GC[grade(x)]}">${grade(x)}</span></div>`;
         html += `<div class="cr-scs">${badge("차트만 본 점수", sc.chart)}${ai != null ? badge(`AI 예측까지 넣은 점수 (판정 ${vw})`, ai) : ""}</div>`;
-        const ic = { up: "🟢", down: "🔴", neutral: "⚪" };
+        const ic = { up: "🔴", down: "🔵", neutral: "⚪" };  // 국내 관례: 오름 빨강·내림 파랑 (패턴 점검 칸과 같게)
         html += `<div class="cr-chips">${(sc.patterns || []).map((p) => `<span class="cr-chip">${ic[p.side] || "⚪"} ${escH(p.name)} · ${escH(p.status)}</span>`).join("") || '<span class="cr-chip">⚪ 뚜렷한 모양 없음</span>'}</div>`;
         if ((c.grid || []).length) {  // 패턴 점검 8칸 (2026-11-21)
           const gc = { up: "#E5484D", down: "#3B6FE0", neutral: "#C99700" };

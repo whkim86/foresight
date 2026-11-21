@@ -234,7 +234,7 @@ HEAD = """<!doctype html>
 .ca-sc b {{ font-size: 28px; line-height: 1; }}
 .ca-sc span {{ color: #fff; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }}
 .ca-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }}
-.ca-g {{ display: flex; justify-content: space-between; gap: 6px; border: 1.5px solid; border-radius: 10px; padding: 7px 10px; font-size: 13.5px; background: #FAFBFD; }}
+.ca-g {{ display: flex; justify-content: space-between; align-items: center; gap: 6px; white-space: nowrap; border: 1.5px solid; border-radius: 10px; padding: 7px 10px; font-size: 13.5px; background: #FAFBFD; }}
 .ca-g span {{ font-weight: 600; }} .ca-g.off {{ border-color: #E6E9F0; color: #9AA3B5; }} .ca-g.off span {{ font-weight: 400; }}
 .ca-chips {{ display: flex; flex-wrap: wrap; gap: 6px; }}
 .ca-chip {{ background: #F4F6FA; border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--ink); }}
@@ -314,7 +314,7 @@ def analysis_html(p, unit):
         gc = {"강": "#E5484D", "중": "#C99700", "약": "#8A93A6"}
         badge = lambda lab, v, g: (f'<div class="ca-sc"><small>{lab}</small><b style="color:{gc.get(g, "#12182B")}">{v}</b>'  # noqa: E731
                                    f'<span style="background:{gc.get(g, "#8A93A6")}">{g}</span></div>')
-        side_ic = {"up": "🟢", "down": "🔴", "neutral": "⚪"}
+        side_ic = {"up": "🔴", "down": "🔵", "neutral": "⚪"}  # 2026-11-21: 국내 관례(오름 빨강·내림 파랑)로 패턴 점검 칸과 맞춤
         pats = "".join(f'<span class="ca-chip">{side_ic.get(x["side"], "⚪")} {esc(x["name"])} · {esc(x["status"])}</span>' for x in sc["patterns"]) \
             or '<span class="ca-chip">⚪ 뚜렷한 모양 없음</span>'
         ck = "".join(f'<li>{"✅" if v else "▫️"} {esc(k)}</li>' for k, v in sc["checklist"].items())
@@ -322,7 +322,7 @@ def analysis_html(p, unit):
         # 패턴 점검 8칸 (2026-11-21): 이동평균 배열 + 헤드앤숄더·역헤드앤숄더·컵앤핸들·W·M·쐐기 — 완성 / 가능성 / 아님
         gcol = {"up": "#E5484D", "down": "#3B6FE0", "neutral": "#C99700"}
         grid = "".join(f'<div class="ca-g{"" if g["side"] != "off" else " off"}" style="{"border-color:" + gcol[g["side"]] if g["side"] in gcol else ""}">'
-                       f'<span>{esc(g["name"])}</span><b style="color:{gcol.get(g["side"], "#9AA3B5")}">{esc(g["word"])}</b></div>'
+                       f'<span>{esc(g["name"])}</span><b style="color:{gcol.get(g["side"], "#9AA3B5")}">{esc(g["word"].replace(" (형성 중)", ""))}</b></div>'
                        for g in js.get("grid") or [])
         grid_html = (f'<h4 style="margin:4px 0 0">🔎 패턴 점검</h4><div class="ca-grid">{grid}</div>'
                      '<small style="color:var(--muted);font-size:12px">가능성 = 모양이 만들어지는 중 · 정해 둔 규칙에 맞을 때만 표시해요</small>') if grid else ""
