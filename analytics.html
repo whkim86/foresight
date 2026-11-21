@@ -51,6 +51,9 @@
     if (key === "login") return "로그인 · 가입";
     if (key === "home") return "포털 홈";
     if (key === "mypage") return "마이페이지";
+    const PICK = { pick: "무료 종목 페이지", pick_chart: "무료 페이지 · 차트 분석 열기", pick_cta: "무료 페이지 · 무료로 시작하기 클릭",
+                   pick_list: "오늘의 무료 종목 목록", pick_list_cta: "무료 목록 · 무료로 시작하기 클릭" };
+    if (PICK[key]) return PICK[key];
     if (key === "board") return "게시판";
     const [kind, a, b] = key.split(":");
     if (kind === "dash") return `대시보드 · ${Portal.marketName(a)}${b ? " · " + (VIEW[b] || b) : ""}`;
@@ -114,10 +117,28 @@
     main.querySelectorAll("#period button").forEach((b) => b.setAttribute("aria-selected", String(Number(b.dataset.d) === days)));
     const box = main.querySelector("#body");
     box.innerHTML = `<div class="empty">불러오는 중…</div>`;
-    const [{ data: d, error }, wdRes] = await Promise.all([
+    const [{ data: d, error }, wdRes, pkRes] = await Promise.all([
       sb.rpc("funnel_stats", { p_days: days }),
       sb.from("withdrawals").select("*").order("created_at", { ascending: false }).limit(100),
+      sb.rpc("pick_stats", { p_days: days }),  // stage39 — 아직 안 돌렸으면 조용히 생략
     ]);
+    // ---------- 무료 종목 페이지 → 가입 (2026-11-21) ----------
+    const pk = pkRes && !pkRes.error ? pkRes.data : null;
+    const SRCN = { yt: "유튜브", blog: "블로그", search: "검색", direct: "직접(주소·앱)", site: "사이트 안", other: "기타", unknown: "기록 전" };
+    const pkHtml = !pk ? "" : `
+      <section class="card" style="margin-top:16px">
+        <h2 style="font-size:16px">무료 종목 페이지 → 가입</h2><p class="hint">무료 페이지(/s/종목)로 들어온 방문이 어디까지 갔는지 · 같은 탭 안의 흐름만 이어져요 (기기를 바꾸면 따로 잡힘)</p>
+        ${funnel(["무료 종목 페이지", "차트 분석 열기", "무료로 시작하기 클릭", "로그인·가입 화면", "로그인 완료", "대시보드"], pk.funnel || [])}
+        <div class="grid2" style="margin-top:12px">
+          <div><b style="font-size:14px">들어온 곳</b>
+            ${(pk.by_src || []).length ? `<table class="list" style="margin-top:6px"><thead><tr><th>곳</th><th class="num">방문</th><th class="num">가입 버튼</th><th class="num">로그인 화면</th><th class="num">로그인 완료</th></tr></thead><tbody>${pk.by_src.map((r) => `<tr><td><b>${esc(SRCN[r.src] || r.src)}</b></td><td class="num">${n(r.n)}</td><td class="num">${n(r.cta)}</td><td class="num">${n(r.login)}</td><td class="num">${n(r.member)}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">아직 없어요</div>`}
+          </div>
+          <div><b style="font-size:14px">종목별 (상위 15)</b>
+            ${(pk.by_symbol || []).length ? `<table class="list" style="margin-top:6px"><thead><tr><th>종목</th><th class="num">방문</th><th class="num">차트 분석</th><th class="num">가입 버튼</th><th class="num">로그인 화면</th></tr></thead><tbody>${pk.by_symbol.slice(0, 15).map((r) => `<tr><td><b>${esc(r.symbol)}</b> <span class="muted">${esc(r.market ? Portal.marketName(r.market) : "")}</span></td><td class="num">${n(r.n)}</td><td class="num">${n(r.chart)}</td><td class="num">${n(r.cta)}</td><td class="num">${n(r.login)}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">아직 없어요</div>`}
+          </div>
+        </div>
+        <p class="hint" style="margin-top:8px">11/21 이전 기록은 종목·들어온 곳이 비어 있어요('기록 전')</p>
+      </section>`;
     if (error) { box.innerHTML = `<div class="msg error">${esc(errText(error))}</div>`; return; }
     // 탈퇴 사유 (stage18.sql) — 표가 아직 없으면 조용히 생략
     const WD = { accuracy: "예측이 기대와 달랐어요", hard: "보는 방법이 어렵거나 복잡해요", missing: "원하는 종목·시장이 없어요",
@@ -197,6 +218,8 @@
           ${funnel(["포털 홈", "대시보드", "가격 차트", "두 신호 설명 열기"], d.funnel_member || [])}
         </section>
       </div>
+
+      ${pkHtml}
 
       <section class="card" style="margin-top:16px">
         <h2 style="font-size:16px">홈 다음에 간 곳</h2><p class="hint">포털 홈 다음에 연 화면 · 홈 조회 ${n(hnTotal)}회 기준</p>

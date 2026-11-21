@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../../assets/style.css?v=20261118a">
+<link rel="stylesheet" href="../../assets/style.css?v=20261121a">
 <style>
 .pk { max-width: 760px; margin: 0 auto; padding: 28px 16px 56px; display: flex; flex-direction: column; gap: 18px; }
 .pk-hero { color: #fff; display: flex; flex-direction: column; gap: 8px; }
@@ -153,12 +153,31 @@
   <p class="legal-links"><a href="../../terms.html">이용약관</a>·<a href="../../privacy.html"><b>개인정보처리방침</b></a></p>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../../config.js?v=20261118a"></script>
-<script src="../../assets/app.js?v=20261118a"></script>
+<script src="../../config.js?v=20261121a"></script>
+<script src="../../assets/app.js?v=20261121a"></script>
 <script>
 // 방문 흐름 기록(운영자 '방문 흐름' 화면) + 이미 로그인한 회원은 버튼을 바로 그 종목 차트로
+// 2026-11-21: 종목·시장·들어온 곳(?from= 또는 이전 주소) 같이 남김, '무료로 시작하기' 클릭은 pick_cta
 (async function () {
-  try { Portal.track("pick"); } catch (e) {}
+  const SRC = (function () {
+    try {
+      const q = new URLSearchParams(location.search).get("from");
+      if (q && /^[a-z_]{1,20}$/.test(q)) return q;
+      const r = document.referrer ? new URL(document.referrer).hostname : "";
+      if (!r) return "direct";
+      if (r === location.hostname) return "site";
+      if (/youtube\.com$|youtu\.be$/.test(r)) return "yt";
+      if (/tistory\.com$|blog\.naver\.com$|m\.blog\.naver\.com$/.test(r)) return "blog";
+      if (/google\.|naver\.com$|daum\.net$|bing\.com$/.test(r)) return "search";
+      return "other";
+    } catch (e) { return "other"; }
+  })();
+  const EXTRA = {"p_symbol": "TIGER미국테크TOP10", "p_market": "kospi"};
+  try { Portal.track("pick", EXTRA ? Object.assign({ p_src: SRC }, EXTRA) : null); } catch (e) {}
+  document.addEventListener("click", function (ev) {
+    const a = ev.target.closest && ev.target.closest('a[href*="login.html"]');
+    if (a) try { PortalEvents.log({ p_kind: "view", p_page: "pick" === "pick" ? "pick_cta" : "pick_list_cta" }); } catch (e) {}
+  }, true);
   try {
     const { data: { session } } = await Portal.sb.auth.getSession();
     if (session) document.querySelectorAll("a[data-member]").forEach((a) => { a.href = a.dataset.member; a.textContent = a.dataset.memberText || a.textContent; });

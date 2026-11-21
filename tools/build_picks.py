@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parents[2]          # 클로드폴더
 SITE_DIR = Path(__file__).resolve().parents[1]      # foresight
 OUT = SITE_DIR / "s"
 SITE = "https://www.ai-sinhodeung.co.kr"
-VER = "20261118a"   # 페이지가 쓰는 style.css·app.js 캐시 버전 (다른 html 과 같게)
+VER = "20261121a"   # 페이지가 쓰는 style.css·app.js 캐시 버전 (11/21: app.js 가 종목·들어온 곳을 받도록 바뀌어 올림)
 KST = dt.timezone(dt.timedelta(hours=9))
 
 # 시장 → 화면 이름·대시보드 주소·가격 단위
@@ -259,8 +259,27 @@ TAIL = """
 <script src="{up}assets/app.js?v={ver}"></script>
 <script>
 // 방문 흐름 기록(운영자 '방문 흐름' 화면) + 이미 로그인한 회원은 버튼을 바로 그 종목 차트로
+// 2026-11-21: 종목·시장·들어온 곳(?from= 또는 이전 주소) 같이 남김, '무료로 시작하기' 클릭은 pick_cta
 (async function () {{
-  try {{ Portal.track("{track}"); }} catch (e) {{}}
+  const SRC = (function () {{
+    try {{
+      const q = new URLSearchParams(location.search).get("from");
+      if (q && /^[a-z_]{{1,20}}$/.test(q)) return q;
+      const r = document.referrer ? new URL(document.referrer).hostname : "";
+      if (!r) return "direct";
+      if (r === location.hostname) return "site";
+      if (/youtube\\.com$|youtu\\.be$/.test(r)) return "yt";
+      if (/tistory\\.com$|blog\\.naver\\.com$|m\\.blog\\.naver\\.com$/.test(r)) return "blog";
+      if (/google\\.|naver\\.com$|daum\\.net$|bing\\.com$/.test(r)) return "search";
+      return "other";
+    }} catch (e) {{ return "other"; }}
+  }})();
+  const EXTRA = {extra};
+  try {{ Portal.track("{track}", EXTRA ? Object.assign({{ p_src: SRC }}, EXTRA) : null); }} catch (e) {{}}
+  document.addEventListener("click", function (ev) {{
+    const a = ev.target.closest && ev.target.closest('a[href*="login.html"]');
+    if (a) try {{ PortalEvents.log({{ p_kind: "view", p_page: "{track}" === "pick" ? "pick_cta" : "pick_list_cta" }}); }} catch (e) {{}}
+  }}, true);
   try {{
     const {{ data: {{ session }} }} = await Portal.sb.auth.getSession();
     if (session) document.querySelectorAll("a[data-member]").forEach((a) => {{ a.href = a.dataset.member; a.textContent = a.dataset.memberText || a.textContent; }});
@@ -424,7 +443,9 @@ def page(p):
   <p class="legal-links"><a href="{up}terms.html">이용약관</a>·<a href="{up}privacy.html"><b>개인정보처리방침</b></a></p>
 </main>"""
     return (HEAD.format(title=esc(title), desc=esc(desc), url=url, site=SITE, up=up, ver=VER, ld=ld, signup=signup)
-            + body + TAIL.format(up=up, ver=VER, track="pick"))
+            + body + TAIL.format(up=up, ver=VER, track="pick",
+                                 extra=json.dumps({"p_symbol": p["slug"], "p_market": {"upbit": "coin", "index": "kospi"}.get(p["market"], p["market"])},
+                                                  ensure_ascii=False)))
 
 
 def index_page(picks):
@@ -467,7 +488,7 @@ def index_page(picks):
   <p class="legal-links"><a href="{up}terms.html">이용약관</a>·<a href="{up}privacy.html"><b>개인정보처리방침</b></a></p>
 </main>"""
     return (HEAD.format(title=esc(title), desc=esc(desc), url=url, site=SITE, up=up, ver=VER, ld=ld,
-                        signup=signup_url("index.html", up)) + body + TAIL.format(up=up, ver=VER, track="pick_list"))
+                        signup=signup_url("index.html", up)) + body + TAIL.format(up=up, ver=VER, track="pick_list", extra="null"))
 
 
 def sitemap(picks):

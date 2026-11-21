@@ -229,11 +229,11 @@
       acc = 0;
     }
     function leave() { flush(true); page = null; }
-    function view(p) {
+    function view(p, extra) {  // extra: 무료 종목 페이지의 종목·시장·들어온 곳 (stage39, 2026-11-21)
       if (page) leave();
       page = p; acc = 0; lastAct = Date.now();
       resume();
-      send({ p_kind: "view", p_page: p });
+      send(Object.assign({ p_kind: "view", p_page: p }, extra || {}));
     }
     ["pointerdown", "keydown", "touchstart", "mousemove", "wheel"].forEach((t) => addEventListener(t, act, { passive: true, capture: true }));
     addEventListener("scroll", act, { passive: true, capture: true });
@@ -246,9 +246,9 @@
   window.PortalEvents = PortalEvents;  // 대시보드 안 보드(iframe)가 종목 선택·검색을 여기로 보냄
 
   // 화면 조회수 +1 (운영자는 서버에서 제외) + 방문 흐름 기록. 실패해도 화면에는 영향 없음
-  function track(page) {
+  function track(page, extra) {
     if (sb) sb.rpc("track_page", { p_page: page }).then(() => {}, () => {});
-    PortalEvents.view(page);
+    PortalEvents.view(page, extra);
   }
 
   // 수집·통계 단위 시장 목록: 코인 탭은 거래소별(업비트=coin, 빗썸=bithumb)로 펼침
