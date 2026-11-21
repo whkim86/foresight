@@ -743,7 +743,59 @@
     if (!el) { el = document.createElement("p"); el.className = "lc-sum"; meta.insertAdjacentElement("afterend", el); }
     el.innerHTML = `<b class="h">🧭 한눈에</b>${parts.join(" ")}`;
   }
-  function extras(P) { try { oneLine(P); summary(P); } catch (e) { /* 보조 표시라 실패해도 화면은 그대로 */ } }
+  // 🧩 패턴 한 줄 (2026-11-22): 요약과 차트 사이 작은 칸. 해당 = 진한 색, 근접 = 빗금, 아님 = 흐리게 (해당·근접이 앞)
+  const stCss = document.createElement("style");
+  stCss.textContent = `.lc-strip{display:flex;flex-wrap:wrap;gap:4px;margin:-6px 0 10px}
+  .lc-strip button{font:inherit;font-size:12px;line-height:1.3;padding:3px 8px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;white-space:nowrap}
+  .lc-strip .off{opacity:.55;font-size:11.5px}.lc-strip .sep{width:1px;background:var(--line);margin:0 2px}
+  .lc-strip .u{background:#E5484D;border-color:#E5484D;color:#fff;font-weight:600}.lc-strip .d{background:#3B6FE0;border-color:#3B6FE0;color:#fff;font-weight:600}
+  .lc-strip .uh{border-color:#E5484D;color:#C0242F;font-weight:600;background:repeating-linear-gradient(135deg,rgba(229,72,77,.28) 0 3px,transparent 3px 7px)}
+  .lc-strip .dh{border-color:#3B6FE0;color:#1D4FB0;font-weight:600;background:repeating-linear-gradient(135deg,rgba(59,111,224,.28) 0 3px,transparent 3px 7px)}
+  .cr-flash{animation:crf 1.6s ease-out}@keyframes crf{0%,40%{box-shadow:0 0 0 3px #C99700}100%{box-shadow:0 0 0 0 transparent}}`;
+  document.head.appendChild(stCss);
+  function stripItems(c) {
+    const out = [];
+    (c.grid || []).forEach((g) => {
+      const ma = g.name === "이동평균";
+      const cls = g.side === "off" ? "off" : ma || g.word === "완성" ? (g.side === "up" ? "u" : g.side === "down" ? "d" : "uh") : g.side === "up" ? "uh" : "dh";
+      out.push({ t: ma ? g.word : g.name.replace("(W)", "").replace("(M)", "").trim(), cls, key: g.name, grp: 0 });
+    });
+    ((c.newpat || {}).items || []).forEach((x) => out.push({ t: x.name.replace("과장 상승 다이버전스", "과장 상승 다이버"), cls: x.state === "완성" ? "u" : x.state === "완성 직전" ? "uh" : "off", key: x.name, grp: 1 }));
+    const rank = { u: 0, d: 0, uh: 1, dh: 1, off: 2 };
+    return out.map((x, i) => Object.assign(x, { i })).sort((a, b) => rank[a.cls] - rank[b.cls] || a.grp - b.grp || a.i - b.i);
+  }
+  function strip(P) {
+    const card = P.root.querySelector(".chart-card"), rj = P.rjLast;
+    if (!card) return;
+    let el = card.querySelector(".lc-strip");
+    if (!rj || !rj.card || !(rj.card.grid || []).length) { if (el) el.remove(); return; }
+    const items = stripItems(rj.card);
+    let html = "", seenOff = false;
+    items.forEach((x) => {
+      if (x.cls === "off" && !seenOff) { seenOff = true; if (html) html += '<span class="sep"></span>'; }
+      const tip = x.cls === "u" || x.cls === "d" ? "해당" : x.cls === "off" ? "아님" : "근접 (가능성·완성 직전)";
+      html += `<button type="button" class="${x.cls}" data-k="${escH(x.key)}" title="${escH(x.key)} · ${tip} — 누르면 오른쪽 설명으로">${escH(x.t)}</button>`;
+    });
+    if (!el) {
+      el = document.createElement("div"); el.className = "lc-strip"; el.setAttribute("aria-label", "패턴 점검 한 줄 (진한 색 = 해당, 빗금 = 근접)");
+      const sum = card.querySelector(".lc-sum"), meta = P.el.meta;
+      (sum || meta).insertAdjacentElement("afterend", el);
+      el.addEventListener("click", (ev) => {
+        const b = ev.target.closest("button[data-k]"); if (!b) return;
+        const read = P.el.read, sec = read && read.querySelector(".cr-sec"); if (!sec) return;
+        const k = b.dataset.k;
+        const cell = [...sec.querySelectorAll(".cr-grid > div")].find((d) => (d.querySelector("span") || {}).textContent === k) || sec;
+        if (fsOn(P)) fullscreen(P, true);
+        cell.scrollIntoView({ behavior: "smooth", block: "center" });
+        cell.classList.remove("cr-flash"); void cell.offsetWidth; cell.classList.add("cr-flash");
+      });
+    } else {
+      const sum = card.querySelector(".lc-sum");
+      if (sum && el.previousElementSibling !== sum) sum.insertAdjacentElement("afterend", el);
+    }
+    el.innerHTML = html;
+  }
+  function extras(P) { try { oneLine(P); summary(P); strip(P); } catch (e) { /* 보조 표시라 실패해도 화면은 그대로 */ } }
 
   // 원본 화면이 종목을 고를 때마다 부름
   window.portalLong = function (P, co, pd) {

@@ -129,5 +129,33 @@
   }
  ],
  "patmarks": [],
+ "newpat": {
+  "items": [
+   {
+    "key": "tight3",
+    "name": "3 Tight Closes",
+    "state": "아님"
+   },
+   {
+    "key": "bull_pennant",
+    "name": "상승 페넌트",
+    "state": "아님"
+   },
+   {
+    "key": "bull_flag",
+    "name": "상승 깃발",
+    "state": "아님"
+   },
+   {
+    "key": "exag_bull",
+    "name": "과장 상승 다이버전스",
+    "state": "아님"
+   }
+  ],
+  "warn": [],
+  "score": 0.0,
+  "best": null,
+  "date": "2026-11-20"
+ },
  "pick_date": "2026-11-21"
 }

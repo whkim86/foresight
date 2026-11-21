@@ -240,6 +240,15 @@ HEAD = """<!doctype html>
 .ca-chip {{ background: #F4F6FA; border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--ink); }}
 .ca ul.ca-ck {{ list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 10px; font-size: 13.5px; }}
 .ca ul.ca-warn {{ list-style: none; padding: 0; color: #B4232A; font-size: 13.5px; }}
+.ca-strip {{ display: flex; flex-wrap: wrap; gap: 4px; }}
+.ca-strip button {{ font: inherit; font-size: 12.5px; line-height: 1.3; padding: 4px 9px; border-radius: 6px; border: 1px solid #E6E9F0; background: #fff; color: #9AA3B5; cursor: pointer; white-space: nowrap; }}
+.ca-strip .off {{ opacity: .6; font-size: 12px; }} .ca-strip .sep {{ width: 1px; background: #E6E9F0; margin: 0 2px; }}
+.ca-strip .u {{ background: #E5484D; border-color: #E5484D; color: #fff; font-weight: 600; }} .ca-strip .d {{ background: #3B6FE0; border-color: #3B6FE0; color: #fff; font-weight: 600; }}
+.ca-strip .uh {{ border-color: #E5484D; color: #C0242F; font-weight: 600; background: repeating-linear-gradient(135deg, rgba(229,72,77,.28) 0 3px, transparent 3px 7px); }}
+.ca-strip .dh {{ border-color: #3B6FE0; color: #1D4FB0; font-weight: 600; background: repeating-linear-gradient(135deg, rgba(59,111,224,.28) 0 3px, transparent 3px 7px); }}
+.ca-g.npd {{ background: #E5484D; border-color: #E5484D !important; color: #fff; }} .ca-g.npd b {{ color: #fff !important; }}
+.ca-g.npn {{ border-color: #C99700 !important; background: #FFF8E1; }} .ca-g.npn b {{ color: #A87E00 !important; }}
+.ca-flash {{ animation: caf 1.6s ease-out; }} @keyframes caf {{ 0%, 40% {{ box-shadow: 0 0 0 3px #C99700; }} 100% {{ box-shadow: 0 0 0 0 transparent; }} }}
 </style>
 <script type="application/ld+json">{ld}</script>
 </head>
@@ -310,6 +319,38 @@ def mmdd(date):
     return f"{int(date[5:7])}/{int(date[8:10])}"
 
 
+def strip_html(js):
+    """🧩 패턴 한 줄 (2026-11-22, 대시보드 long-chart.js strip 과 같은 규칙): 해당 = 진한 색, 근접 = 빗금, 아님 = 흐리게 (해당·근접 먼저)
+    누르면 아래 '패턴 점검' 칸으로 이동"""
+    items = []
+    for i, g in enumerate(js.get("grid") or []):
+        ma = g["name"] == "이동평균"
+        side, word = g["side"], g["word"]
+        cls = "off" if side == "off" else (("u" if side == "up" else "d" if side == "down" else "uh") if ma or word == "완성"
+                                          else ("uh" if side == "up" else "dh"))
+        items.append((cls, 0, i, word if ma else g["name"].replace("(W)", "").replace("(M)", "").strip(), g["name"]))
+    for i, x in enumerate((js.get("newpat") or {}).get("items") or []):
+        cls = "u" if x["state"] == "완성" else "uh" if x["state"] == "완성 직전" else "off"
+        items.append((cls, 1, i, x["name"].replace("과장 상승 다이버전스", "과장 상승 다이버"), x["name"]))
+    if not items:
+        return ""
+    rank = {"u": 0, "d": 0, "uh": 1, "dh": 1, "off": 2}
+    items.sort(key=lambda t: (rank[t[0]], t[1], t[2]))
+    out, seen = [], False
+    for cls, _, _, label, key in items:
+        if cls == "off" and not seen:
+            seen = True
+            if out:
+                out.append('<span class="sep"></span>')
+        tip = "해당" if cls in ("u", "d") else "아님" if cls == "off" else "근접 (가능성·완성 직전)"
+        out.append(f'<button type="button" class="{cls}" data-k="{esc(key)}" title="{esc(key)} · {tip}">{esc(label)}</button>')
+    js_click = ("var b=event.target.closest('button[data-k]');if(!b)return;var c=[].find.call(document.querySelectorAll('#ca .ca-g[data-k]'),"
+                "function(d){return d.getAttribute('data-k')===b.getAttribute('data-k')});if(!c)return;"
+                "c.scrollIntoView({behavior:'smooth',block:'center'});c.classList.remove('ca-flash');void c.offsetWidth;c.classList.add('ca-flash')")
+    return (f'<div class="ca-strip" aria-label="패턴 한눈에 (진한 색 = 해당, 빗금 = 근접)" onclick="{js_click}">{"".join(out)}</div>'
+            '<small style="color:var(--muted);font-size:12px;margin-top:-8px">진한 색 = 해당 · 빗금 = 근접 · 누르면 아래 설명으로 가요</small>')
+
+
 def analysis_html(p, unit):
     """차트 분석 (chart_rules/web_card.py 가 만든 s/<종목>/chart.json · chart.webp) — 2026-11-20 사용자 승인
     공개 화면 표현: 돌파 확인 자리 / 지지 확인 자리 / 위험 구간 / 목표 구간 (매수·손절·성적 숫자 안 씀)"""
@@ -340,11 +381,24 @@ def analysis_html(p, unit):
         warn = "".join(f"<li>⚠️ {esc(w)}</li>" for w in sc["warnings"])
         # 패턴 점검 8칸 (2026-11-21): 이동평균 배열 + 헤드앤숄더·역헤드앤숄더·컵앤핸들·W·M·쐐기 — 완성 / 가능성 / 아님
         gcol = {"up": "#E5484D", "down": "#3B6FE0", "neutral": "#C99700"}
-        grid = "".join(f'<div class="ca-g{"" if g["side"] != "off" else " off"}" style="{"border-color:" + gcol[g["side"]] if g["side"] in gcol else ""}">'
+        grid = "".join(f'<div class="ca-g{"" if g["side"] != "off" else " off"}" data-k="{esc(g["name"])}" style="{"border-color:" + gcol[g["side"]] if g["side"] in gcol else ""}">'
                        f'<span>{esc(g["name"])}</span><b style="color:{gcol.get(g["side"], "#9AA3B5")}">{esc(g["word"].replace(" (형성 중)", ""))}</b></div>'
                        for g in js.get("grid") or [])
         grid_html = (f'<h4 style="margin:4px 0 0">🔎 패턴 점검</h4><div class="ca-grid">{grid}</div>'
                      '<small style="color:var(--muted);font-size:12px">가능성 = 모양이 만들어지는 중 · 정해 둔 규칙에 맞을 때만 표시해요</small>') if grid else ""
+        # 🧩 매매 패턴 4종 (2026-11-22): 완성 / 완성 직전 / 아님 — 공개 화면이라 목표·손절 숫자는 안 씀, '완성 자리'만
+        np_ = js.get("newpat") or {}
+        if np_.get("items"):
+            cells = "".join(f'<div class="ca-g{" npd" if x["state"] == "완성" else " npn" if x["state"] == "완성 직전" else " off"}" data-k="{esc(x["name"])}">'
+                            f'<span>{esc(x["name"])}</span><b>{esc(x["state"])}</b></div>' for x in np_["items"])
+            det = "".join(f'<li>{"🔴" if x["state"] == "완성" else "🟡"} <b>{esc(x["name"])} {esc(x["state"])}</b>'
+                          + (f' ({mmdd(x["since"])})' if x.get("since") else "")
+                          + (f' — {fmt_price(x["trigger"], u)} 위로 마감하면 완성' if x["state"] == "완성 직전" and x.get("trigger") else "") + "</li>"
+                          for x in np_["items"] if x["state"] != "아님")
+            wn = (f'<li>⚠️ 최근 {esc(", ".join(np_["warn"]))}가 있어 돌파가 나와도 조심해서 봐요</li>' if np_.get("warn") else "")
+            grid_html += (f'<h4 style="margin:10px 0 0">🧩 매매 패턴 <small style="font-weight:400;color:var(--muted);font-size:12px">5년 검증에서 통한 4가지</small></h4>'
+                          f'<div class="ca-grid">{cells}</div>' + (f'<ul class="ca-ck" style="grid-template-columns:1fr">{det}</ul>' if det else "")
+                          + (f'<ul class="ca-warn">{wn}</ul>' if wn else ""))
         score_html = f"""
     <div class="ca-score">
       <h4 style="margin:0 0 8px">📊 차트 신호 점검</h4>
@@ -368,6 +422,7 @@ def analysis_html(p, unit):
 
   <section class="card ca" id="ca">
     <h3 style="margin:0">{nm} 차트 분석 <small style="color:var(--muted);font-weight:400;font-size:13px">{mmdd(js["date"])} 종가 {fmt_price(js["close"], u)} 기준</small></h3>
+    {strip_html(js)}
     <a href="chart.webp?v={esc(js["date"])}" target="_blank" rel="noopener"><img src="chart.webp?v={esc(js["date"])}" alt="{nm} 차트 분석: 저항선·지지선·앞으로 볼 자리" loading="lazy"></a>
     <small style="color:var(--muted);font-size:12px;margin-top:-8px">그림을 누르면 크게 볼 수 있어요</small>
     <div class="ca-pat">지금 모양: <b>{esc(js.get("pattern", "-"))}</b><br>{esc(js.get("pattern_help", ""))}</div>
