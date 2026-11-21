@@ -112,7 +112,7 @@
     const head = `<thead><tr><th>룰</th><th>방향</th><th class="num">D+1</th><th class="num">D+6</th><th class="num">켜진 날</th><th>오늘 켜진 종목</th></tr></thead>`;
     const baseRow = `<tr class="base"><td colspan="2">기준선 · 전체 종목 전체 날</td><td class="num">오른 비율 ${b.hit1 == null ? "—" : fmtP(b.hit1)}<br>평균 ${b.avg1 == null ? "—" : fmtPP(b.avg1).replace("%p", "%")}</td><td class="num">오른 비율 ${b.hit6 == null ? "—" : fmtP(b.hit6)}<br>평균 ${b.avg6 == null ? "—" : fmtPP(b.avg6).replace("%p", "%")}</td><td class="num">${(b.days || 0).toLocaleString()}일</td><td></td></tr>`;
     const pc = (x) => (x == null ? "—" : (x >= 0 ? "+" : "") + (x * 100).toFixed(1) + "%");
-    const kpi = (lab, v, sub) => `<div class="card kpi" style="padding:10px 12px"><span class="hint">${lab}</span><b>${v}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
+    const kpi = (lab, v, sub) => `<div class="card kpi" style="padding:10px 12px"><span class="hint" style="display:block">${lab}</span><b style="display:block">${v}</b>${sub ? `<small style="display:block;color:var(--muted,#888);margin-top:2px">${sub}</small>` : ""}</div>`;
     const trHtml = tr.n ? `<div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-top:6px">
         ${kpi("끝난 매매", tr.n.toLocaleString() + "건", `보유 중 ${tr.open || 0}건 (빼고 셈)`)}
         ${kpi("이긴 비율", fmtP(tr.win), "수익으로 끝난 매매")}
