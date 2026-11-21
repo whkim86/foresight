@@ -78,5 +78,48 @@
    }
   ]
  },
+ "grid": [
+  {
+   "name": "이동평균",
+   "word": "역배열",
+   "side": "down"
+  },
+  {
+   "name": "역헤드앤숄더",
+   "word": "아님",
+   "side": "off"
+  },
+  {
+   "name": "헤드앤숄더",
+   "word": "아님",
+   "side": "off"
+  },
+  {
+   "name": "컵앤핸들",
+   "word": "아님",
+   "side": "off"
+  },
+  {
+   "name": "이중 바닥(W)",
+   "word": "아님",
+   "side": "off"
+  },
+  {
+   "name": "이중 천장(M)",
+   "word": "아님",
+   "side": "off"
+  },
+  {
+   "name": "하락쐐기",
+   "word": "아님",
+   "side": "off"
+  },
+  {
+   "name": "상승쐐기",
+   "word": "아님",
+   "side": "off"
+  }
+ ],
+ "patmarks": [],
  "pick_date": "2026-11-21"
 }

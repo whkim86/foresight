@@ -233,6 +233,9 @@ HEAD = """<!doctype html>
 .ca-sc small {{ width: 100%; color: var(--muted); font-size: 12px; }}
 .ca-sc b {{ font-size: 28px; line-height: 1; }}
 .ca-sc span {{ color: #fff; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }}
+.ca-grid {{ display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }}
+.ca-g {{ display: flex; justify-content: space-between; gap: 6px; border: 1.5px solid; border-radius: 10px; padding: 7px 10px; font-size: 13.5px; background: #FAFBFD; }}
+.ca-g span {{ font-weight: 600; }} .ca-g.off {{ border-color: #E6E9F0; color: #9AA3B5; }} .ca-g.off span {{ font-weight: 400; }}
 .ca-chips {{ display: flex; flex-wrap: wrap; gap: 6px; }}
 .ca-chip {{ background: #F4F6FA; border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--ink); }}
 .ca ul.ca-ck {{ list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 10px; font-size: 13.5px; }}
@@ -316,9 +319,17 @@ def analysis_html(p, unit):
             or '<span class="ca-chip">⚪ 뚜렷한 모양 없음</span>'
         ck = "".join(f'<li>{"✅" if v else "▫️"} {esc(k)}</li>' for k, v in sc["checklist"].items())
         warn = "".join(f"<li>⚠️ {esc(w)}</li>" for w in sc["warnings"])
+        # 패턴 점검 8칸 (2026-11-21): 이동평균 배열 + 헤드앤숄더·역헤드앤숄더·컵앤핸들·W·M·쐐기 — 완성 / 가능성 / 아님
+        gcol = {"up": "#E5484D", "down": "#3B6FE0", "neutral": "#C99700"}
+        grid = "".join(f'<div class="ca-g{"" if g["side"] != "off" else " off"}" style="{"border-color:" + gcol[g["side"]] if g["side"] in gcol else ""}">'
+                       f'<span>{esc(g["name"])}</span><b style="color:{gcol.get(g["side"], "#9AA3B5")}">{esc(g["word"])}</b></div>'
+                       for g in js.get("grid") or [])
+        grid_html = (f'<h4 style="margin:4px 0 0">🔎 패턴 점검</h4><div class="ca-grid">{grid}</div>'
+                     '<small style="color:var(--muted);font-size:12px">가능성 = 모양이 만들어지는 중 · 정해 둔 규칙에 맞을 때만 표시해요</small>') if grid else ""
         score_html = f"""
     <div class="ca-score">
       <h4 style="margin:0 0 8px">📊 차트 신호 점검</h4>
+      {grid_html}
       <div class="ca-scs">{badge("차트만 본 점수", sc["chart"], sc["chart_grade"])}{badge("AI 예측까지 넣은 점수", sc["with_ai"], sc["with_ai_grade"]) if sc.get("with_ai") is not None else ""}</div>
       <div class="ca-chips">{pats}</div>
       <ul class="ca-ck">{ck}</ul>

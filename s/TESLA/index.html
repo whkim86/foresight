@@ -59,6 +59,9 @@
 .ca-sc small { width: 100%; color: var(--muted); font-size: 12px; }
 .ca-sc b { font-size: 28px; line-height: 1; }
 .ca-sc span { color: #fff; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+.ca-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.ca-g { display: flex; justify-content: space-between; gap: 6px; border: 1.5px solid; border-radius: 10px; padding: 7px 10px; font-size: 13.5px; background: #FAFBFD; }
+.ca-g span { font-weight: 600; } .ca-g.off { border-color: #E6E9F0; color: #9AA3B5; } .ca-g.off span { font-weight: 400; }
 .ca-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .ca-chip { background: #F4F6FA; border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--ink); }
 .ca ul.ca-ck { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 10px; font-size: 13.5px; }
@@ -111,29 +114,30 @@
 
   <section class="card pk-cta">
     <b style="font-size:17px">📐 차트로 보면 어떤 자리일까?</b>
-    <p style="font-size:15px;color:var(--ink)">📊 차트 신호 점수 <b style="color:#8A93A6">34점 · 약</b> · AI 포함 <b style="color:#8A93A6">37점 · 약</b></p>
+    <p style="font-size:15px;color:var(--ink)">📊 차트 신호 점수 <b style="color:#8A93A6">24점 · 약</b> · AI 포함 <b style="color:#8A93A6">29점 · 약</b></p>
     <button class="btn big" type="button" onclick="var c=document.getElementById('ca');c.classList.toggle('open');this.textContent=c.classList.contains('open')?'차트 분석 접기':'📐 차트 분석 보기';if(c.classList.contains('open')){c.scrollIntoView({behavior:'smooth'});try{Portal.track('pick_chart')}catch(e){}}">📐 차트 분석 보기</button>
     <p>추세선·지지선·피보나치·거래가 몰린 가격대를 자동으로 그려서, 앞으로 볼 자리를 정리했어요</p>
   </section>
 
   <section class="card ca" id="ca">
-    <h3 style="margin:0">테슬라(TSLA) 차트 분석 <small style="color:var(--muted);font-weight:400;font-size:13px">11/19 종가 374.41$ 기준</small></h3>
-    <a href="chart.webp?v=2026-11-19" target="_blank" rel="noopener"><img src="chart.webp?v=2026-11-19" alt="테슬라(TSLA) 차트 분석: 저항선·지지선·앞으로 볼 자리" loading="lazy"></a>
+    <h3 style="margin:0">테슬라(TSLA) 차트 분석 <small style="color:var(--muted);font-weight:400;font-size:13px">11/20 종가 345.82$ 기준</small></h3>
+    <a href="chart.webp?v=2026-11-20" target="_blank" rel="noopener"><img src="chart.webp?v=2026-11-20" alt="테슬라(TSLA) 차트 분석: 저항선·지지선·앞으로 볼 자리" loading="lazy"></a>
     <small style="color:var(--muted);font-size:12px;margin-top:-8px">그림을 누르면 크게 볼 수 있어요</small>
     <div class="ca-pat">지금 모양: <b>하락채널</b><br>고점·저점이 나란히 낮아지는 통로 — 위쪽 선을 넘으면 하락 통로 탈출이에요</div>
     
     <div class="ca-score">
       <h4 style="margin:0 0 8px">📊 차트 신호 점검</h4>
-      <div class="ca-scs"><div class="ca-sc"><small>차트만 본 점수</small><b style="color:#8A93A6">34</b><span style="background:#8A93A6">약</span></div><div class="ca-sc"><small>AI 예측까지 넣은 점수</small><b style="color:#8A93A6">37</b><span style="background:#8A93A6">약</span></div></div>
-      <div class="ca-chips"><span class="ca-chip">🟢 이중 바닥(W) · 형성 중</span><span class="ca-chip">🔴 하락채널 · 형성 중</span></div>
+      <h4 style="margin:4px 0 0">🔎 패턴 점검</h4><div class="ca-grid"><div class="ca-g off" style=""><span>이동평균</span><b style="color:#9AA3B5">엉킴</b></div><div class="ca-g off" style=""><span>역헤드앤숄더</span><b style="color:#9AA3B5">아님</b></div><div class="ca-g" style="border-color:#3B6FE0"><span>헤드앤숄더</span><b style="color:#3B6FE0">가능성 (형성 중)</b></div><div class="ca-g off" style=""><span>컵앤핸들</span><b style="color:#9AA3B5">아님</b></div><div class="ca-g" style="border-color:#E5484D"><span>이중 바닥(W)</span><b style="color:#E5484D">가능성 (형성 중)</b></div><div class="ca-g off" style=""><span>이중 천장(M)</span><b style="color:#9AA3B5">아님</b></div><div class="ca-g off" style=""><span>하락쐐기</span><b style="color:#9AA3B5">아님</b></div><div class="ca-g off" style=""><span>상승쐐기</span><b style="color:#9AA3B5">아님</b></div></div><small style="color:var(--muted);font-size:12px">가능성 = 모양이 만들어지는 중 · 정해 둔 규칙에 맞을 때만 표시해요</small>
+      <div class="ca-scs"><div class="ca-sc"><small>차트만 본 점수</small><b style="color:#8A93A6">24</b><span style="background:#8A93A6">약</span></div><div class="ca-sc"><small>AI 예측까지 넣은 점수</small><b style="color:#8A93A6">29</b><span style="background:#8A93A6">약</span></div></div>
+      <div class="ca-chips"><span class="ca-chip">🔴 헤드앤숄더 · 형성 중</span><span class="ca-chip">🟢 이중 바닥(W) · 형성 중</span><span class="ca-chip">🔴 하락채널 · 형성 중</span></div>
       <ul class="ca-ck"><li>▫️ 반전 첫 신호(저점 상승)</li><li>▫️ 전고 돌파(추세 완성)</li><li>▫️ 거래량 1.5배</li><li>▫️ 상승 다이버전스</li><li>✅ 하락 다이버전스 없음</li><li>✅ 큰 상승(깃대) +50%</li><li>▫️ 되돌림 0.618 안</li></ul>
-      <ul class="ca-warn"><li>⚠️ 하락채널 형성 중</li><li>⚠️ 시장: 60일선 아래 역배열</li></ul>
-      <small style="color:var(--muted);font-size:12px">모양 10/40 · 점검표 12/42 · 시장 12/18 · AI 넣은 점수 = 차트×0.8 + AI 판정(상승 20·혼돈 10·하락 0) · 70↑ 강 · 40~69 중 · 40↓ 약<br>
+      <ul class="ca-warn"><li>⚠️ 헤드앤숄더 형성 중</li><li>⚠️ 하락채널 형성 중</li><li>⚠️ 시장: 60일선 아래 역배열</li></ul>
+      <small style="color:var(--muted);font-size:12px">모양 0/40 · 점검표 12/42 · 시장 12/18 · AI 넣은 점수 = 차트×0.8 + AI 판정(상승 20·혼돈 10·하락 0) · 70↑ 강 · 40~69 중 · 40↓ 약<br>
       조건이 몇 개 맞는지 센 점수예요. 앞으로 오를 확률이 아니에요.</small>
     </div>
-    <div class="ca-combo"><b>🤖 AI 예측과 같이 보면</b><br>다음 거래일 AI 판정 &#x27;혼돈&#x27;. AI 6일 예측 중앙값은 +0.4%(381.48)로, 저항선(398.15)까지는 못 미쳐요 → 당분간은 돌파보다 아래 지지 자리를 지키는지 보는 구간이에요.</div>
-    <div><h4 style="margin:0 0 8px">앞으로 볼 자리</h4><div class="ca-lv"><div class="goal"><b>목표 구간 ③</b><span>472.41$</span><small>수평 고점</small></div><div class="goal"><b>목표 구간 ②</b><span>452.91$</span><small>수평 고점</small></div><div class="goal"><b>목표 구간 ①</b><span>438.61$</span><small>수평 고점</small></div><div class="watch"><b>돌파 확인 자리</b><span>410.09$</span><small>종가가 저항선보다 3% 넘게 위에서 마감 (돌파 뒤 386.21 아래로 다시 마감하면 돌파 실패)</small></div><div class="watch"><b>지지 확인 자리</b><span>398.15$</span><small>돌파 뒤 저항선이 받쳐 주는지</small></div><div class="risk"><b>위험 구간</b><span>369$</span><small>지금 가격 아래 지지선. 이 아래로 마감하면 하락 흐름이 이어질 수 있어요 — 깨지면 다음 지지 352까지 열려 있어요</small></div></div></div>
-    <div><h4 style="margin:0 0 6px">해석</h4><ul><li>지금 가격은 저항선보다 6% 아래예요. 아직 돌파를 말하기엔 거리가 있어요.</li><li>직전 큰 상승(214.25 → 498.83)의 0.71만큼 내려왔어요. 0.618 아래는 흐름이 바뀌었을 수 있는 구간이에요.</li><li>아래에서 받쳐 줄 자리: 369 / 352</li><li>나스닥100 지수 상태: 60일선 아래 역배열 → 시장 전체가 약해서 돌파가 나와도 한 번 더 확인이 필요해요</li></ul></div>
+    <div class="ca-combo"><b>🤖 AI 예측과 같이 보면</b><br>다음 거래일 AI 판정 &#x27;혼돈&#x27;. AI 6일 예측 중앙값은 +0.4%(381.48)로, 저항선(402.6)까지는 못 미쳐요 → 당분간은 돌파보다 아래 지지 자리를 지키는지 보는 구간이에요.</div>
+    <div><h4 style="margin:0 0 8px">앞으로 볼 자리</h4><div class="ca-lv"><div class="goal"><b>목표 구간 ③</b><span>472.41$</span><small>수평 고점</small></div><div class="goal"><b>목표 구간 ②</b><span>452.91$</span><small>수평 고점</small></div><div class="goal"><b>목표 구간 ①</b><span>438.61$</span><small>수평 고점</small></div><div class="watch"><b>돌파 확인 자리</b><span>414.68$</span><small>종가가 저항선보다 3% 넘게 위에서 마감 (돌파 뒤 390.52 아래로 다시 마감하면 돌파 실패)</small></div><div class="watch"><b>지지 확인 자리</b><span>402.6$</span><small>돌파 뒤 저항선이 받쳐 주는지</small></div><div class="risk"><b>위험 구간</b><span>340$</span><small>지금 가격 아래 지지선. 이 아래로 마감하면 하락 흐름이 이어질 수 있어요 — 깨지면 다음 지지 334까지 열려 있어요</small></div></div></div>
+    <div><h4 style="margin:0 0 6px">해석</h4><ul><li>지금 가격은 저항선보다 16% 아래예요. 아직 돌파를 말하기엔 거리가 있어요.</li><li>직전 큰 상승(214.25 → 498.83)의 0.71만큼 내려왔어요. 0.618 아래는 흐름이 바뀌었을 수 있는 구간이에요.</li><li>아래에서 받쳐 줄 자리: 340 / 334</li><li>나스닥100 지수 상태: 60일선 아래 역배열 → 시장 전체가 약해서 돌파가 나와도 한 번 더 확인이 필요해요</li></ul></div>
     <p class="pk-note" style="text-align:left">차트 모양을 규칙대로 자동 분석한 참고 자료예요. 특정 가격에 사고팔라는 권유가 아니며, 가격이 어느 자리에 있는지 보는 용도로만 써 주세요.</p>
   </section>
 

@@ -59,6 +59,9 @@
 .ca-sc small { width: 100%; color: var(--muted); font-size: 12px; }
 .ca-sc b { font-size: 28px; line-height: 1; }
 .ca-sc span { color: #fff; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+.ca-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.ca-g { display: flex; justify-content: space-between; gap: 6px; border: 1.5px solid; border-radius: 10px; padding: 7px 10px; font-size: 13.5px; background: #FAFBFD; }
+.ca-g span { font-weight: 600; } .ca-g.off { border-color: #E6E9F0; color: #9AA3B5; } .ca-g.off span { font-weight: 400; }
 .ca-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .ca-chip { background: #F4F6FA; border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--ink); }
 .ca ul.ca-ck { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 10px; font-size: 13.5px; }
@@ -124,6 +127,7 @@
     
     <div class="ca-score">
       <h4 style="margin:0 0 8px">📊 차트 신호 점검</h4>
+      <h4 style="margin:4px 0 0">🔎 패턴 점검</h4><div class="ca-grid"><div class="ca-g" style="border-color:#3B6FE0"><span>이동평균</span><b style="color:#3B6FE0">역배열</b></div><div class="ca-g off" style=""><span>역헤드앤숄더</span><b style="color:#9AA3B5">아님</b></div><div class="ca-g off" style=""><span>헤드앤숄더</span><b style="color:#9AA3B5">아님</b></div><div class="ca-g off" style=""><span>컵앤핸들</span><b style="color:#9AA3B5">아님</b></div><div class="ca-g off" style=""><span>이중 바닥(W)</span><b style="color:#9AA3B5">아님</b></div><div class="ca-g off" style=""><span>이중 천장(M)</span><b style="color:#9AA3B5">아님</b></div><div class="ca-g off" style=""><span>하락쐐기</span><b style="color:#9AA3B5">아님</b></div><div class="ca-g off" style=""><span>상승쐐기</span><b style="color:#9AA3B5">아님</b></div></div><small style="color:var(--muted);font-size:12px">가능성 = 모양이 만들어지는 중 · 정해 둔 규칙에 맞을 때만 표시해요</small>
       <div class="ca-scs"><div class="ca-sc"><small>차트만 본 점수</small><b style="color:#C99700">40</b><span style="background:#C99700">중</span></div><div class="ca-sc"><small>AI 예측까지 넣은 점수</small><b style="color:#C99700">52</b><span style="background:#C99700">중</span></div></div>
       <div class="ca-chips"><span class="ca-chip">⚪ 확산형 · 형성 중</span></div>
       <ul class="ca-ck"><li>▫️ 반전 첫 신호(저점 상승)</li><li>▫️ 전고 돌파(추세 완성)</li><li>▫️ 거래량 1.5배</li><li>▫️ 상승 다이버전스</li><li>✅ 하락 다이버전스 없음</li><li>✅ 큰 상승(깃대) +100%</li><li>▫️ 되돌림 0.618 안</li></ul>

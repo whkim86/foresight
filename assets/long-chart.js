@@ -355,7 +355,13 @@
       });
       if (!wk && LW.createSeriesMarkers && RJ.touches) {
         const have = new Set(bars.map((b) => b.time));
-        LW.createSeriesMarkers(S.main, RJ.touches.filter((t) => have.has(t)).map((t) => ({ time: t, position: "aboveBar", shape: "circle", color: "#7C4DFF", size: 0.6 })));
+        const mk = RJ.touches.filter((t) => have.has(t)).map((t) => ({ time: t, position: "aboveBar", shape: "circle", color: "#7C4DFF", size: 0.6 }));
+        (RJ.patmarks || []).filter((m) => have.has(m.d)).forEach((m) => {  // 패턴 자리: 왼어깨·머리·오른어깨, 컵, W·M (2026-11-21)
+          const col = m.side === "up" ? "#E5484D" : m.side === "down" ? "#3B6FE0" : "#C99700";
+          mk.push({ time: m.d, position: m.pos === "below" ? "belowBar" : "aboveBar", shape: m.pos === "below" ? "arrowUp" : "arrowDown", color: col, text: m.t, size: 1 });
+        });
+        mk.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
+        LW.createSeriesMarkers(S.main, mk);
       }
     }
     // 보이는 기간
@@ -555,6 +561,8 @@
   .cr-sc span{color:#fff;font-size:12.5px;font-weight:700;border-radius:999px;padding:2px 9px}
   .cr-chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.cr-chip{background:var(--fc-bg);border-radius:999px;padding:3px 10px;font-size:13px}
   .cr-list{list-style:none;padding:0;margin:6px 0 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:2px 10px;font-size:13.5px}
+  .cr-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.cr-grid div{display:flex;justify-content:space-between;gap:6px;border:1.5px solid;border-radius:9px;padding:5px 9px;font-size:13px;background:var(--fc-bg)}
+  .cr-grid span{font-weight:600}.cr-grid .off{border-color:var(--line);color:var(--muted)}.cr-grid .off span{font-weight:400}
   .cr-warn{list-style:none;padding:0;margin:6px 0 0;color:var(--dn-ink);font-size:13.5px}
   .cr-lv{display:flex;flex-direction:column;gap:5px;margin-top:8px}.cr-lv div{display:flex;justify-content:space-between;gap:8px;border-left:4px solid;padding:5px 9px;border-radius:8px;background:var(--fc-bg);font-size:13.5px}
   .cr-lv .goal{border-color:#1E9E6A}.cr-lv .watch{border-color:#7C4DFF}.cr-lv .risk{border-color:#E5484D}.cr-lv b{font-variant-numeric:tabular-nums}
@@ -589,6 +597,10 @@
         html += `<div class="cr-scs">${badge("차트만 본 점수", sc.chart)}${ai != null ? badge(`AI 예측까지 넣은 점수 (판정 ${vw})`, ai) : ""}</div>`;
         const ic = { up: "🟢", down: "🔴", neutral: "⚪" };
         html += `<div class="cr-chips">${(sc.patterns || []).map((p) => `<span class="cr-chip">${ic[p.side] || "⚪"} ${escH(p.name)} · ${escH(p.status)}</span>`).join("") || '<span class="cr-chip">⚪ 뚜렷한 모양 없음</span>'}</div>`;
+        if ((c.grid || []).length) {  // 패턴 점검 8칸 (2026-11-21)
+          const gc = { up: "#E5484D", down: "#3B6FE0", neutral: "#C99700" };
+          html += `<p style="margin:10px 0 4px;font-weight:600">🔎 패턴 점검</p><div class="cr-grid">${c.grid.map((g) => `<div class="${g.side === "off" ? "off" : ""}" style="${gc[g.side] ? "border-color:" + gc[g.side] : ""}"><span>${escH(g.name)}</span><b style="color:${gc[g.side] || "var(--muted)"}">${escH(g.word.replace(" (형성 중)", ""))}</b></div>`).join("")}</div>`;
+        }
         html += `<ul class="cr-list">${Object.entries(sc.checklist || {}).map(([k, x]) => `<li>${x ? "✅" : "▫️"} ${escH(k)}</li>`).join("")}</ul>`;
         if (sc.warnings && sc.warnings.length) html += `<ul class="cr-warn">${sc.warnings.map((w) => `<li>⚠️ ${escH(w)}</li>`).join("")}</ul>`;
       }
