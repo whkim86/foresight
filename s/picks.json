@@ -246,11 +246,11 @@
   "sym": "TSLA",
   "ko": "테슬라",
   "market": "nasdaq",
-  "date": "2026-11-19",
-  "verdict": "혼돈",
-  "votes": "52개 모델 중 상승 19 · 하락 18",
+  "date": "2026-11-21",
+  "verdict": "상승",
+  "votes": "52개 모델 중 상승 41 · 하락 7",
   "rank": null,
-  "today": false
+  "today": true
  },
  {
   "slug": "APT",
