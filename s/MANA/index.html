@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>디센트럴랜드(MANA) 전망 11/21 · AI 52개 모델 6일 예측 | AI 신호등</title>
+<meta name="description" content="11/21 기준 디센트럴랜드(MANA) 다음 거래일 AI 판정은 &#x27;상승&#x27;. 52개 모델 중 44개가 상승. 6일 뒤 예측 중앙값 +7.0%. 52개 예측 모델의 6일 가격 흐름을 신호등으로 정리했어요.">
+<link rel="canonical" href="https://www.ai-sinhodeung.co.kr/s/MANA/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="AI 신호등">
+<meta property="og:title" content="디센트럴랜드(MANA) 전망 11/21 · AI 52개 모델 6일 예측 | AI 신호등">
+<meta property="og:description" content="11/21 기준 디센트럴랜드(MANA) 다음 거래일 AI 판정은 &#x27;상승&#x27;. 52개 모델 중 44개가 상승. 6일 뒤 예측 중앙값 +7.0%. 52개 예측 모델의 6일 가격 흐름을 신호등으로 정리했어요.">
+<meta property="og:url" content="https://www.ai-sinhodeung.co.kr/s/MANA/">
+<meta property="og:image" content="https://www.ai-sinhodeung.co.kr/assets/og-image.png">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css?v=20261118a">
+<style>
+.pk { max-width: 760px; margin: 0 auto; padding: 28px 16px 56px; display: flex; flex-direction: column; gap: 18px; }
+.pk-hero { color: #fff; display: flex; flex-direction: column; gap: 8px; }
+.pk-hero small { color: #B7BFD0; font-size: 13px; }
+.pk-hero h1 { margin: 0; font-size: clamp(26px, 6vw, 36px); line-height: 1.25; }
+.pk-verdict { display: flex; align-items: center; gap: 14px; }
+.pk-verdict b { font-size: 28px; }
+.pk-verdict span { color: var(--sub); font-size: 14.5px; }
+.pk-chart { width: 100%; height: auto; display: block; }
+.pk-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); }
+.pk-legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+.pk-cta { display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.pk-cta .btn { width: 100%; }
+.pk-cta p { margin: 0; font-size: 13px; color: var(--muted); }
+.pk-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.pk-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 16px; text-decoration: none; color: var(--ink); }
+.pk-item small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.pk-note { font-size: 12px; color: var(--faint); line-height: 1.6; text-align: center; }
+.v-up { color: var(--up); } .v-mx { color: var(--mx-ink); } .v-dn { color: var(--dn); }
+.ca { display: none; flex-direction: column; gap: 14px; }
+.ca.open { display: flex; }
+.ca img { width: 100%; height: auto; border-radius: 10px; border: 1px solid #E6E9F0; display: block; }
+.ca-pat { background: #F4F6FA; border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--sub); line-height: 1.6; }
+.ca-pat b { color: var(--ink); font-size: 16px; }
+.ca-lv { display: grid; gap: 6px; }
+.ca-lv div { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 12px; border-radius: 10px; border-left: 4px solid; background: #FAFBFD; }
+.ca-lv b { font-size: 14.5px; } .ca-lv span { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ca-lv small { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; }
+.ca-lv .goal { border-color: #1E9E6A; } .ca-lv .goal b, .ca-lv .goal span { color: #1E9E6A; }
+.ca-lv .watch { border-color: #7C4DFF; } .ca-lv .watch b, .ca-lv .watch span { color: #7C4DFF; }
+.ca-lv .risk { border-color: #E5484D; } .ca-lv .risk b, .ca-lv .risk span { color: #E5484D; }
+.ca ul { margin: 0; padding-left: 18px; color: var(--sub); font-size: 14px; line-height: 1.7; }
+.ca-combo { border: 1.5px solid #C99700; background: #FFF9E6; border-radius: 10px; padding: 12px 14px; font-size: 14.5px; line-height: 1.6; }
+.ca-combo b { color: #8A6A00; }
+.ca-score { border: 1px solid #E6E9F0; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.ca-scs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.ca-sc { background: #FAFBFD; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ca-sc small { width: 100%; color: var(--muted); font-size: 12px; }
+.ca-sc b { font-size: 28px; line-height: 1; }
+.ca-sc span { color: #fff; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+.ca-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ca-chip { background: #F4F6FA; border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--ink); }
+.ca ul.ca-ck { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 10px; font-size: 13.5px; }
+.ca ul.ca-warn { list-style: none; padding: 0; color: #B4232A; font-size: 13.5px; }
+</style>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "디센트럴랜드(MANA) 전망 11/21 · AI 52개 모델 6일 예측 | AI 신호등", "description": "11/21 기준 디센트럴랜드(MANA) 다음 거래일 AI 판정은 '상승'. 52개 모델 중 44개가 상승. 6일 뒤 예측 중앙값 +7.0%. 52개 예측 모델의 6일 가격 흐름을 신호등으로 정리했어요.", "dateModified": "2026-11-21", "inLanguage": "ko", "url": "https://www.ai-sinhodeung.co.kr/s/MANA/", "publisher": {"@type": "Organization", "name": "AI 신호등", "url": "https://www.ai-sinhodeung.co.kr"}}</script>
+</head>
+<body class="home landing">
+<header class="topbar">
+  <a class="brand" href="../../index.html"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><b><span class="ai">AI</span>신호등</b></a>
+  <nav class="nav">
+    <a href="../../s/">오늘의 무료 종목</a>
+    <a class="btn sm cta-top" href="../../login.html?next=dashboard.html%3Fm%3Dcoin%26ex%3Dupbit%26v%3Dchart%26s%3DMANA#signup">무료로 시작하기</a>
+  </nav>
+</header>
+
+<main class="pk">
+  <section class="pk-hero on-night">
+    <small>코인 · 업비트 · 11/21 예측 · AI 모델 52개</small>
+    <h1>디센트럴랜드(MANA) 전망</h1>
+  </section>
+
+  <section class="card">
+    <div class="pk-verdict">
+      <div class="lamp up" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div><small style="color:var(--muted);font-size:12.5px">다음 거래일(D+1) AI 판정</small><br>
+        <b class="v-up">상승</b><br><span>52개 모델 중 44개가 상승</span></div>
+    </div>
+    <p style="margin:10px 0 0;color:var(--sub);font-size:14px">참고: 저점 돌파 3일 연속 매수</p>
+  </section>
+
+  <section class="card">
+    <h3 style="margin-bottom:6px">6일 예측 흐름</h3>
+    <p class="hint" style="margin:0 0 10px;font-size:13px">기준가 77.2원 · 6일 뒤 예측 중앙값 <b class="v-up">+7.0%</b></p>
+    <svg viewBox="0 0 520 300" role="img" aria-label="최근 8일 종가와 앞으로 6일 예측 범위" class="pk-chart">
+  <line x1="277.1" y1="30" x2="277.1" y2="266" stroke="#C5CAD6" stroke-dasharray="4 4"/>
+  <polygon points="277.1,249.7 315.2,213.0 353.4,189.8 391.5,168.9 429.7,117.0 467.8,108.9 506.0,145.4 506.0,188.5 467.8,188.5 429.7,204.8 391.5,213.0 353.4,215.3 315.2,238.9 277.1,249.7" fill="#E5383B" fill-opacity=".14"/>
+  <polyline points="10.0,46.3 48.2,151.7 86.3,139.9 124.5,167.8 162.6,147.3 200.8,172.2 238.9,189.7 277.1,249.7" fill="none" stroke="#12182B" stroke-width="2.4" stroke-linejoin="round"/>
+  <polyline points="277.1,249.7 315.2,225.0 353.4,213.0 391.5,181.4 429.7,173.4 467.8,155.1 506.0,170.3" fill="none" stroke="#E5383B" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="277.1" cy="249.7" r="4.5" fill="#12182B"/>
+  <circle cx="506.0" cy="170.3" r="6" fill="#fff" stroke="#E5383B" stroke-width="3"/>
+  <text x="506" y="20" text-anchor="end" font-size="18" font-weight="700" fill="#E5383B">6일 뒤 +7.0%</text>
+  <text x="10" y="290" font-size="15" fill="#8A93A6">11-13</text>
+  <text x="277.1" y="290" font-size="15" fill="#12182B" text-anchor="middle" font-weight="600">11-20 기준</text>
+  <text x="506" y="290" font-size="15" fill="#8A93A6" text-anchor="end">11-26</text>
+</svg>
+    <div class="pk-legend"><span><i style="background:#12182B"></i>실제 종가</span><span><i style="background:#E5383B"></i>모델 예측 중앙값</span><span><i style="background:#E5383B;height:8px;opacity:.2"></i>모델 25~75% 범위</span></div>
+  </section>
+
+
+  <section class="card pk-cta">
+    <b style="font-size:17px">📐 차트로 보면 어떤 자리일까?</b>
+    <p style="font-size:15px;color:var(--ink)">📊 차트 신호 점수 <b style="color:#C99700">40점 · 중</b> · AI 포함 <b style="color:#C99700">52점 · 중</b></p>
+    <button class="btn big" type="button" onclick="var c=document.getElementById('ca');c.classList.toggle('open');this.textContent=c.classList.contains('open')?'차트 분석 접기':'📐 차트 분석 보기';if(c.classList.contains('open')){c.scrollIntoView({behavior:'smooth'});try{Portal.track('pick_chart')}catch(e){}}">📐 차트 분석 보기</button>
+    <p>추세선·지지선·피보나치·거래가 몰린 가격대를 자동으로 그려서, 앞으로 볼 자리를 정리했어요</p>
+  </section>
+
+  <section class="card ca" id="ca">
+    <h3 style="margin:0">디센트럴랜드(MANA) 차트 분석 <small style="color:var(--muted);font-weight:400;font-size:13px">11/20 종가 77.2원 기준</small></h3>
+    <a href="chart.webp?v=2026-11-20" target="_blank" rel="noopener"><img src="chart.webp?v=2026-11-20" alt="디센트럴랜드(MANA) 차트 분석: 저항선·지지선·앞으로 볼 자리" loading="lazy"></a>
+    <small style="color:var(--muted);font-size:12px;margin-top:-8px">그림을 누르면 크게 볼 수 있어요</small>
+    <div class="ca-pat">지금 모양: <b>하락 추세선</b><br>고점이 차례로 낮아지는 하락 흐름 — 이 선을 위로 넘어서야 흐름이 바뀐 걸로 봐요</div>
+    
+    <div class="ca-score">
+      <h4 style="margin:0 0 8px">📊 차트 신호 점검</h4>
+      <div class="ca-scs"><div class="ca-sc"><small>차트만 본 점수</small><b style="color:#C99700">40</b><span style="background:#C99700">중</span></div><div class="ca-sc"><small>AI 예측까지 넣은 점수</small><b style="color:#C99700">52</b><span style="background:#C99700">중</span></div></div>
+      <div class="ca-chips"><span class="ca-chip">⚪ 하락 추세선 · 형성 중</span></div>
+      <ul class="ca-ck"><li>✅ 반전 첫 신호(저점 상승)</li><li>▫️ 전고 돌파(추세 완성)</li><li>▫️ 거래량 1.5배</li><li>▫️ 상승 다이버전스</li><li>✅ 하락 다이버전스 없음</li><li>▫️ 큰 상승(깃대) +100%</li><li>▫️ 되돌림 0.618 안</li></ul>
+      
+      <small style="color:var(--muted);font-size:12px">모양 10/40 · 점검표 12/42 · 시장 18/18 · AI 넣은 점수 = 차트×0.8 + AI 판정(상승 20·혼돈 10·하락 0) · 70↑ 강 · 40~69 중 · 40↓ 약<br>
+      조건이 몇 개 맞는지 센 점수예요. 앞으로 오를 확률이 아니에요.</small>
+    </div>
+    <div class="ca-combo"><b>🤖 AI 예측과 같이 보면</b><br>다음 거래일 AI 판정 &#x27;상승&#x27;. AI 6일 예측 중앙값(82.62)이 저항선 근처까지 와요 → 저항선에서 막히는지 넘는지가 관건이에요.</div>
+    <div><h4 style="margin:0 0 8px">앞으로 볼 자리</h4><div class="ca-lv"><div class="goal"><b>목표 구간 ③</b><span>113원</span><small>수평 고점</small></div><div class="goal"><b>목표 구간 ②</b><span>109.25원</span><small>수평 고점</small></div><div class="goal"><b>목표 구간 ①</b><span>104.49원</span><small>수평 고점</small></div><div class="watch"><b>돌파 확인 자리</b><span>85.66원</span><small>종가가 저항선보다 3% 넘게 위에서 마감 (돌파 뒤 80.67 아래로 다시 마감하면 돌파 실패)</small></div><div class="watch"><b>지지 확인 자리</b><span>83.16원</span><small>돌파 뒤 저항선이 받쳐 주는지</small></div><div class="risk"><b>위험 구간</b><span>80.67원</span><small>돌파 뒤 이 아래로 마감하면 돌파 실패</small></div></div></div>
+    <div><h4 style="margin:0 0 6px">해석</h4><ul><li>저항선이 하루에 약 1.3%씩 내려오고 있어서, &#x27;돌파 확인 자리&#x27;도 날마다 조금씩 낮아져요. 그림의 초록 점선은 가격이 이 선과 만난 뒤 돌파할 때의 예상 흐름이에요.</li><li>지금 가격은 저항선보다 8% 아래예요. 아직 돌파를 말하기엔 거리가 있어요.</li><li>직전 큰 상승분을 모두 되돌렸어요. 새 바닥이 확인될 때까지는 조심스럽게 봐요.</li><li>비트코인 상태: 특별한 경고 없음</li></ul></div>
+    <p class="pk-note" style="text-align:left">차트 모양을 규칙대로 자동 분석한 참고 자료예요. 특정 가격에 사고팔라는 권유가 아니며, 가격이 어느 자리에 있는지 보는 용도로만 써 주세요.</p>
+  </section>
+
+  <section class="card pk-cta">
+    <b style="font-size:17px">디센트럴랜드(MANA)의 모델별 6일 차트와 전체 순위</b>
+    <a class="btn big red" href="../../login.html?next=dashboard.html%3Fm%3Dcoin%26ex%3Dupbit%26v%3Dchart%26s%3DMANA#signup" data-member="../../dashboard.html?m=coin&amp;ex=upbit&amp;v=chart&amp;s=MANA" data-member-text="디센트럴랜드(MANA) 차트 바로 보기">7일 무료로 전체 차트 보기</a>
+    <p>닉네임·이메일만으로 가입 · 카드 등록 없음 · 가입하면 바로 이 코인 차트로 이동해요</p>
+  </section>
+
+  <a class="btn ghost" href="../../s/" style="align-self:center">오늘 무료로 공개된 다른 종목 보기 →</a>
+
+  <p class="pk-note">이 페이지는 여러 예측 모델의 출력을 요약한 참고 자료이며, 투자 권유나 종목 추천이 아닙니다.<br>투자 판단과 그 결과에 대한 책임은 이용자 본인에게 있습니다.</p>
+  <p class="legal-links"><a href="../../terms.html">이용약관</a>·<a href="../../privacy.html"><b>개인정보처리방침</b></a></p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../config.js?v=20261118a"></script>
+<script src="../../assets/app.js?v=20261118a"></script>
+<script>
+// 방문 흐름 기록(운영자 '방문 흐름' 화면) + 이미 로그인한 회원은 버튼을 바로 그 종목 차트로
+(async function () {
+  try { Portal.track("pick"); } catch (e) {}
+  try {
+    const { data: { session } } = await Portal.sb.auth.getSession();
+    if (session) document.querySelectorAll("a[data-member]").forEach((a) => { a.href = a.dataset.member; a.textContent = a.dataset.memberText || a.textContent; });
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

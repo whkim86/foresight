@@ -6,11 +6,11 @@
   <url><loc>https://www.ai-sinhodeung.co.kr/terms.html</loc><lastmod>2026-11-21</lastmod><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://www.ai-sinhodeung.co.kr/catalog.html</loc><lastmod>2026-11-21</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://www.ai-sinhodeung.co.kr/game.html</loc><lastmod>2026-11-21</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://www.ai-sinhodeung.co.kr/s/ETC/</loc><lastmod>2026-11-20</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.ai-sinhodeung.co.kr/s/APT/</loc><lastmod>2026-11-20</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.ai-sinhodeung.co.kr/s/SUI/</loc><lastmod>2026-11-20</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.ai-sinhodeung.co.kr/s/STRAX/</loc><lastmod>2026-11-20</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
-  <url><loc>https://www.ai-sinhodeung.co.kr/s/ENS/</loc><lastmod>2026-11-20</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.ai-sinhodeung.co.kr/s/SUI/</loc><lastmod>2026-11-21</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.ai-sinhodeung.co.kr/s/ZRO/</loc><lastmod>2026-11-21</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.ai-sinhodeung.co.kr/s/XLM/</loc><lastmod>2026-11-21</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.ai-sinhodeung.co.kr/s/ETC/</loc><lastmod>2026-11-21</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.ai-sinhodeung.co.kr/s/MANA/</loc><lastmod>2026-11-21</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.ai-sinhodeung.co.kr/s/PALANTIR/</loc><lastmod>2026-11-21</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.ai-sinhodeung.co.kr/s/NVIDIA/</loc><lastmod>2026-11-21</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.ai-sinhodeung.co.kr/s/DOW/</loc><lastmod>2026-11-21</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
@@ -29,6 +29,9 @@
   <url><loc>https://www.ai-sinhodeung.co.kr/s/ETH/</loc><lastmod>2026-11-19</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.ai-sinhodeung.co.kr/s/SP500/</loc><lastmod>2026-11-14</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.ai-sinhodeung.co.kr/s/TESLA/</loc><lastmod>2026-11-19</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.ai-sinhodeung.co.kr/s/APT/</loc><lastmod>2026-11-20</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.ai-sinhodeung.co.kr/s/STRAX/</loc><lastmod>2026-11-20</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://www.ai-sinhodeung.co.kr/s/ENS/</loc><lastmod>2026-11-20</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.ai-sinhodeung.co.kr/s/STRATEGY/</loc><lastmod>2026-11-19</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.ai-sinhodeung.co.kr/s/NETFLIX/</loc><lastmod>2026-11-19</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://www.ai-sinhodeung.co.kr/s/KODEXWTI%EC%9B%90%EC%9C%A0%EC%84%A0%EB%AC%BCH/</loc><lastmod>2026-11-20</lastmod><changefreq>daily</changefreq><priority>0.8</priority></url>
