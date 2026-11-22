@@ -191,9 +191,9 @@
   "sym": "BTC",
   "ko": "비트코인",
   "market": "upbit",
-  "date": "2026-11-20",
-  "verdict": "혼돈",
-  "votes": "52개 모델 중 상승 27 · 하락 15",
+  "date": "2026-11-22",
+  "verdict": "상승",
+  "votes": "52개 모델 중 상승 39 · 하락 2",
   "rank": null,
   "today": true
  },
@@ -206,7 +206,7 @@
   "verdict": "혼돈",
   "votes": "52개 모델 중 상승 31 · 하락 8",
   "rank": null,
-  "today": true
+  "today": false
  },
  {
   "slug": "삼성전자",
