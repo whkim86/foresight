@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>에이브(AAVE) 전망 11/22 · AI 52개 모델 6일 예측 | AI 신호등</title>
+<meta name="description" content="11/22 기준 에이브(AAVE) 다음 거래일 AI 판정은 &#x27;상승&#x27;. 52개 모델 중 41개가 상승. 6일 뒤 예측 중앙값 +9.7%. 52개 예측 모델의 6일 가격 흐름을 신호등으로 정리했어요.">
+<link rel="canonical" href="https://www.ai-sinhodeung.co.kr/s/AAVE/">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="AI 신호등">
+<meta property="og:title" content="에이브(AAVE) 전망 11/22 · AI 52개 모델 6일 예측 | AI 신호등">
+<meta property="og:description" content="11/22 기준 에이브(AAVE) 다음 거래일 AI 판정은 &#x27;상승&#x27;. 52개 모델 중 41개가 상승. 6일 뒤 예측 중앙값 +9.7%. 52개 예측 모델의 6일 가격 흐름을 신호등으로 정리했어요.">
+<meta property="og:url" content="https://www.ai-sinhodeung.co.kr/s/AAVE/">
+<meta property="og:image" content="https://www.ai-sinhodeung.co.kr/assets/og-image.png">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css?v=20261121a">
+<style>
+.pk { max-width: 760px; margin: 0 auto; padding: 28px 16px 56px; display: flex; flex-direction: column; gap: 18px; }
+.pk-hero { color: #fff; display: flex; flex-direction: column; gap: 8px; }
+.pk-hero small { color: #B7BFD0; font-size: 13px; }
+.pk-hero h1 { margin: 0; font-size: clamp(26px, 6vw, 36px); line-height: 1.25; }
+.pk-verdict { display: flex; align-items: center; gap: 14px; }
+.pk-verdict b { font-size: 28px; }
+.pk-verdict span { color: var(--sub); font-size: 14.5px; }
+.pk-chart { width: 100%; height: auto; display: block; }
+.pk-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--muted); }
+.pk-legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+.pk-cta { display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.pk-cta .btn { width: 100%; }
+.pk-cta p { margin: 0; font-size: 13px; color: var(--muted); }
+.pk-list { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.pk-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 16px; text-decoration: none; color: var(--ink); }
+.pk-item small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.pk-note { font-size: 12px; color: var(--faint); line-height: 1.6; text-align: center; }
+.v-up { color: var(--up); } .v-mx { color: var(--mx-ink); } .v-dn { color: var(--dn); }
+.ca { display: none; flex-direction: column; gap: 14px; }
+.ca.open { display: flex; }
+.ca img { width: 100%; height: auto; border-radius: 10px; border: 1px solid #E6E9F0; display: block; }
+.ca-pat { background: #F4F6FA; border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--sub); line-height: 1.6; }
+.ca-pat b { color: var(--ink); font-size: 16px; }
+.ca-lv { display: grid; gap: 6px; }
+.ca-lv div { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 12px; border-radius: 10px; border-left: 4px solid; background: #FAFBFD; }
+.ca-lv b { font-size: 14.5px; } .ca-lv span { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ca-lv small { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; }
+.ca-lv .goal { border-color: #1E9E6A; } .ca-lv .goal b, .ca-lv .goal span { color: #1E9E6A; }
+.ca-lv .watch { border-color: #7C4DFF; } .ca-lv .watch b, .ca-lv .watch span { color: #7C4DFF; }
+.ca-lv .risk { border-color: #E5484D; } .ca-lv .risk b, .ca-lv .risk span { color: #E5484D; }
+.ca ul { margin: 0; padding-left: 18px; color: var(--sub); font-size: 14px; line-height: 1.7; }
+.ca-combo { border: 1.5px solid #C99700; background: #FFF9E6; border-radius: 10px; padding: 12px 14px; font-size: 14.5px; line-height: 1.6; }
+.ca-combo b { color: #8A6A00; }
+.ca-score { border: 1px solid #E6E9F0; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.ca-scs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.ca-sc { background: #FAFBFD; border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ca-sc small { width: 100%; color: var(--muted); font-size: 12px; }
+.ca-sc b { font-size: 28px; line-height: 1; }
+.ca-sc span { color: #fff; font-size: 13px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+.ca-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.ca-g { display: flex; justify-content: space-between; align-items: center; gap: 6px; white-space: nowrap; border: 1.5px solid; border-radius: 10px; padding: 7px 10px; font-size: 13.5px; background: #FAFBFD; }
+.ca-g span { font-weight: 600; } .ca-g.off { border-color: #E6E9F0; color: #9AA3B5; } .ca-g.off span { font-weight: 400; }
+.ca-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ca-chip { background: #F4F6FA; border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--ink); }
+.ca ul.ca-ck { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 10px; font-size: 13.5px; }
+.ca ul.ca-warn { list-style: none; padding: 0; color: #B4232A; font-size: 13.5px; }
+.ca-strip { display: flex; flex-wrap: wrap; gap: 4px; }
+.ca-strip button { font: inherit; font-size: 12.5px; line-height: 1.3; padding: 4px 9px; border-radius: 6px; border: 1px solid #E6E9F0; background: #fff; color: #9AA3B5; cursor: pointer; white-space: nowrap; }
+.ca-strip .off { opacity: .6; font-size: 12px; } .ca-strip .sep { width: 1px; background: #E6E9F0; margin: 0 2px; }
+.ca-strip .u { background: #E5484D; border-color: #E5484D; color: #fff; font-weight: 600; } .ca-strip .d { background: #3B6FE0; border-color: #3B6FE0; color: #fff; font-weight: 600; }
+.ca-strip .uh { border-color: #E5484D; color: #C0242F; font-weight: 600; background: repeating-linear-gradient(135deg, rgba(229,72,77,.28) 0 3px, transparent 3px 7px); }
+.ca-strip .dh { border-color: #3B6FE0; color: #1D4FB0; font-weight: 600; background: repeating-linear-gradient(135deg, rgba(59,111,224,.28) 0 3px, transparent 3px 7px); }
+.ca-g.npd { background: #E5484D; border-color: #E5484D !important; color: #fff; } .ca-g.npd b { color: #fff !important; }
+.ca-g.npn { border-color: #C99700 !important; background: #FFF8E1; } .ca-g.npn b { color: #A87E00 !important; }
+.ca-flash { animation: caf 1.6s ease-out; } @keyframes caf { 0%, 40% { box-shadow: 0 0 0 3px #C99700; } 100% { box-shadow: 0 0 0 0 transparent; } }
+</style>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "에이브(AAVE) 전망 11/22 · AI 52개 모델 6일 예측 | AI 신호등", "description": "11/22 기준 에이브(AAVE) 다음 거래일 AI 판정은 '상승'. 52개 모델 중 41개가 상승. 6일 뒤 예측 중앙값 +9.7%. 52개 예측 모델의 6일 가격 흐름을 신호등으로 정리했어요.", "dateModified": "2026-11-22", "inLanguage": "ko", "url": "https://www.ai-sinhodeung.co.kr/s/AAVE/", "publisher": {"@type": "Organization", "name": "AI 신호등", "url": "https://www.ai-sinhodeung.co.kr"}}</script>
+</head>
+<body class="home landing">
+<header class="topbar">
+  <a class="brand" href="../../index.html"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><b><span class="ai">AI</span>신호등</b></a>
+  <nav class="nav">
+    <a href="../../s/">오늘의 무료 종목</a>
+    <a class="btn sm cta-top" href="../../login.html?next=dashboard.html%3Fm%3Dcoin%26ex%3Dupbit%26v%3Dchart%26s%3DAAVE#signup">무료로 시작하기</a>
+  </nav>
+</header>
+
+<main class="pk">
+  <section class="pk-hero on-night">
+    <small>코인 · 업비트 · 11/22 예측 · AI 모델 52개</small>
+    <h1>에이브(AAVE) 전망</h1>
+  </section>
+
+  <section class="card">
+    <div class="pk-verdict">
+      <div class="lamp up" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div><small style="color:var(--muted);font-size:12.5px">다음 거래일(D+1) AI 판정</small><br>
+        <b class="v-up">상승</b><br><span>52개 모델 중 41개가 상승</span></div>
+    </div>
+    <p style="margin:10px 0 0;color:var(--sub);font-size:14px">참고: 고점 돌파 3일 연속 매수</p>
+  </section>
+
+  <section class="card">
+    <h3 style="margin-bottom:6px">6일 예측 흐름</h3>
+    <p class="hint" style="margin:0 0 10px;font-size:13px">기준가 134,100원 · 6일 뒤 예측 중앙값 <b class="v-up">+9.7%</b></p>
+    <svg viewBox="0 0 520 300" role="img" aria-label="최근 8일 종가와 앞으로 6일 예측 범위" class="pk-chart">
+  <line x1="277.1" y1="30" x2="277.1" y2="266" stroke="#C5CAD6" stroke-dasharray="4 4"/>
+  <polygon points="277.1,249.7 315.2,209.7 353.4,174.3 391.5,142.2 429.7,131.0 467.8,74.5 506.0,46.3 506.0,207.5 467.8,190.1 429.7,190.9 391.5,209.0 353.4,224.5 315.2,235.7 277.1,249.7" fill="#E5383B" fill-opacity=".14"/>
+  <polyline points="10.0,206.7 48.2,114.3 86.3,136.2 124.5,96.4 162.6,132.1 200.8,184.0 238.9,240.8 277.1,249.7" fill="none" stroke="#12182B" stroke-width="2.4" stroke-linejoin="round"/>
+  <polyline points="277.1,249.7 315.2,227.5 353.4,203.5 391.5,167.4 429.7,161.9 467.8,157.5 506.0,143.9" fill="none" stroke="#E5383B" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="277.1" cy="249.7" r="4.5" fill="#12182B"/>
+  <circle cx="506.0" cy="143.9" r="6" fill="#fff" stroke="#E5383B" stroke-width="3"/>
+  <text x="506" y="20" text-anchor="end" font-size="18" font-weight="700" fill="#E5383B">6일 뒤 +9.7%</text>
+  <text x="10" y="290" font-size="15" fill="#8A93A6">11-14</text>
+  <text x="277.1" y="290" font-size="15" fill="#12182B" text-anchor="middle" font-weight="600">11-21 기준</text>
+  <text x="506" y="290" font-size="15" fill="#8A93A6" text-anchor="end">11-27</text>
+</svg>
+    <div class="pk-legend"><span><i style="background:#12182B"></i>실제 종가</span><span><i style="background:#E5383B"></i>모델 예측 중앙값</span><span><i style="background:#E5383B;height:8px;opacity:.2"></i>모델 25~75% 범위</span></div>
+  </section>
+
+
+  <section class="card pk-cta">
+    <b style="font-size:17px">에이브(AAVE)의 모델별 6일 차트와 전체 순위</b>
+    <a class="btn big red" href="../../login.html?next=dashboard.html%3Fm%3Dcoin%26ex%3Dupbit%26v%3Dchart%26s%3DAAVE#signup" data-member="../../dashboard.html?m=coin&amp;ex=upbit&amp;v=chart&amp;s=AAVE" data-member-text="에이브(AAVE) 차트 바로 보기">7일 무료로 전체 차트 보기</a>
+    <p>닉네임·이메일만으로 가입 · 카드 등록 없음 · 가입하면 바로 이 코인 차트로 이동해요</p>
+  </section>
+
+  <a class="btn ghost" href="../../s/" style="align-self:center">오늘 무료로 공개된 다른 종목 보기 →</a>
+
+  <p class="pk-note">이 페이지는 여러 예측 모델의 출력을 요약한 참고 자료이며, 투자 권유나 종목 추천이 아닙니다.<br>투자 판단과 그 결과에 대한 책임은 이용자 본인에게 있습니다.</p>
+  <p class="legal-links"><a href="../../terms.html">이용약관</a>·<a href="../../privacy.html"><b>개인정보처리방침</b></a></p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../../config.js?v=20261121a"></script>
+<script src="../../assets/app.js?v=20261121a"></script>
+<script>
+// 방문 흐름 기록(운영자 '방문 흐름' 화면) + 이미 로그인한 회원은 버튼을 바로 그 종목 차트로
+// 2026-11-21: 종목·시장·들어온 곳(?from= 또는 이전 주소) 같이 남김, '무료로 시작하기' 클릭은 pick_cta
+(async function () {
+  const SRC = (function () {
+    try {
+      const q = new URLSearchParams(location.search).get("from");
+      if (q && /^[a-z_]{1,20}$/.test(q)) return q;
+      const r = document.referrer ? new URL(document.referrer).hostname : "";
+      if (!r) return "direct";
+      if (r === location.hostname) return "site";
+      if (/youtube\.com$|youtu\.be$/.test(r)) return "yt";
+      if (/tistory\.com$|blog\.naver\.com$|m\.blog\.naver\.com$/.test(r)) return "blog";
+      if (/google\.|naver\.com$|daum\.net$|bing\.com$/.test(r)) return "search";
+      return "other";
+    } catch (e) { return "other"; }
+  })();
+  const EXTRA = {"p_symbol": "AAVE", "p_market": "coin"};
+  try { Portal.track("pick", EXTRA ? Object.assign({ p_src: SRC }, EXTRA) : null); } catch (e) {}
+  document.addEventListener("click", function (ev) {
+    const a = ev.target.closest && ev.target.closest('a[href*="login.html"]');
+    if (a) try { PortalEvents.log({ p_kind: "view", p_page: "pick" === "pick" ? "pick_cta" : "pick_list_cta" }); } catch (e) {}
+  }, true);
+  try {
+    const { data: { session } } = await Portal.sb.auth.getSession();
+    if (session) document.querySelectorAll("a[data-member]").forEach((a) => { a.href = a.dataset.member; a.textContent = a.dataset.memberText || a.textContent; });
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>
