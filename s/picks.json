@@ -213,11 +213,11 @@
   "sym": "005930",
   "ko": "삼성전자",
   "market": "kospi",
-  "date": "2026-11-21",
-  "verdict": "혼돈",
-  "votes": "52개 모델 중 상승 31 · 하락 19",
+  "date": "2026-11-24",
+  "verdict": "상승",
+  "votes": "52개 모델 중 상승 40 · 하락 6",
   "rank": null,
-  "today": false
+  "today": true
  },
  {
   "slug": "ETH",
