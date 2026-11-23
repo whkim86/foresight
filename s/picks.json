@@ -191,9 +191,9 @@
   "sym": "BTC",
   "ko": "비트코인",
   "market": "upbit",
-  "date": "2026-11-22",
+  "date": "2026-11-23",
   "verdict": "상승",
-  "votes": "52개 모델 중 상승 39 · 하락 2",
+  "votes": "52개 모델 중 상승 43 · 하락 5",
   "rank": null,
   "today": true
  },
@@ -217,7 +217,7 @@
   "verdict": "혼돈",
   "votes": "52개 모델 중 상승 31 · 하락 19",
   "rank": null,
-  "today": true
+  "today": false
  },
  {
   "slug": "ETH",
@@ -228,7 +228,7 @@
   "verdict": "혼돈",
   "votes": "52개 모델 중 상승 30 · 하락 9",
   "rank": null,
-  "today": true
+  "today": false
  },
  {
   "slug": "SP500",
@@ -250,7 +250,7 @@
   "verdict": "상승",
   "votes": "52개 모델 중 상승 41 · 하락 7",
   "rank": null,
-  "today": true
+  "today": false
  },
  {
   "slug": "AAVE",
