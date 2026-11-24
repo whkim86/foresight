@@ -351,7 +351,13 @@
       if (RJ.sup && RJ.sup.length) rl("#1E9E6A", { lineStyle: LW.LineStyle.Dashed }).setData(ok(RJ.sup));
       rl("#1E9E6A", { lineStyle: LW.LineStyle.LargeDashed }).setData(ok(RJ.up));
       rl("#E5484D", { lineStyle: LW.LineStyle.LargeDashed }).setData(ok(RJ.dn));
-      const TC = { goal: ["#1E9E6A", 0], watch: ["#7C4DFF", 0], watch2: ["#7C4DFF", 2], risk: ["#E5484D", 0] };
+      const TC = { goal: ["#1E9E6A", 0], watch: ["#7C4DFF", 0], watch2: ["#7C4DFF", 2], risk: ["#E5484D", 0], sup: ["#1E9E6A", 0], wneck: ["#E5484D", 2] };
+      // 📐 전저점 지지 + W 가능성 (2026-11-25): 전저점 수평선 · 넥라인 · W 모양 점선
+      if (RJ.sw) {
+        if (RJ.sw.low_line) rl("#1E9E6A", { lineWidth: 2 }).setData(ok(RJ.sw.low_line));
+        if (RJ.sw.neck_line) rl("#E5484D", { lineWidth: 1.5, lineStyle: LW.LineStyle.Dashed }).setData(ok(RJ.sw.neck_line));
+        if (RJ.sw.w && !wk) rl("#E5484D", { lineWidth: 1.5, lineStyle: LW.LineStyle.Dotted }).setData(ok(RJ.sw.w));
+      }
       const hiShown = Math.max(...bars.slice(-Math.max(10, Math.round(pref.period * 0.7))).map((b) => b.high));
       (RJ.tags || []).forEach((g, j) => {
         if (g.k === "goal" && j > 0 && g.p > hiShown * 1.6) return;  // 너무 먼 목표 ②③은 뺌
@@ -379,6 +385,7 @@
       if (!wk && LW.createSeriesMarkers && RJ.touches) {
         const have = new Set(bars.map((b) => b.time));
         const mk = RJ.touches.filter((t) => have.has(t)).map((t) => ({ time: t, position: "aboveBar", shape: "circle", color: "#7C4DFF", size: 0.6 }));
+        ((RJ.sw || {}).marks || []).filter((m) => have.has(m.d)).forEach((m) => mk.push({ time: m.d, position: "belowBar", shape: "arrowUp", color: "#E5484D", text: m.t, size: 1 }));
         npOn.forEach((x) => {
           const t = x.state === "완성" ? x.since : lastT;
           if (have.has(t)) mk.push({ time: t, position: "belowBar", shape: "arrowUp", color: x.state === "완성" ? "#E5484D" : "#C99700", text: `${x.name} ${x.state}`, size: 1.2 });
@@ -686,7 +693,7 @@
     const broke = rj.ep1 && c >= rj.ep1;
     const npi = ((rj.card.newpat || {}).items || []).filter((x) => x.state !== "아님").sort((a, b) => (a.state === b.state ? 0 : a.state === "완성" ? -1 : 1));
     return { c, pat: rj.card.pattern || "뚜렷한 모양 없음", goal1, risk, done, broke, ep1: rj.ep1, gap: rj.ep1 ? rj.ep1 / c - 1 : null,
-      np: npi[0] || null, npWarn: (rj.card.newpat || {}).warn || [] };
+      np: npi[0] || null, npWarn: (rj.card.newpat || {}).warn || [], sw: rj.card.sw || null };
   }
   function npLine(x) {  // 🧩 매매 패턴 한 줄 (완성 / 완성 직전)
     if (!x) return "";
@@ -706,6 +713,7 @@
     else if (f.ep1) t = `${em(escH(f.pat), "")} 저항선 아래예요. 흐름이 바뀌려면 ${fmt(f.ep1)} 위 마감(지금보다 ${pct(f.gap)})이 먼저예요.`;
     else t = `지금 모양: ${escH(f.pat)}.`;
     if (f.risk) t += ` ${fmt(f.risk.price)} 아래로 내려가면 ${em("조심할 자리", "d")}예요.`;
+    if (f.sw) t = `전저점 ${fmt(f.sw.low)} 근처예요. 여기를 지키면 ${em("W(이중 바닥) 반등 가능성", "u")}, 넥라인 ${fmt(f.sw.neck)} 돌파가 확인 자리예요. ${fmt(f.sw.risk)} 아래로 내려가면 ${em("조심할 자리", "d")}예요.`;
     if (f.np) t += " " + npLine(f.np);
     if (!el) { el = document.createElement("p"); el.className = "cr-one"; sec.appendChild(el); }
     el.innerHTML = "📐 차트로 보면: " + t;
@@ -735,6 +743,7 @@
       else if (f.ep1) s2 += `${f.pat} 저항선 아래라 ${fmt(f.ep1)} 위로 마감해야 흐름이 바뀌고`;
       else s2 += `${f.pat} 모양이고`;
       s2 = f.risk ? s2 + `, ${fmt(f.risk.price)} 아래로 내려가면 조심할 자리예요.` : `차트로는 ${f.pat} 모양이에요.`;
+      if (f.sw) s2 = `차트로는 전저점 ${fmt(f.sw.low)} 근처라, 지키면 ${em("W 반등 가능성", "u")}이 있고 넥라인 ${fmt(f.sw.neck)}을 넘는지가 확인 자리예요. ${fmt(f.sw.risk)} 아래로 내려가면 조심할 자리예요.`;
       if (f.np) parts.push(npLine(f.np));
       parts.push(s2);
       if (f.npWarn.length && (f.ep1 && f.gap < 0.05)) parts.push(`⚠️ 다만 최근 ${escH(f.npWarn[0])}가 있어 돌파가 나와도 조심해서 봐요.`);
