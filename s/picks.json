@@ -55,57 +55,57 @@
   "today": true
  },
  {
-  "slug": "PALANTIR",
-  "sym": "PALANTIR",
-  "ko": "팔란티어",
-  "market": "nasdaq",
-  "date": "2026-11-21",
-  "verdict": "상승",
-  "votes": "52개 모델 중 46개가 상승",
-  "rank": 1,
-  "today": true
- },
- {
-  "slug": "NVIDIA",
-  "sym": "NVIDIA",
-  "ko": "엔비디아",
-  "market": "nasdaq",
-  "date": "2026-11-21",
-  "verdict": "상승",
-  "votes": "52개 모델 중 36개가 상승",
-  "rank": 2,
-  "today": true
- },
- {
-  "slug": "DOW",
-  "sym": "DOW",
-  "ko": "다우존스",
-  "market": "nasdaq",
-  "date": "2026-11-21",
-  "verdict": "상승",
-  "votes": "52개 모델 중 46개가 상승",
-  "rank": 3,
-  "today": true
- },
- {
   "slug": "RUSSELL2000",
   "sym": "RUSSELL2000",
   "ko": "러셀2000",
   "market": "nasdaq",
-  "date": "2026-11-21",
+  "date": "2026-11-25",
   "verdict": "상승",
-  "votes": "52개 모델 중 36개가 상승",
+  "votes": "52개 모델 중 31개가 상승",
+  "rank": 1,
+  "today": true
+ },
+ {
+  "slug": "MONSTER_BEVERAGE",
+  "sym": "MONSTER_BEVERAGE",
+  "ko": "몬스터 베버리지",
+  "market": "nasdaq",
+  "date": "2026-11-25",
+  "verdict": "상승",
+  "votes": "52개 모델 중 40개가 상승",
+  "rank": 2,
+  "today": true
+ },
+ {
+  "slug": "BITMINE",
+  "sym": "BITMINE",
+  "ko": "비트마인",
+  "market": "nasdaq",
+  "date": "2026-11-25",
+  "verdict": "상승",
+  "votes": "52개 모델 중 31개가 상승",
+  "rank": 3,
+  "today": true
+ },
+ {
+  "slug": "INTUIT",
+  "sym": "INTUIT",
+  "ko": "인튜이트",
+  "market": "nasdaq",
+  "date": "2026-11-25",
+  "verdict": "상승",
+  "votes": "52개 모델 중 26개가 상승",
   "rank": 4,
   "today": true
  },
  {
-  "slug": "MERCADOLIBRE",
-  "sym": "MERCADOLIBRE",
-  "ko": "메르카도리브레",
+  "slug": "GALAXY_DIGITAL",
+  "sym": "GALAXY_DIGITAL",
+  "ko": "갤럭시 디지털",
   "market": "nasdaq",
-  "date": "2026-11-21",
+  "date": "2026-11-25",
   "verdict": "상승",
-  "votes": "52개 모델 중 41개가 상승",
+  "votes": "52개 모델 중 26개가 상승",
   "rank": 5,
   "today": true
  },
@@ -176,6 +176,17 @@
   "today": true
  },
  {
+  "slug": "NVIDIA",
+  "sym": "NVDA",
+  "ko": "엔비디아",
+  "market": "nasdaq",
+  "date": "2026-11-19",
+  "verdict": "상승",
+  "votes": "52개 모델 중 상승 36 · 하락 8",
+  "rank": null,
+  "today": false
+ },
+ {
   "slug": "SK하이닉스",
   "sym": "000660",
   "ko": "SK하이닉스",
@@ -228,6 +239,39 @@
   "verdict": "상승",
   "votes": "52개 모델 중 상승 41 · 하락 7",
   "rank": null,
+  "today": false
+ },
+ {
+  "slug": "PALANTIR",
+  "sym": "PALANTIR",
+  "ko": "팔란티어",
+  "market": "nasdaq",
+  "date": "2026-11-21",
+  "verdict": "상승",
+  "votes": "52개 모델 중 46개가 상승",
+  "rank": 1,
+  "today": false
+ },
+ {
+  "slug": "DOW",
+  "sym": "DOW",
+  "ko": "다우존스",
+  "market": "nasdaq",
+  "date": "2026-11-21",
+  "verdict": "상승",
+  "votes": "52개 모델 중 46개가 상승",
+  "rank": 3,
+  "today": false
+ },
+ {
+  "slug": "MERCADOLIBRE",
+  "sym": "MERCADOLIBRE",
+  "ko": "메르카도리브레",
+  "market": "nasdaq",
+  "date": "2026-11-21",
+  "verdict": "상승",
+  "votes": "52개 모델 중 41개가 상승",
+  "rank": 5,
   "today": false
  },
  {
@@ -591,17 +635,6 @@
   "verdict": "상승",
   "votes": "52개 모델 중 40개가 상승",
   "rank": 5,
-  "today": false
- },
- {
-  "slug": "BITMINE",
-  "sym": "BITMINE",
-  "ko": "비트마인",
-  "market": "nasdaq",
-  "date": "2026-11-18",
-  "verdict": "상승",
-  "votes": "52개 모델 중 36개가 상승",
-  "rank": 2,
   "today": false
  },
  {
