@@ -1,35 +1,13 @@
 [
  {
-  "slug": "AAVE",
-  "sym": "AAVE",
-  "ko": "에이브",
+  "slug": "CHZ",
+  "sym": "CHZ",
+  "ko": "칠리즈",
   "market": "upbit",
-  "date": "2026-11-24",
-  "verdict": "상승",
-  "votes": "52개 모델 중 40개가 상승",
-  "rank": 1,
-  "today": true
- },
- {
-  "slug": "ATH",
-  "sym": "ATH",
-  "ko": "에이셔",
-  "market": "upbit",
-  "date": "2026-11-24",
+  "date": "2026-11-25",
   "verdict": "상승",
   "votes": "52개 모델 중 34개가 상승",
-  "rank": 2,
-  "today": true
- },
- {
-  "slug": "ZRO",
-  "sym": "ZRO",
-  "ko": "레이어제로",
-  "market": "upbit",
-  "date": "2026-11-24",
-  "verdict": "상승",
-  "votes": "52개 모델 중 40개가 상승",
-  "rank": 3,
+  "rank": 1,
   "today": true
  },
  {
@@ -37,18 +15,40 @@
   "sym": "ARK",
   "ko": "아크",
   "market": "upbit",
-  "date": "2026-11-24",
+  "date": "2026-11-25",
   "verdict": "혼돈",
   "votes": "52개 모델 의견이 갈렸어요",
+  "rank": 2,
+  "today": true
+ },
+ {
+  "slug": "XLM",
+  "sym": "XLM",
+  "ko": "스텔라루멘",
+  "market": "upbit",
+  "date": "2026-11-25",
+  "verdict": "상승",
+  "votes": "52개 모델 중 41개가 상승",
+  "rank": 3,
+  "today": true
+ },
+ {
+  "slug": "ZRO",
+  "sym": "ZRO",
+  "ko": "레이어제로",
+  "market": "upbit",
+  "date": "2026-11-25",
+  "verdict": "상승",
+  "votes": "52개 모델 중 49개가 상승",
   "rank": 4,
   "today": true
  },
  {
-  "slug": "DATA",
-  "sym": "DATA",
-  "ko": "데이터네트워크",
+  "slug": "AAVE",
+  "sym": "AAVE",
+  "ko": "에이브",
   "market": "upbit",
-  "date": "2026-11-24",
+  "date": "2026-11-25",
   "verdict": "혼돈",
   "votes": "52개 모델 의견이 갈렸어요",
   "rank": 5,
@@ -242,6 +242,28 @@
   "today": false
  },
  {
+  "slug": "ATH",
+  "sym": "ATH",
+  "ko": "에이셔",
+  "market": "upbit",
+  "date": "2026-11-24",
+  "verdict": "상승",
+  "votes": "52개 모델 중 34개가 상승",
+  "rank": 2,
+  "today": false
+ },
+ {
+  "slug": "DATA",
+  "sym": "DATA",
+  "ko": "데이터네트워크",
+  "market": "upbit",
+  "date": "2026-11-24",
+  "verdict": "혼돈",
+  "votes": "52개 모델 의견이 갈렸어요",
+  "rank": 5,
+  "today": false
+ },
+ {
   "slug": "PALANTIR",
   "sym": "PALANTIR",
   "ko": "팔란티어",
@@ -360,17 +382,6 @@
   "verdict": "상승",
   "votes": "52개 모델 중 40개가 상승",
   "rank": 2,
-  "today": false
- },
- {
-  "slug": "XLM",
-  "sym": "XLM",
-  "ko": "스텔라루멘",
-  "market": "upbit",
-  "date": "2026-11-23",
-  "verdict": "상승",
-  "votes": "52개 모델 중 44개가 상승",
-  "rank": 3,
   "today": false
  },
  {
