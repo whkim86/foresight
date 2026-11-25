@@ -110,24 +110,24 @@
   "today": true
  },
  {
-  "slug": "삼성바이오로직스",
-  "sym": "삼성바이오로직스",
+  "slug": "현대건설",
+  "sym": "현대건설",
   "ko": "",
   "market": "kospi",
-  "date": "2026-11-25",
-  "verdict": "혼돈",
-  "votes": "52개 모델 의견이 갈렸어요",
+  "date": "2026-11-26",
+  "verdict": "상승",
+  "votes": "52개 모델 중 33개가 상승",
   "rank": 1,
   "today": true
  },
  {
-  "slug": "고려아연",
-  "sym": "고려아연",
+  "slug": "KODEXWTI원유선물H",
+  "sym": "KODEXWTI원유선물H",
   "ko": "",
   "market": "kospi",
-  "date": "2026-11-25",
+  "date": "2026-11-26",
   "verdict": "상승",
-  "votes": "52개 모델 중 46개가 상승",
+  "votes": "52개 모델 중 36개가 상승",
   "rank": 2,
   "today": true
  },
@@ -136,32 +136,54 @@
   "sym": "미래에셋증권",
   "ko": "",
   "market": "kospi",
-  "date": "2026-11-25",
-  "verdict": "혼돈",
-  "votes": "52개 모델 의견이 갈렸어요",
+  "date": "2026-11-26",
+  "verdict": "상승",
+  "votes": "52개 모델 중 33개가 상승",
   "rank": 3,
   "today": true
  },
  {
-  "slug": "HD한국조선해양",
-  "sym": "HD한국조선해양",
+  "slug": "TIGER미국테크TOP10",
+  "sym": "TIGER미국테크TOP10",
   "ko": "",
   "market": "kospi",
-  "date": "2026-11-25",
-  "verdict": "혼돈",
-  "votes": "52개 모델 의견이 갈렸어요",
+  "date": "2026-11-26",
+  "verdict": "상승",
+  "votes": "52개 모델 중 37개가 상승",
   "rank": 4,
   "today": true
  },
  {
-  "slug": "SK이노베이션",
-  "sym": "SK이노베이션",
+  "slug": "KODEX200",
+  "sym": "KODEX200",
   "ko": "",
   "market": "kospi",
-  "date": "2026-11-25",
+  "date": "2026-11-26",
   "verdict": "상승",
-  "votes": "52개 모델 중 33개가 상승",
+  "votes": "52개 모델 중 35개가 상승",
   "rank": 5,
+  "today": true
+ },
+ {
+  "slug": "KOSPI",
+  "sym": "KOSPI",
+  "ko": "코스피",
+  "market": "index",
+  "date": "2026-11-26",
+  "verdict": "상승",
+  "votes": "52개 모델 중 상승 36 · 하락 15",
+  "rank": null,
+  "today": true
+ },
+ {
+  "slug": "KOSDAQ",
+  "sym": "KOSDAQ",
+  "ko": "코스닥",
+  "market": "index",
+  "date": "2026-11-26",
+  "verdict": "상승",
+  "votes": "52개 모델 중 상승 23 · 하락 13",
+  "rank": null,
   "today": true
  },
  {
@@ -239,6 +261,50 @@
   "verdict": "상승",
   "votes": "52개 모델 중 상승 41 · 하락 7",
   "rank": null,
+  "today": false
+ },
+ {
+  "slug": "삼성바이오로직스",
+  "sym": "삼성바이오로직스",
+  "ko": "",
+  "market": "kospi",
+  "date": "2026-11-25",
+  "verdict": "혼돈",
+  "votes": "52개 모델 의견이 갈렸어요",
+  "rank": 1,
+  "today": false
+ },
+ {
+  "slug": "고려아연",
+  "sym": "고려아연",
+  "ko": "",
+  "market": "kospi",
+  "date": "2026-11-25",
+  "verdict": "상승",
+  "votes": "52개 모델 중 46개가 상승",
+  "rank": 2,
+  "today": false
+ },
+ {
+  "slug": "HD한국조선해양",
+  "sym": "HD한국조선해양",
+  "ko": "",
+  "market": "kospi",
+  "date": "2026-11-25",
+  "verdict": "혼돈",
+  "votes": "52개 모델 의견이 갈렸어요",
+  "rank": 4,
+  "today": false
+ },
+ {
+  "slug": "SK이노베이션",
+  "sym": "SK이노베이션",
+  "ko": "",
+  "market": "kospi",
+  "date": "2026-11-25",
+  "verdict": "상승",
+  "votes": "52개 모델 중 33개가 상승",
+  "rank": 5,
   "today": false
  },
  {
@@ -341,28 +407,6 @@
   "today": false
  },
  {
-  "slug": "KOSPI",
-  "sym": "KOSPI",
-  "ko": "코스피",
-  "market": "index",
-  "date": "2026-11-24",
-  "verdict": "상승",
-  "votes": "52개 모델 중 상승 39 · 하락 7",
-  "rank": null,
-  "today": false
- },
- {
-  "slug": "KOSDAQ",
-  "sym": "KOSDAQ",
-  "ko": "코스닥",
-  "market": "index",
-  "date": "2026-11-24",
-  "verdict": "상승",
-  "votes": "52개 모델 중 상승 27 · 하락 11",
-  "rank": null,
-  "today": false
- },
- {
   "slug": "1INCH",
   "sym": "1INCH",
   "ko": "1인치네트워크",
@@ -415,17 +459,6 @@
   "verdict": "상승",
   "votes": "52개 모델 중 34개가 상승",
   "rank": 2,
-  "today": false
- },
- {
-  "slug": "TIGER미국테크TOP10",
-  "sym": "TIGER미국테크TOP10",
-  "ko": "",
-  "market": "kospi",
-  "date": "2026-11-21",
-  "verdict": "상승",
-  "votes": "52개 모델 중 35개가 상승",
-  "rank": 4,
   "today": false
  },
  {
@@ -514,17 +547,6 @@
   "verdict": "상승",
   "votes": "52개 모델 중 39개가 상승",
   "rank": 4,
-  "today": false
- },
- {
-  "slug": "KODEXWTI원유선물H",
-  "sym": "KODEXWTI원유선물H",
-  "ko": "",
-  "market": "kospi",
-  "date": "2026-11-20",
-  "verdict": "상승",
-  "votes": "52개 모델 중 41개가 상승",
-  "rank": 1,
   "today": false
  },
  {
