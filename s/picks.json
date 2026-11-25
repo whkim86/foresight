@@ -180,11 +180,11 @@
   "sym": "NVDA",
   "ko": "엔비디아",
   "market": "nasdaq",
-  "date": "2026-11-19",
+  "date": "2026-11-25",
   "verdict": "상승",
-  "votes": "52개 모델 중 상승 36 · 하락 8",
+  "votes": "52개 모델 중 상승 36 · 하락 13",
   "rank": null,
-  "today": false
+  "today": true
  },
  {
   "slug": "SK하이닉스",
