@@ -202,9 +202,9 @@
   "sym": "005930",
   "ko": "삼성전자",
   "market": "kospi",
-  "date": "2026-11-26",
+  "date": "2026-11-28",
   "verdict": "혼돈",
-  "votes": "52개 모델 중 상승 22 · 하락 18",
+  "votes": "52개 모델 중 상승 26 · 하락 17",
   "rank": null,
   "today": true
  },
@@ -217,7 +217,7 @@
   "verdict": "혼돈",
   "votes": "52개 모델 중 상승 29 · 하락 8",
   "rank": null,
-  "today": true
+  "today": false
  },
  {
   "slug": "SP500",
